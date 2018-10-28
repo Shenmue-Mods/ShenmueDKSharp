@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2036
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShenmueDKSharp", "ShenmueDKSharp.csproj", "{68CA6FDA-E029-4247-9229-C3A75DFA9F8D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{68CA6FDA-E029-4247-9229-C3A75DFA9F8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68CA6FDA-E029-4247-9229-C3A75DFA9F8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68CA6FDA-E029-4247-9229-C3A75DFA9F8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68CA6FDA-E029-4247-9229-C3A75DFA9F8D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5B02884E-4D66-46C9-84C0-5A105E7D20D5}
+	EndGlobalSection
+EndGlobal
