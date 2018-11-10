@@ -12,6 +12,11 @@ namespace ShenmueDKSharp.Files.Containers
     {
         private readonly static Encoding m_shiftJis = Encoding.GetEncoding("shift_jis");
 
+        public readonly static List<string> Extensions = new List<string>()
+        {
+            "IDX"
+        };
+
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
         {
             new byte[] { 0x49, 0x44, 0x58, 0x30 }, //IDX0
@@ -75,7 +80,6 @@ namespace ShenmueDKSharp.Files.Containers
 
             if (Type == IDXType.HUMANS)
             {
-                throw new NotImplementedException();
                 reader.BaseStream.Seek(-4, SeekOrigin.Current);
                 EntryCount = reader.ReadUInt16();
             }
@@ -111,14 +115,21 @@ namespace ShenmueDKSharp.Files.Containers
             if (Type == IDXType.HUMANS)
             {
                 uint fileCount = EntryCount;
-                for (int i = 0; i < fileCount; i++)
+                for (int i = 0; i < fileCount; i += 2)
                 {
-                    IDXEntry entry = new IDXEntry();
-                    entry.AFSIndex = (ushort)i;
+                    IDXEntry entryPKF = new IDXEntry();
+                    entryPKF.AFSIndex = (ushort)i;
                     byte[] buffer = new byte[4];
                     reader.Read(buffer, 0, 4);
-                    entry.Filename = Encoding.ASCII.GetString(buffer).Replace("\0", "");
-                    Entries.Add(entry);
+                    entryPKF.Filename = Encoding.ASCII.GetString(buffer).Replace("\0", "");
+                    Entries.Add(entryPKF);
+
+                    //Add entry two times (for PKF and PKS)
+
+                    IDXEntry entryPKS = new IDXEntry();
+                    entryPKS.AFSIndex = (ushort)(i + 1);
+                    entryPKS.Filename = Encoding.ASCII.GetString(buffer).Replace("\0", "");
+                    Entries.Add(entryPKS); 
                 }
             }
             else if (Type == IDXType.IDXD)

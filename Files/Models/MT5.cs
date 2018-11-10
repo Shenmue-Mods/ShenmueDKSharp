@@ -15,6 +15,11 @@ namespace ShenmueDKSharp.Files.Models
     /// </summary>
     public class MT5 : BaseModel
     {
+        public readonly static List<string> Extensions = new List<string>()
+        {
+            "MT5"
+        };
+
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
         {
             new byte[4] { 0x48, 0x52, 0x43, 0x4D } //HRCM
@@ -38,6 +43,14 @@ namespace ShenmueDKSharp.Files.Models
         public uint TextureOffset;
         public uint FirstNodeOffset;
 
+        public MT5(string filepath)
+        {
+            Read(filepath);
+        }
+        public MT5(Stream stream)
+        {
+            Read(stream);
+        }
         public MT5(BinaryReader reader)
         {
             Read(reader);

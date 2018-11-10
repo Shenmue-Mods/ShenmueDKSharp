@@ -49,7 +49,7 @@ namespace ShenmueDKSharp.Files
 
         public void Write(string filepath)
         {
-            using (FileStream stream = File.Open(filepath, FileMode.Open))
+            using (FileStream stream = File.Open(filepath, FileMode.Create))
             {
                 Write(stream);
             }

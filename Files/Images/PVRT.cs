@@ -89,7 +89,6 @@ namespace ShenmueDKSharp.Files.Images
             Read(br);
         }
 
-
         public override void Read(BinaryReader reader)
         {
             
@@ -161,6 +160,16 @@ namespace ShenmueDKSharp.Files.Images
             else
             {
                 throw new NotImplementedException();
+            }
+
+            Bitmap = new Bitmap(Width, Height);
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    Color4 col4 = Pixels[y * Width + x];
+                    Bitmap.SetPixel(x, y, System.Drawing.Color.FromArgb(col4.ToArgb()));
+                }
             }
         }
 

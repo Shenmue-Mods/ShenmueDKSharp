@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ShenmueDKSharp.Files.Images
 {
-    class TGA
+    public class JPEG
     {
     }
 }

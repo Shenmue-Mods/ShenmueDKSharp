@@ -35,7 +35,7 @@ namespace ShenmueDKSharp.Files.Containers
         }
 
         public uint Signature { get; set; }
-        public uint ContentOffset { get; set; }
+        public uint DictionaryOffset { get; set; }
         public uint FileCount { get; set; }
         public uint ContentSize { get; set; }
 
@@ -77,7 +77,7 @@ namespace ShenmueDKSharp.Files.Containers
             long baseOffset = reader.BaseStream.Length;
 
             Signature = reader.ReadUInt32();
-            ContentOffset = reader.ReadUInt32();
+            DictionaryOffset = reader.ReadUInt32();
             FileCount = reader.ReadUInt32();
             ContentSize = reader.ReadUInt32();
             Entries.Clear();
@@ -102,7 +102,7 @@ namespace ShenmueDKSharp.Files.Containers
         {
             long baseOffset = writer.BaseStream.Length;
 
-            uint offset = ContentOffset;
+            uint offset = DictionaryOffset;
             foreach (IPACEntry entry in Entries)
             {
                 entry.Offset = offset;
@@ -114,7 +114,7 @@ namespace ShenmueDKSharp.Files.Containers
             FileCount = (uint)Entries.Count;
 
             writer.Write(Signature);
-            writer.Write(ContentOffset);
+            writer.Write(DictionaryOffset);
             writer.Write(FileCount);
             writer.Write(ContentSize);
 

@@ -14,6 +14,11 @@ namespace ShenmueDKSharp.Files.Containers
     /// </summary>
     public class GZ : BaseFile
     {
+        public readonly static List<string> Extensions = new List<string>()
+        {
+            "GZ"
+        };
+
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
         {
             new byte[2] { 0x1f, 0x8b } //GZip Signature

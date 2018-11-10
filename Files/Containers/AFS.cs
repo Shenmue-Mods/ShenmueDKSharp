@@ -74,7 +74,7 @@ namespace ShenmueDKSharp.Files.Containers
 
         public void Read(BinaryReader reader)
         {
-            long baseOffset = reader.BaseStream.Length;
+            long baseOffset = reader.BaseStream.Position;
 
             Signature = reader.ReadUInt32();
             if (!IsValid(Signature))
@@ -105,16 +105,27 @@ namespace ShenmueDKSharp.Files.Containers
             }
             else
             {
-                reader.BaseStream.Seek(baseOffset + 0x0000800 - 8, SeekOrigin.Begin);
+                long offset = reader.BaseStream.Position + 0x0800 - (reader.BaseStream.Position % 0x0800);
+                reader.BaseStream.Seek(baseOffset + offset - 8, SeekOrigin.Begin);
                 FilenameSectionOffset = reader.ReadUInt32();
                 FilenameSectionSize = reader.ReadUInt32();
             }
 
             //read filename table
-            reader.BaseStream.Seek(baseOffset + FilenameSectionOffset, SeekOrigin.Begin);
-            for (int i = 0; i < FileCount; i++)
+            if (FilenameSectionOffset == 0)
             {
-                Entries[i].ReadFilename(reader);
+                for (int i = 0; i < FileCount; i++)
+                {
+                    Entries[i].Filename = "file_" + i;
+                }
+            }
+            else
+            {
+                reader.BaseStream.Seek(baseOffset + FilenameSectionOffset, SeekOrigin.Begin);
+                for (int i = 0; i < FileCount; i++)
+                {
+                    Entries[i].ReadFilename(reader);
+                }
             }
 
             //read file data
@@ -127,14 +138,16 @@ namespace ShenmueDKSharp.Files.Containers
 
         public void Write(BinaryWriter writer)
         {
-            long baseOffset = writer.BaseStream.Length;
+            long baseOffset = writer.BaseStream.Position;
 
             FileCount = (uint)Entries.Count;
             writer.Write(Signature);
             writer.Write(FileCount);
 
             //calculate offsets
-            uint startOffset = 0x0000800;
+            uint startOffset = 8 + FileCount * 16;
+            startOffset = startOffset + 0x0800 - (startOffset % 0x0800);
+
             if (FileCount > 1016)
             {
                 startOffset = 0x0008000;
@@ -189,6 +202,16 @@ namespace ShenmueDKSharp.Files.Containers
             }
         }
 
+        public void MapIDXFile(IDX idx)
+        {
+            for (int i = 0; i < idx.Entries.Count; i++)
+            {
+                IDX.IDXEntry entry = idx.Entries[i];
+                if (i >= Entries.Count) break;
+                Entries[i].IDXFilename = entry.Filename;
+            }
+        }
+
     }
 
     public class AFSEntry
@@ -202,6 +225,7 @@ namespace ShenmueDKSharp.Files.Containers
         public uint Offset { get; set; }
         public uint FileSize { get; set; }
         public string Filename { get; set; }
+        public string IDXFilename { get; set; }
 
         public ushort Year { get; set; }
         public ushort Month { get; set; }

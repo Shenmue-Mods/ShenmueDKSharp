@@ -15,6 +15,11 @@ namespace ShenmueDKSharp.Files.Containers
             "SPR"
         };
 
+        public readonly static List<byte[]> Identifiers = new List<byte[]>()
+        {
+            new byte[4] { 0x54, 0x45, 0x58, 0x4E } //TEXN
+        };
+
         public List<TEXN> Textures = new List<TEXN>();
 
         public SPR() { }

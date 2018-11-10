@@ -9,6 +9,16 @@ namespace ShenmueDKSharp.Files.Images
 {
     public class DDS : BaseImage
     {
+        public readonly static List<string> Extensions = new List<string>()
+        {
+            "DDS"
+        };
+
+        public readonly static List<byte[]> Identifiers = new List<byte[]>()
+        {
+            new byte[4] { 0x44, 0x44, 0x53, 0x20 }, //DDS 
+        };
+
         public override void Read(BinaryReader reader)
         {
             Dds image = Dds.Create(reader.BaseStream, new PfimConfig());

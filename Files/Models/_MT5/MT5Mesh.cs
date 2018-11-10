@@ -169,7 +169,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
                                 short vertIndex = reader.ReadInt16();
                                 while (vertIndex < 0)
                                 {
-                                    if (m_parentNode.MeshData == null)
+                                    if (m_parentNode == null || m_parentNode.MeshData == null)
                                     {
                                         vertIndex = (short)(vertIndex + VertexCount);
                                     }

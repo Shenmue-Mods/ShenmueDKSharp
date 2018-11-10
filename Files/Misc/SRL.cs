@@ -4,18 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShenmueDKSharp.Files.Images
+namespace ShenmueDKSharp.Files.Misc
 {
-    public class BMP
+    public class SRL
     {
-        public readonly static List<string> Extensions = new List<string>()
-        {
-            "BMP"
-        };
-
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
         {
-            new byte[2] { 0x42, 0x4D }, //BM
+            new byte[4] { 0x53, 0x43, 0x52, 0x30 } //SCR0
         };
     }
 }
