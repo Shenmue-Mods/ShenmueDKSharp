@@ -50,7 +50,7 @@ For more informations about the file formats see the [wiki](https://github.com/p
 | ------------- | ------------- | ------------- | ------------- | ------------- |
 | SRF | :x: | :x: | Cinematic subtitles file | |
 | FONTDEF | :x: | :x: | Font definition file | |
-| SUB | :x: | :x: | Subtitles file | |
+| SUB | :heavy_check_mark: | :heavy_check_mark: | Subtitles file | |
 | GLYPHS | :x: | :x: | Font glyph file | |
 | FON | :x: | :x: | Disk font file | |
 

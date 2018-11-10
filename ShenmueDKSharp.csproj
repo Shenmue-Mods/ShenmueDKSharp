@@ -63,6 +63,9 @@
     <Compile Include="Files\Containers\SPR.cs" />
     <Compile Include="Files\Containers\TAD.cs" />
     <Compile Include="Files\FileHelper.cs" />
+    <Compile Include="Files\Images\BMP.cs" />
+    <Compile Include="Files\Images\JPEG.cs" />
+    <Compile Include="Files\Images\PNG.cs" />
     <Compile Include="Files\Images\_DDS\Bc5Dds.cs" />
     <Compile Include="Files\Images\_DDS\Color888.cs" />
     <Compile Include="Files\Images\_DDS\CompressedDds.cs" />
@@ -83,7 +86,12 @@
     <Compile Include="Files\Images\_DDS\UncompressedDds.cs" />
     <Compile Include="Files\Images\_DDS\Util.cs" />
     <Compile Include="Files\Misc\AUTH.cs" />
+    <Compile Include="Files\Misc\CHRM.cs" />
+    <Compile Include="Files\Misc\CHRT.cs" />
     <Compile Include="Files\Misc\DYNM.cs" />
+    <Compile Include="Files\Misc\MAPM.cs" />
+    <Compile Include="Files\Misc\SRL.cs" />
+    <Compile Include="Files\Misc\WDAT.cs" />
     <Compile Include="Files\Misc\_MAPINFO\ECAM.cs" />
     <Compile Include="Files\Misc\FLDD.cs" />
     <Compile Include="Files\Misc\IWAD.cs" />

@@ -40,7 +40,7 @@ namespace ShenmueDKSharp.Files
             if (GZ.IsValid(buffer)) return typeof(GZ);
             if (TEXN.IsValid(buffer)) return typeof(TEXN);
             if (MT5.IsValid(buffer)) return typeof(MT5);
-            if (MT7.IsValidIdentifier(buffer)) return typeof(MT7);
+            if (MT7.IsValid(buffer)) return typeof(MT7);
 
             return null;
         }
