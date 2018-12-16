@@ -6,13 +6,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShenmueDKSharp.Files.Misc
+namespace ShenmueDKSharp.Files.Tokens
 {
-    public class ECAM : BaseFile
+    /// <summary>
+    /// Camera sequence stuff?
+    /// </summary>
+    public class FLDD : BaseFile
     {
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
         {
-            new byte[4] { 0x45, 0x43, 0x41, 0x4D } //ECAM
+            new byte[4] { 0x46, 0x4C, 0x44, 0x44 } //FLDD
         };
 
         public static bool IsValid(uint identifier)
@@ -33,7 +36,7 @@ namespace ShenmueDKSharp.Files.Misc
         public uint Size;
         public string Name;
 
-        public ECAM() { }
+        public FLDD() { }
 
         public override void Read(Stream stream)
         {

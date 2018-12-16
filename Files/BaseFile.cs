@@ -8,6 +8,9 @@ using System.Text;
 namespace ShenmueDKSharp.Files
 {
 
+    /// <summary>
+    /// Base class for all files and nodes
+    /// </summary>
     public abstract class BaseFile
     {
         private string m_filename = "";

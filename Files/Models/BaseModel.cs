@@ -2,7 +2,9 @@
 using ShenmueDKSharp.Graphics;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -31,6 +33,13 @@ namespace ShenmueDKSharp.Files.Models
             RootNode.GenerateTree(null);
             return RootNode;
         }
+
+        public void CopyTo(BaseModel model)
+        {
+            model.RootNode = RootNode;
+            model.Textures = Textures;
+        }
+
     }
 
     /// <summary>
@@ -306,7 +315,7 @@ namespace ShenmueDKSharp.Files.Models
     /// </summary>
     public class Vertex
     {
-        private enum DataFlags
+        public enum DataFlags
         {
             Vertex = 1,
             Normal = 2,
@@ -567,6 +576,26 @@ namespace ShenmueDKSharp.Files.Models
                 result[index++] = Color.W;
             }
             return result;
+        }
+
+        public bool HasVertex()
+        {
+            return ((DataFlags)Format & DataFlags.Vertex) != 0;
+        }
+
+        public bool HasNormal()
+        {
+            return ((DataFlags)Format & DataFlags.Normal) != 0;
+        }
+
+        public bool HasUV()
+        {
+            return ((DataFlags)Format & DataFlags.UV) != 0;
+        }
+
+        public bool HasColor()
+        {
+            return ((DataFlags)Format & DataFlags.Color) != 0;
         }
 
         public static VertexFormat GetFormat(uint stride)

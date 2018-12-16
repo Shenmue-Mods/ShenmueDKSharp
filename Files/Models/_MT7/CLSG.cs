@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace ShenmueDKSharp.Files.Models._MT7
 {
+    /// <summary>
+    /// TODO
+    /// </summary>
     public class CLSG
     {
         public readonly static List<byte[]> Identifiers = new List<byte[]>()

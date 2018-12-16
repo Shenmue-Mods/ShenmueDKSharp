@@ -9,6 +9,10 @@ using System.Threading.Tasks;
 
 namespace ShenmueDKSharp.Files.Misc
 {
+    /// <summary>
+    /// Texture entry
+    /// </summary>
+    /// <seealso cref="ShenmueDKSharp.Files.BaseFile" />
     public class TEXN : BaseFile
     {
         private static Encoding m_shiftJis = Encoding.GetEncoding("shift_jis");

@@ -11,8 +11,9 @@ using System.Threading.Tasks;
 namespace ShenmueDKSharp.Files.Models
 {
     /// <summary>
-    /// MT7 model.
-    /// MDCX/7, MDPX/7, MDOX/7 and MDLX/7
+    /// MT7 model for Shenmue II.
+    /// Used for reading MT7, MAPM, PROP and CHRM files from Shenmue II.
+    /// MDCX/7, MDPX/7, MDOX/7 and MDLX/7 tokens.
     /// </summary>
     public class MT7 : BaseModel
     {

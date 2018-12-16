@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 
 namespace ShenmueDKSharp.Files.Misc
 {
+    /// <summary>
+    /// Map information file containing various tokens.
+    /// </summary>
+    /// <seealso cref="ShenmueDKSharp.Files.BaseFile" />
     public class MAPINFO : BaseFile
     {
         public override void Read(Stream stream)

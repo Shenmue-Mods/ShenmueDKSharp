@@ -10,8 +10,9 @@ using System.Threading.Tasks;
 namespace ShenmueDKSharp.Files.Models
 {
     /// <summary>
-    /// MT5 model.
-    /// HRCM.
+    /// MT5 model for Shenmue I.
+    /// Used for reading MT5 files from Shenmue II.
+    /// HRCM token.
     /// </summary>
     public class MT5 : BaseModel
     {

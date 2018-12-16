@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShenmueDKSharp.Files.Misc
+namespace ShenmueDKSharp.Files.Tokens
 {
     public class CHRM
     {

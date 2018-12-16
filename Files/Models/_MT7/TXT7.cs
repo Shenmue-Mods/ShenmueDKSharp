@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 
 namespace ShenmueDKSharp.Files.Models._MT7
 {
+    /// <summary>
+    /// Embedded texture section from MT7 which holds PVRT entries.
+    /// </summary>
     public class TXT7
     {
         public readonly static List<byte[]> Identifiers = new List<byte[]>()

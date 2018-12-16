@@ -90,6 +90,12 @@ namespace ShenmueDKSharp
         /// <summary>Returns true if the Half represents negative infinity.</summary>
         public bool IsNegativeInfinity { get { return (bits == 64512); } }
 
+        public Half(BinaryReader br)
+            : this()
+        {
+            this.bits = br.ReadUInt16();
+        }
+
         /// <summary>
         /// The new Half instance will convert the parameter into 16-bit half-precision floating-point.
         /// </summary>

@@ -6,16 +6,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShenmueDKSharp.Files.Misc
+namespace ShenmueDKSharp.Files.Tokens._FLDD
 {
     /// <summary>
-    /// Camera sequence stuff?
+    /// Defines props inside an MAPINFO file.
+    /// Not the same as the files with the PROP extension (these are actually MT7 files)!
     /// </summary>
-    public class FLDD : BaseFile
+    public class PROP : BaseFile
     {
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
         {
-            new byte[4] { 0x46, 0x4C, 0x44, 0x44 } //FLDD
+            new byte[4] { 0x50, 0x52, 0x4F, 0x50 } //PROP
         };
 
         public static bool IsValid(uint identifier)
@@ -32,11 +33,23 @@ namespace ShenmueDKSharp.Files.Misc
             return false;
         }
 
+        public uint Offset;
+        private uint ContentOffset;
+
         public uint Identifier;
         public uint Size;
-        public string Name;
+        public uint FooterOffset;
 
-        public FLDD() { }
+        public uint PositionsOffset;
+        public uint FloatsOffset1;
+        public uint Offset3;
+        public uint Offset4;
+        public uint Offset5;
+        public uint Offset6;
+        public uint Offset7;
+        public uint Offset8;
+
+        public PROP() { }
 
         public override void Read(Stream stream)
         {
@@ -56,15 +69,28 @@ namespace ShenmueDKSharp.Files.Misc
 
         public void Read(BinaryReader reader)
         {
+            Offset = (uint)reader.BaseStream.Position;
             Identifier = reader.ReadUInt32();
             Size = reader.ReadUInt32();
-            Name = new String(reader.ReadChars(4));
 
+            ContentOffset = (uint)reader.BaseStream.Position;
+            FooterOffset = reader.ReadUInt32();
+
+            reader.BaseStream.Seek(FooterOffset + ContentOffset, SeekOrigin.Begin);
+
+            PositionsOffset = reader.ReadUInt32();
+            FloatsOffset1 = reader.ReadUInt32();
+            Offset3 = reader.ReadUInt32();
+            Offset4 = reader.ReadUInt32();
+            Offset5 = reader.ReadUInt32();
+            Offset6 = reader.ReadUInt32();
+            Offset7 = reader.ReadUInt32();
+            Offset8 = reader.ReadUInt32();
         }
 
         public void Write(BinaryWriter writer)
         {
-
+            throw new NotImplementedException();
         }
     }
 }

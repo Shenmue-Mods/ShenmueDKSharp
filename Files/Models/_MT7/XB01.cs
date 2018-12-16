@@ -11,7 +11,7 @@ using static ShenmueDKSharp.Files.Models.Vertex;
 namespace ShenmueDKSharp.Files.Models._MT7
 {
     /// <summary>
-    /// Mesh data
+    /// Mesh data for the MT7 format which holds the vertices, triangle strips and material data.
     /// </summary>
     public class XB01
     {

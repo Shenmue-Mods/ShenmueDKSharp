@@ -8,6 +8,10 @@ using System.Threading.Tasks;
 
 namespace ShenmueDKSharp.Files.Subtitles
 {
+    /// <summary>
+    /// Subtitle file for all the dialogs in Shenmue I and II.
+    /// </summary>
+    /// <seealso cref="ShenmueDKSharp.Files.BaseFile" />
     public class SUB : BaseFile
     {
         public readonly static List<string> Extensions = new List<string>()

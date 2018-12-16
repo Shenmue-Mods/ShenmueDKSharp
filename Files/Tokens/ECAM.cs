@@ -6,13 +6,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShenmueDKSharp.Files.Misc
+namespace ShenmueDKSharp.Files.Tokens
 {
-    public class LGHT : BaseFile
+    /// <summary>
+    /// Camera stuff token (can also be a standalone file)
+    /// </summary>
+    /// <seealso cref="ShenmueDKSharp.Files.BaseFile" />
+    public class ECAM : BaseFile
     {
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
         {
-            new byte[4] { 0x4C, 0x47, 0x48, 0x54 } //LGHT
+            new byte[4] { 0x45, 0x43, 0x41, 0x4D } //ECAM
         };
 
         public static bool IsValid(uint identifier)
@@ -33,7 +37,7 @@ namespace ShenmueDKSharp.Files.Misc
         public uint Size;
         public string Name;
 
-        public LGHT() { }
+        public ECAM() { }
 
         public override void Read(Stream stream)
         {
