@@ -1,6 +1,7 @@
 ﻿using ShenmueDKSharp.Graphics;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -24,6 +25,21 @@ namespace ShenmueDKSharp.Files.Images
         public int Height { get; set; }
         public Color4[] Pixels { get; set; }
         public int DataSize { get; set; }
+        public Bitmap Bitmap { get; set; }
+
+        public Bitmap CreateBitmap()
+        {
+            Bitmap bitmap = new Bitmap(Width, Height);
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    Color4 col4 = Pixels[y * Width + x];
+                    bitmap.SetPixel(x, y, System.Drawing.Color.FromArgb(col4.ToArgb()));
+                }
+            }
+            return bitmap;
+        }
 
         public override void Read(Stream stream)
         {

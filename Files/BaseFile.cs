@@ -52,6 +52,8 @@ namespace ShenmueDKSharp.Files
 
         public void Write(string filepath)
         {
+            FilePath = filepath;
+            FileName = Path.GetFileName(filepath);
             using (FileStream stream = File.Open(filepath, FileMode.Create))
             {
                 Write(stream);

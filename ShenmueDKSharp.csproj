@@ -87,6 +87,7 @@
     <Compile Include="Files\Images\_DDS\Util.cs" />
     <Compile Include="Files\Misc\AUTH.cs" />
     <Compile Include="Files\Models\OBJ.cs" />
+    <Compile Include="Files\Models\_OBJ\MTL.cs" />
     <Compile Include="Files\Tokens\CHRD.cs" />
     <Compile Include="Files\Tokens\CHRM.cs" />
     <Compile Include="Files\Misc\CHRT.cs" />

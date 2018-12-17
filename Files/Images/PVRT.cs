@@ -71,7 +71,6 @@ namespace ShenmueDKSharp.Files.Images
             SQUARE_TWIDDLED_MIPMAP_2 = 0x12,
         }
 
-        public Bitmap Bitmap;
         public bool HasGBIX = false;
         public uint GBIXSize;
         public byte[] GBIXContent;
