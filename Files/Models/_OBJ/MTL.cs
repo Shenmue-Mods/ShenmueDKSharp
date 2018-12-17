@@ -62,13 +62,13 @@ namespace ShenmueDKSharp.Files.Models._OBJ
                 Texture texture = Model.Textures[i];
 
                 writer.Write(String.Format("newmtl mat_{0}\n", i));
-                writer.Write("  Ka 1.000 1.000 1.000\n");
-                writer.Write("  Kd 1.000 1.000 1.000\n");
-                writer.Write("  Ks 0.000 0.000 0.000\n");
-                writer.Write("  d 1.0\n");
-                writer.Write("  illum 2\n");
+                writer.Write("Ka 1.000 1.000 1.000\n");
+                writer.Write("Kd 1.000 1.000 1.000\n");
+                writer.Write("Ks 0.000 0.000 0.000\n");
+                writer.Write("d 1.0\n");
+                writer.Write("illum 2\n");
 
-                string textureName = String.Format("tex\\tex_{0}.bmp", i);
+                string textureName = String.Format("tex_{0}.bmp", i);
                 if (String.IsNullOrEmpty(FilePath))
                 {
                     //TODO: Make this somehow better
@@ -92,7 +92,7 @@ namespace ShenmueDKSharp.Files.Models._OBJ
                         fs.Write(bytes, 0, bytes.Length);
                     }
                 }
-                writer.Write(String.Format("  map_Kd {0}\n", textureName));
+                writer.Write(String.Format("map_Kd {0}\n\n", textureName));
             }
         }
 
