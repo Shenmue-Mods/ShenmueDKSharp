@@ -36,8 +36,9 @@ namespace ShenmueDKSharp.Files.Models
 
         public void CopyTo(BaseModel model)
         {
-            model.RootNode = RootNode;
+            //BaseModel copy = this.Copy();
             model.Textures = Textures;
+            model.RootNode = RootNode;
         }
 
     }
@@ -256,7 +257,7 @@ namespace ShenmueDKSharp.Files.Models
                     result[i] = null;
                     continue;
                 }
-                result[i] = vertices[VertexIndices[i]];
+                result[i] = vertices[VertexIndices[i]].Copy();
 
                 if (UVs.Count > 0)
                 {
@@ -315,7 +316,7 @@ namespace ShenmueDKSharp.Files.Models
     /// </summary>
     public class Vertex
     {
-        public enum DataFlags
+        private enum DataFlags
         {
             Vertex = 1,
             Normal = 2,

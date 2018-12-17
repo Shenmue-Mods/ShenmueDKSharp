@@ -34,7 +34,7 @@ namespace ShenmueDKSharp.Files.Models._MT7
         }
 
         public uint Token;
-        public Matrix4x4 Matrix;
+        public Matrix4x4 Matrix; //TODO: cleanup with OpenTK matrix4
         public uint EntryCount;
         List<NodeMDEntry> Entries = new List<NodeMDEntry>();
 

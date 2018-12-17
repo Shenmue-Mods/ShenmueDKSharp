@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace ShenmueDKSharp.Files.Tokens
 {
-    class SNDP
+    /// <summary>
+    /// Sound program section
+    /// </summary>
+    public class SNDP
     {
     }
 }

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace ShenmueDKSharp.Files.Tokens
 {
     /// <summary>
-    /// Light definitions
+    /// Light definitions section
     /// </summary>
     /// <seealso cref="ShenmueDKSharp.Files.BaseFile" />
     public class LGHT : BaseFile

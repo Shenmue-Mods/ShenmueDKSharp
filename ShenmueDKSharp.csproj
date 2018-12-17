@@ -211,6 +211,7 @@
     <Compile Include="Utils\Helper.cs" />
     <Compile Include="Utils\MurmurHash2.cs" />
     <Compile Include="Utils\NodeParser.cs" />
+    <Compile Include="Utils\ObjectExtensions.cs" />
     <Compile Include="Utils\Wulinshu.cs" />
   </ItemGroup>
   <ItemGroup>
