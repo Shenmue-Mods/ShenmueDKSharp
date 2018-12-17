@@ -93,6 +93,15 @@ namespace ShenmueDKSharp.Files.Models
                             Console.WriteLine("vn {0:F6} {1:F6} {2:F6}", vertices[i].NormX, vertices[i].NormY, vertices[i].NormZ);
                         }
                     }
+
+                    if (vertices[0].HasUV())
+                    {
+                        for (int i = 0; i < vertices.Length; i++)
+                        {
+                            Console.WriteLine("vt {0:F6} {1:F6}", vertices[i].U, vertices[i].V);
+                        }
+                    }
+
                     if (face.Type == MeshFace.PrimitiveType.Triangles)
                     {
                         for (int i = 1; i < face.VertexIndices.Length + 1; i += 3)
