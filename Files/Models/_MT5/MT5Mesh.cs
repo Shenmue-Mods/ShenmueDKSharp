@@ -72,7 +72,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
 
             Offset = (uint)reader.BaseStream.Position;
 
-            Console.WriteLine("MeshOffset: {0}", Offset);
+            //Console.WriteLine("MeshOffset: {0}", Offset);
 
             PolyType = reader.ReadUInt32();
             VerticesOffset = reader.ReadUInt32();
@@ -96,6 +96,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
             {
                 ushort stripType = reader.ReadUInt16();
                 if ((MT5MeshEntryType)stripType == MT5MeshEntryType.End) break;
+                
+                //Console.WriteLine("StripType: {0}", (MT5MeshEntryType)stripType);
 
                 switch ((MT5MeshEntryType)stripType)
                 {
@@ -116,12 +118,17 @@ namespace ShenmueDKSharp.Files.Models._MT5
 
                     case MT5MeshEntryType.Unknown_0B00:
                         unknown_0B00 = reader.ReadUInt16();
+                        //Console.WriteLine("0B00: {0:X}", unknown_0B00);
                         continue;
 
                     case MT5MeshEntryType.Unknown_0200:
                     case MT5MeshEntryType.Unknown_0300:
                         uint size = reader.ReadUInt16();
                         long offset = reader.BaseStream.Position;
+
+                        //first byte controls uv
+                        uint unknown = reader.ReadUInt32();
+                        //Console.WriteLine("0200/0300: {0:X}", unknown);
 
                         if (size / 2 > 0)
                         {
@@ -145,9 +152,27 @@ namespace ShenmueDKSharp.Files.Models._MT5
                     case MT5MeshEntryType.Strip_1A00:
                     case MT5MeshEntryType.Strip_1B00:
                     case MT5MeshEntryType.Strip_1C00:
-                        //ignoring some stuff that d3t did like the bit mask and below 0x001C check
 
-                        reader.BaseStream.Seek(2, SeekOrigin.Current);
+                        bool hasUV = false;
+                        bool hasColor = false;
+                        if ((MT5MeshEntryType)stripType == MT5MeshEntryType.Strip_1200 ||
+                            (MT5MeshEntryType)stripType == MT5MeshEntryType.Strip_1A00)
+                        {
+                            hasColor = true;
+                        }
+                        if ((MT5MeshEntryType)stripType == MT5MeshEntryType.Strip_1100 ||
+                            (MT5MeshEntryType)stripType == MT5MeshEntryType.Strip_1900)
+                        {
+                            hasUV = true;
+                        }
+                        if ((MT5MeshEntryType)stripType == MT5MeshEntryType.Strip_1400 ||
+                            (MT5MeshEntryType)stripType == MT5MeshEntryType.Strip_1C00)
+                        {
+                            hasUV = true;
+                            hasColor = true;
+                        }
+
+                        reader.BaseStream.Seek(2, SeekOrigin.Current); //d3t skips this short value
                         ushort stripCount = reader.ReadUInt16();
                         if (stripCount == 0) continue;
             
@@ -181,9 +206,9 @@ namespace ShenmueDKSharp.Files.Models._MT5
                                 }
                                 face.VertexIndices[j] = (ushort)vertIndex;
 
-                                float u = 0.0f;
-                                float v = 0.0f;
-                                if (stripType > 0x0010)
+                                float u = -1.0f;
+                                float v = -1.0f;
+                                if (hasUV)
                                 {
                                     short texU = reader.ReadInt16();
                                     short texV = reader.ReadInt16();
@@ -198,13 +223,14 @@ namespace ShenmueDKSharp.Files.Models._MT5
                                 byte g = 255;
                                 byte r = 255;
                                 byte a = 255;
-                                if (stripType > 0x0011)
+                                if (hasColor)
                                 {
                                     //BGRA (8888) 32BPP
                                     b = reader.ReadByte();
                                     g = reader.ReadByte();
                                     r = reader.ReadByte();
                                     a = reader.ReadByte();
+                                    //Console.WriteLine("R:{0} G:{1} B:{2} A:{3}", r, g, b, a);
                                 }
 
                                 //always add uv's and color like d3t did
