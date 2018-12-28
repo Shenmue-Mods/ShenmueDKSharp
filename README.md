@@ -49,9 +49,9 @@ For more informations about the file formats see the [wulinshu wiki](https://wul
 | ------------- | ------------- | ------------- | ------------- | ------------- |
 | PVRT | :large_orange_diamond: | :large_orange_diamond: | PowerVR Texture | Not all formats working but enough for MT5 and MT7 |
 | DDS | :large_orange_diamond: | :large_orange_diamond: | DirectDraw_Surface | Only reads first mipmap |
-| JPEG | :heavy_check_mark: | :heavy_check_mark: | JPEG format |  |
-| BMP | :heavy_check_mark: | :heavy_check_mark: | Bitmap format |  |
-| PNG | :heavy_check_mark: | :heavy_check_mark: | PNG format |  |
+| JPEG | :x: | :x: | JPEG format |  |
+| BMP | :x: | :x: | Bitmap format |  |
+| PNG | :x: | :x: | PNG format |  |
 
 #### PVR color formats
 
