@@ -11,7 +11,7 @@ How to contribute:
 
 ## Usage
 Model reading example:
-```c-sharp
+```csharp
 using ShenmueDKSharp;
 using ShenmueDKSharp.Files.Models;
 	 
@@ -27,6 +27,7 @@ public void ReadMT7(string filename)
   }
 }
 ```
+See the [github wiki](https://github.com/philyeahz/ShenmueDKSharp/wiki) for more examples.
 
 ## File Formats
 For more informations about the file formats see the [wulinshu wiki](https://wulinshu.com/wiki/index.php/Main_Page).
