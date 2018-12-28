@@ -155,7 +155,7 @@ namespace ShenmueDKSharp.Files.Containers
             using (FileStream stream = File.Create(tacFilepath))
             {
                 FileCount = 0;
-                foreach (TADEntry entry in Entries)
+                foreach (TADEntry entry in entries)
                 {
                     FileCount++;
                     if (String.IsNullOrEmpty(entry.FilePath))

@@ -20,6 +20,7 @@ namespace ShenmueDKSharp.Files.Models
         public OBJ(BaseModel model)
         {
             model.CopyTo(this);
+            FilePath = Path.ChangeExtension(model.FilePath, "obj");
         }
         public OBJ(string filepath)
         {
