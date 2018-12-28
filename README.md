@@ -1,3 +1,4 @@
+
 # Shenmue Developer Kit for C#
 Shenmue I & II HD Modding SDK for C#
 
@@ -53,6 +54,7 @@ For more informations about the file formats see the [wulinshu wiki](https://wul
 | PNG | :heavy_check_mark: | :heavy_check_mark: | PNG format |  |
 
 #### PVR color formats
+
 | Value | Name | Read | Write | Description | Notes |
 | -------------| ------------- | ------------- | ------------- | ------------- | ------------- |
 | 0x00 | ARGB1555 | :heavy_check_mark: | :heavy_check_mark: | Format consisting of one bit of alpha value and five bits of RGB values. |  |
@@ -67,8 +69,9 @@ For more informations about the file formats see the [wulinshu wiki](https://wul
 | 0x81 | DDS_RGBA32 | :heavy_check_mark: | :x: | RGBA32 format |  |
 
 #### PVR data formats
-| Value | Name| Read | Write | Notes |
-| ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |
+
+| Value | Name | Read | Write | Notes |
+| ------------- | ------------- | ------------- | ------------- | ------------- |
 | 0x01 | SQUARE_TWIDDLED | :heavy_check_mark: | :heavy_check_mark: |  |
 | 0x02 | SQUARE_TWIDDLED_MIPMAP | :x: | :x: |  |
 | 0x03 | VECTOR_QUANTIZATION | :heavy_check_mark: | :x: |  |
@@ -79,7 +82,7 @@ For more informations about the file formats see the [wulinshu wiki](https://wul
 | 0x08 | PALETTIZE_8BIT_MIPMAP | :x: | :x: | Not needed |
 | 0x09 | RECTANGLE | :heavy_check_mark: | :x: |  |
 | 0x0A | RECTANGLE_MIPMAP | :x: | :x: | Reserved: Can't use. |
-| 0x0B | RECTANGLE_STRIDE | :heavy_check_mark: | :x: |
+| 0x0B | RECTANGLE_STRIDE | :heavy_check_mark: | :x: |  |
 | 0x0C | RECTANGLE_STRIDE_MIPMAP | :x: | :x: |Reserved: Can't use. |
 | 0x0D | RECTANGLE_TWIDDLED | :heavy_check_mark: | :x: | Should not be supported  |
 | 0x0E | BMP | :x: | :x: | Converted to Twiddled |
