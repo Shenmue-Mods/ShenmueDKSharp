@@ -40,6 +40,7 @@
     <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\portable-net45+win8+wp8+wpa81\System.Numerics.Vectors.dll</HintPath>
     </Reference>
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Windows" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
@@ -51,6 +52,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Extensions\BinaryWriterExtensions.cs" />
     <Compile Include="Files\Audio\SND.cs" />
     <Compile Include="Files\Audio\XWMA.cs" />
     <Compile Include="Files\BaseFile.cs" />
@@ -85,8 +87,11 @@
     <Compile Include="Files\Images\_DDS\TargetFormat.cs" />
     <Compile Include="Files\Images\_DDS\UncompressedDds.cs" />
     <Compile Include="Files\Images\_DDS\Util.cs" />
+    <Compile Include="Files\Images\_PVRT\PVPL.cs" />
     <Compile Include="Files\Misc\AUTH.cs" />
     <Compile Include="Files\Models\OBJ.cs" />
+    <Compile Include="Files\Models\_MT5\PTRL.cs" />
+    <Compile Include="Files\Models\_MT5\TEXL.cs" />
     <Compile Include="Files\Models\_OBJ\MTL.cs" />
     <Compile Include="Files\Tokens\CHRD.cs" />
     <Compile Include="Files\Tokens\CHRM.cs" />
@@ -142,6 +147,7 @@
     <Compile Include="Files\Tokens\_SNDP\SNDR.cs" />
     <Compile Include="Files\Tokens\_SNDP\_SNDM\SBTS.cs" />
     <Compile Include="Files\Tokens\_SNDP\_SNDM\SMAP.cs" />
+    <Compile Include="Files\UnknownFile.cs" />
     <Compile Include="Graphics\Color4.cs" />
     <Compile Include="Files\Images\BaseImage.cs" />
     <Compile Include="Files\Images\DDS.cs" />
@@ -209,10 +215,13 @@
     <Compile Include="Files\Subtitles\GLYPHS.cs" />
     <Compile Include="Files\Subtitles\SRF.cs" />
     <Compile Include="Files\Subtitles\SUB.cs" />
+    <Compile Include="Extensions\BinaryReaderExtensions.cs" />
     <Compile Include="Utils\Helper.cs" />
+    <Compile Include="Extensions\MathExtensions.cs" />
     <Compile Include="Utils\MurmurHash2.cs" />
     <Compile Include="Utils\NodeParser.cs" />
-    <Compile Include="Utils\ObjectExtensions.cs" />
+    <Compile Include="Extensions\ObjectExtensions.cs" />
+    <Compile Include="Utils\SimpleJSON.cs" />
     <Compile Include="Utils\Wulinshu.cs" />
   </ItemGroup>
   <ItemGroup>

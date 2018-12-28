@@ -16,6 +16,9 @@ namespace ShenmueDKSharp.Files.Models
     /// </summary>
     public class MT5 : BaseModel
     {
+        public static bool EnableBuffering = true;
+        public override bool BufferingEnabled => EnableBuffering;
+
         public readonly static List<string> Extensions = new List<string>()
         {
             "MT5"
@@ -35,7 +38,7 @@ namespace ShenmueDKSharp.Files.Models
         {
             for (int i = 0; i < Identifiers.Count; i++)
             {
-                if (Helper.CompareSignature(Identifiers[i], identifier)) return true;
+                if (FileHelper.CompareSignature(Identifiers[i], identifier)) return true;
             }
             return false;
         }
@@ -57,23 +60,7 @@ namespace ShenmueDKSharp.Files.Models
             Read(reader);
         }
 
-        public override void Read(Stream stream)
-        {
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                Read(reader);
-            }
-        }
-
-        public override void Write(Stream stream)
-        {
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                Write(writer);
-            }
-        }
-
-        public void Read(BinaryReader reader)
+        protected override void _Read(BinaryReader reader)
         {
             Buffer = reader.ReadBytes((int)reader.BaseStream.Length);
             reader.BaseStream.Seek(0, SeekOrigin.Begin);
@@ -100,7 +87,7 @@ namespace ShenmueDKSharp.Files.Models
             RootNode.ResolveFaceTextures(Textures);
         }
 
-        public void Write(BinaryWriter writer)
+        protected override void _Write(BinaryWriter writer)
         {
             writer.Write(Buffer);
         }
@@ -148,6 +135,8 @@ namespace ShenmueDKSharp.Files.Models
 
             ObjectName = reader.ReadUInt32();
             Unknown = reader.ReadUInt32();
+
+            //Console.WriteLine("Node Unknown: {0:X}", Unknown);
 
             //Read MT5 mesh data
             long offset = reader.BaseStream.Position;

@@ -14,6 +14,9 @@ namespace ShenmueDKSharp.Files.Subtitles
     /// <seealso cref="ShenmueDKSharp.Files.BaseFile" />
     public class SUB : BaseFile
     {
+        public static bool EnableBuffering = false;
+        public override bool BufferingEnabled => EnableBuffering;
+
         public readonly static List<string> Extensions = new List<string>()
         {
             "SUB"
@@ -33,7 +36,7 @@ namespace ShenmueDKSharp.Files.Subtitles
         {
             for (int i = 0; i < Identifiers.Count; i++)
             {
-                if (Helper.CompareSignature(Identifiers[i], identifier)) return true;
+                if (FileHelper.CompareSignature(Identifiers[i], identifier)) return true;
             }
             return false;
         }
@@ -56,23 +59,7 @@ namespace ShenmueDKSharp.Files.Subtitles
         public uint EntryCount;
         public List<SUBEntry> Entries = new List<SUBEntry>();
 
-        public override void Read(Stream stream)
-        {
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                Read(reader);
-            }
-        }
-
-        public override void Write(Stream stream)
-        {
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                Write(writer);
-            }
-        }
-
-        public void Read(BinaryReader reader)
+        protected override void _Read(BinaryReader reader)
         {
             long baseOffset = reader.BaseStream.Length;
 
@@ -96,7 +83,7 @@ namespace ShenmueDKSharp.Files.Subtitles
             }
         }
 
-        public void Write(BinaryWriter writer)
+        protected override void _Write(BinaryWriter writer)
         {
             long baseOffset = writer.BaseStream.Length;
 

@@ -8,8 +8,15 @@ using System.Threading.Tasks;
 
 namespace ShenmueDKSharp.Files.Containers
 {
+    /// <summary>
+    /// IPAC file container
+    /// </summary>
+    /// <seealso cref="ShenmueDKSharp.Files.BaseFile" />
     public class IPAC : BaseFile
     {
+        public static bool EnableBuffering = false;
+        public override bool BufferingEnabled => EnableBuffering;
+
         public readonly static List<string> Extensions = new List<string>()
         {
             "IPAC"
@@ -29,7 +36,7 @@ namespace ShenmueDKSharp.Files.Containers
         {
             for (int i = 0; i < Identifiers.Count; i++)
             {
-                if (Helper.CompareSignature(Identifiers[i], identifier)) return true;
+                if (FileHelper.CompareSignature(Identifiers[i], identifier)) return true;
             }
             return false;
         }
@@ -56,32 +63,18 @@ namespace ShenmueDKSharp.Files.Containers
             Read(reader);
         }
 
-        public override void Read(Stream stream)
-        {
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                Read(reader);
-            }
-        }
-
-        public override void Write(Stream stream)
-        {
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                Write(writer);
-            }
-        }
-
-        public void Read(BinaryReader reader)
+        protected override void _Read(BinaryReader reader)
         {
             long baseOffset = reader.BaseStream.Length;
 
+            //Read header
             Signature = reader.ReadUInt32();
             DictionaryOffset = reader.ReadUInt32();
             FileCount = reader.ReadUInt32();
             ContentSize = reader.ReadUInt32();
             Entries.Clear();
 
+            //Read the table of content
             reader.BaseStream.Seek(baseOffset + ContentSize, SeekOrigin.Begin);
             for (int i = 0; i < FileCount; i++)
             {
@@ -91,6 +84,7 @@ namespace ShenmueDKSharp.Files.Containers
                 Entries.Add(entry);
             }
 
+            //Read the data to the buffer of the table of content entries
             foreach(IPACEntry entry in Entries)
             {
                 reader.BaseStream.Seek(baseOffset + entry.Offset, SeekOrigin.Begin);
@@ -98,10 +92,12 @@ namespace ShenmueDKSharp.Files.Containers
             }
         }
 
-        public void Write(BinaryWriter writer)
+        protected override void _Write(BinaryWriter writer)
         {
             long baseOffset = writer.BaseStream.Length;
+            FileCount = (uint)Entries.Count;
 
+            //Calculate offsets
             uint offset = DictionaryOffset;
             foreach (IPACEntry entry in Entries)
             {
@@ -111,23 +107,72 @@ namespace ShenmueDKSharp.Files.Containers
                 offset += 16; //16 byte padding
             }
             ContentSize = offset;
-            FileCount = (uint)Entries.Count;
-
+            
+            //Write header
             writer.Write(Signature);
             writer.Write(DictionaryOffset);
             writer.Write(FileCount);
             writer.Write(ContentSize);
 
+            //Write table of contents
             writer.BaseStream.Seek(baseOffset + ContentSize, SeekOrigin.Begin);
-            foreach (IPACEntry entry in Entries)
+            for (int i = 0; i < Entries.Count; i++)
             {
+                IPACEntry entry = Entries[i];
+                entry.Index = (uint)i;
                 entry.Write(writer);
             }
 
+            //Write the data of the table of content files
             foreach (IPACEntry entry in Entries)
             {
                 writer.BaseStream.Seek(baseOffset + entry.Offset, SeekOrigin.Begin);
                 writer.Write(entry.Buffer);
+            }
+        }
+
+        /// <summary>
+        /// Unpacks all files into the given folder or, when empty, in an folder next to the IPAC file.
+        /// </summary>
+        public void Unpack(string folder = "")
+        {
+            if (String.IsNullOrEmpty(folder))
+            {
+                folder = Path.GetDirectoryName(FilePath) + "\\_" + FileName + "_";
+            }
+            if (!Directory.Exists(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+            foreach (IPACEntry entry in Entries)
+            {
+                using (FileStream stream = new FileStream(String.Format(folder + "\\{0}.{1}", entry.Filename, entry.Extension), FileMode.Create))
+                {
+                    stream.Write(entry.Buffer, 0, entry.Buffer.Length);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Packs the given files into the IPAC object.
+        /// The input files must have the same format as the unpack method
+        /// or the file entries have to be added manually.
+        /// </summary>
+        public void Pack(List<string> filepaths)
+        {
+            Entries.Clear();
+            foreach (string filepath in filepaths)
+            {
+                IPACEntry entry = new IPACEntry();
+                entry.Extension = Path.GetExtension(filepath).Substring(1, 4).ToUpper();
+                entry.Filename = Path.GetFileNameWithoutExtension(filepath).ToUpper();
+                using (FileStream stream = new FileStream(filepath, FileMode.Open))
+                {
+                    entry.FileSize = (uint)stream.Length;
+                    entry.Buffer = new byte[stream.Length];
+                    stream.Read(entry.Buffer, 0, entry.Buffer.Length);
+                }
+                Entries.Add(entry);
             }
         }
 

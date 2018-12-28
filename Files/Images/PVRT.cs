@@ -15,11 +15,18 @@ namespace ShenmueDKSharp.Files.Images
 {
     /// <summary>
     /// Sega Dreamcast PVR Texture
-    /// https://github.com/sizious/pvrx2png/blob/master/main.cpp
-    /// https://github.com/nickworonekin/puyotools
     /// </summary>
     public class PVRT : BaseImage
     {
+        public static bool EnableBuffering = true;
+        public override bool BufferingEnabled => EnableBuffering;
+
+        public readonly static List<string> Extensions = new List<string>()
+        {
+            "PVR",
+            "PVRT"
+        };
+
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
         {
             new byte[4] { 0x47, 0x42, 0x49, 0x58 }, //GBIX
@@ -35,107 +42,122 @@ namespace ShenmueDKSharp.Files.Images
         {
             for (int i = 0; i < Identifiers.Count; i++)
             {
-                if (Helper.CompareSignature(Identifiers[i], identifier)) return true;
+                if (FileHelper.CompareSignature(Identifiers[i], identifier)) return true;
             }
             return false;
         }
 
-        public enum PVRType
+        private static Color4 m_previousColor;
+
+        public enum PVRColorFormat
         {
-            ARGB1555,// (bilevel translucent alpha 0,255)
-            RGB565, //(no translucent)
-            ARGB4444, //(translucent alpha 0-255)
-            YUV442,
-            Bump,
-            Bit4,
-            Bit8,
-            DDS_RGB24 = 128,
-            DDS_RGBA32 = 129
+            ARGB1555    = 0x00, //Format consisting of one bit of alpha value and five bits of RGB values The alpha value indicates transparent when it is 0 and opaque when it is 1.
+            RGB565      = 0x01, //Format without alpha value and consisting of five bits of RB values and six bits of G value.
+            ARGB4444    = 0x02, //Format consisting of four bits of alpha value and four bits of RGB values. The alpha value indicates completely transparent when it is 0x0 and completely opaque when it is 0xF.
+            YUV422      = 0x03, //YUV422 format
+            BUMP        = 0x04, //Bump map with positiv only normal vectors (S and R direction angles)
+            RGB555      = 0x05, //for PCX compatible only
+            ARGB8888    = 0x06, //RGB, transparency (TODO: multiple definitions, see which one is correct for dreamcast)
+            YUV420      = 0x06, //for YUV converter (TODO: multiple definitions, see which one is correct for dreamcast)
+            DDS_RGB24   = 0x80, //DDS RGB, no transparency
+            DDS_RGBA32  = 0x81  //DDS RGB, transparency
         }
 
-        public enum PVRFormat
+        public enum PVRCategoryCode
         {
-            SQUARE_TWIDDLED = 1,
-            SQUARE_TWIDDLED_MIPMAP = 2,
-            VQ = 3,
-            VQ_MIPMAP = 4,
-            CLUT_TWIDDLED_8BIT = 5,
-            CLUT_TWIDDLED_4BIT = 6,
-            DIRECT_TWIDDLED_8BIT = 7,
-            DIRECT_TWIDDLED_4BIT = 8,
-            RECTANGLE = 9,
-            RECTANGULAR_STRIDE = 0xb,
-            RECTANGULAR_TWIDDLED = 0xd,
-            SMALL_VQ = 0x10,
-            SMALL_VQ_MIPMAP = 0x11,
-            SQUARE_TWIDDLED_MIPMAP_2 = 0x12,
+            SQUARE_TWIDDLED                     = 0x01,
+            SQUARE_TWIDDLED_MIPMAP              = 0x02,
+            VECTOR_QUANTIZATION                 = 0x03,
+            VECTOR_QUANTIZATION_MIPMAP          = 0x04,
+            PALETTIZE_4BIT                      = 0x05,  //Unsuported because shenmue doesn't use this format.
+            PALETTIZE_4BIT_MIPMAP               = 0x06,  //Unsuported because shenmue doesn't use this format.
+            PALETTIZE_8BIT                      = 0x07,  //Unsuported because shenmue doesn't use this format.
+            PALETTIZE_8BIT_MIPMAP               = 0x08,  //Unsuported because shenmue doesn't use this format.
+            RECTANGLE                           = 0x09,
+            RECTANGLE_MIPMAP                    = 0x0A, //Reserved: Can't use.
+            RECTANGLE_STRIDE                    = 0x0B,
+            RECTANGLE_STRIDE_MIPMAP             = 0x0C, //Reserved: Can't use.
+            RECTANGLE_TWIDDLED                  = 0x0D, //Should not be supported
+            BMP                                 = 0x0E, //Converted to Twiddled
+            BMP_MIPMAP                          = 0x0F, //Converted to Twiddled Mipmap
+            VECTOR_QUANTIZATION_SMALL           = 0x10,
+            VECTOR_QUANTIZATION_SMALL_MIPMAP    = 0x11,
+            DDS                                 = 0x80
         }
 
-        public bool HasGBIX = false;
-        public uint GBIXSize;
-        public byte[] GBIXContent;
-        public uint Size;
-        public PVRType Type;
-        public PVRFormat Format;
+        public override int DataSize => (int)Size;
 
+        public bool HasGBIX { get; set; } = false;
+        public uint GBIXSize { get; set; }
+        public byte[] GBIXContent { get; set; }
+
+        public uint Size { get; set; }
+        public PVRColorFormat ColorFormat { get; set; }
+        public PVRCategoryCode CategoryCode { get; set; }
+
+        public PVRT() { }
         public PVRT(string filename)
         {
             Read(filename);
         }
-
-        public PVRT(BinaryReader br)
+        public PVRT(Stream stream)
         {
-            Read(br);
+            Read(stream);
+        }
+        public PVRT(BinaryReader reader)
+        {
+            Read(reader);
+        }
+        /// <summary>
+        /// Creates an PVRT instance with the given filepath as the image data.
+        /// Used for creating an PVRT from an DDS file.
+        /// </summary>
+        public PVRT(string filepath, PVRCategoryCode categoryCode, PVRColorFormat colorFormat, int width, int height)
+        {
+            Width = width;
+            Height = height;
+
+            CategoryCode = categoryCode;
+            ColorFormat = colorFormat;
+
+            //Write header
+            //Write DDS raw
         }
 
-        public override void Read(BinaryReader reader)
+        protected override void _Read(BinaryReader reader)
         {
-            
-            long offset = reader.BaseStream.Position;
+            long baseOffset = reader.BaseStream.Position;
 
             uint identifier = reader.ReadUInt32();
-            if (identifier == 0x58494247)
+            if (identifier == 0x58494247) //"GBIX"
             {
                 HasGBIX = true;
                 GBIXSize = reader.ReadUInt32();
                 GBIXContent = reader.ReadBytes((int)GBIXSize);
+                reader.BaseStream.Seek(4, SeekOrigin.Current); //Skip "PVRT"
             }
-            reader.BaseStream.Seek(4, SeekOrigin.Current); //"PVRT"
 
             Size = reader.ReadUInt32();
-            Type = (PVRType)reader.ReadByte();
-            Format = (PVRFormat)reader.ReadByte();
+            ColorFormat = (PVRColorFormat)reader.ReadByte();
+            CategoryCode = (PVRCategoryCode)reader.ReadByte();
             reader.BaseStream.Seek(2, SeekOrigin.Current);
             Width = reader.ReadUInt16();
             Height = reader.ReadUInt16();
 
-            if (Format == PVRFormat.VQ)
+            if (ColorFormat == PVRColorFormat.BUMP)
             {
-                var palette = new Color4[1024];
-                for (int i = 0; i < palette.Length; i++)
-                {
-                    palette[i] = ReadColor(reader);
-                }
-                var bytes = new byte[Width * Height / 4];
-                for (int i = 0; i < Width * Height / 4; i++)
-                {
-                    bytes[i] = reader.ReadByte();
-                }
-                DecodeVQ(bytes, palette);
+                throw new Exception("HELLO");
             }
-            else if (Type == PVRType.RGB565 || Type == PVRType.ARGB1555 || Type == PVRType.ARGB4444)
+
+            if (CategoryCode == PVRCategoryCode.DDS)
             {
-                Pixels = new Color4[Width * Height];
-                for (int i = 0; i < Width * Height; i++)
+                if (!(ColorFormat == PVRColorFormat.DDS_RGB24 || ColorFormat == PVRColorFormat.DDS_RGBA32))
                 {
-                    Pixels[i] = ReadColor(reader);
+                    throw new Exception("Expected DDS RGB24 or RGBA32 color format!");
                 }
-                Unswizzle();
-            }
-            else if (Type == PVRType.DDS_RGB24 || Type == PVRType.DDS_RGBA32)
-            {
-                Dds image =  Dds.Create(reader.BaseStream, new PfimConfig());
-                
+
+                Dds image = Dds.Create(reader.BaseStream, new PfimConfig());
+
                 byte[] pixels = image.Data;
                 Pixels = new Color4[image.Width * image.Height];
                 for (int i = 0; i < image.Width * image.Height; i++)
@@ -154,59 +176,226 @@ namespace ShenmueDKSharp.Files.Images
                         HasTransparency = false;
                         Pixels[i] = new Color4(pixels[index + 2], pixels[index + 1], pixels[index], 255);
                     }
-                } 
+                }
+            }
+
+            /*
+            else
+            {
+                PVRTParameters param = new PVRTParameters(CategoryCode, Width);
+
+                /*
+                if (param.PaletteDepth != 0)
+                {
+                    int paletteSize = 1 << param.PaletteDepth;
+                    string paletteFilepath = Path.ChangeExtension(FilePath, "PVP");
+                    //TODO: palette support (PVPL)
+                }
+                *//*
+
+                int mipMapCount = CalculateMipMapCount();
+                if (param.VQ)
+                {
+                    //read codebook entries
+                    VQCodeBookEntry[] codeBook = new VQCodeBookEntry[param.CodeBookSize];
+                    for (int i = 0; i < param.CodeBookSize; i++)
+                    {
+                        codeBook[i] = new VQCodeBookEntry(reader);
+                    }
+
+                    int mipMap = param.MipMaps ? mipMapCount - 1 : 0;
+                    int tempWidth = param.MipMaps ? 1 : Width;
+                    int tempHeight = tempWidth;
+
+                    while (mipMap >= 0)
+                    {
+                        int write = 0;
+                        int max = (tempWidth == 1) ? 1 : (tempWidth / 2) * (tempHeight / 2);
+                        int x = 0;
+                        int y = 0;
+
+                        while (write < max)
+                        {
+                            if (tempWidth == 1) //special case: 1x1 vq mipmap is stored as 565 and index 0 is used
+                            {
+
+                            }
+                            else
+                            {
+                                //unpack the twiddled 2x2 block
+                                int xoff = 0;
+                                int yoff = 0;
+                                int[] linear = new int[]{ 0, 2, 1, 3 }; //this is needed so that YUV can be unpacked properly
+                                for (int iTexel = 0; iTexel < 4; iTexel++)
+                                {
+                                    ushort index = reader.ReadUInt16();
+                                    ushort texel = codeBook[index].Texel[linear[iTexel]];
+                                }
+                            }
+
+                            write++;
+                            x += 2;
+                            if (x >= tempWidth)
+                            {
+                                x = 0;
+                                y += 2;
+                            }
+                        }
+
+                        mipMap--;
+                        tempWidth *= 2;
+                        tempHeight *= 2;
+                    }
+
+                }
+                else
+                {
+                    if (param.MipMaps)
+                    {
+                        //skip 1x1 placeholder dummy
+                        int dummySize = 2;
+                        if (param.PaletteDepth == 8)
+                        {
+                            dummySize = 3;
+                        }
+                        reader.BaseStream.Seek(dummySize, SeekOrigin.Current);
+                    }
+                }
+
+                if (param.Twiddled)
+                {
+                    Twiddle();
+                }
+
+            }
+            */
+
+            else if (CategoryCode == PVRCategoryCode.SQUARE_TWIDDLED || CategoryCode == PVRCategoryCode.RECTANGLE_TWIDDLED)
+            {
+                Pixels = new Color4[Width * Height];
+                for (int y = 0; y < Height; y++)
+                {
+                    for (int x = 0; x < Width; x++)
+                    {
+                        int index = y * Width + x;
+                        Pixels[index] = ReadColor(reader, x, y);
+                    }
+                }
+                Twiddle();
+            }
+            else if (CategoryCode == PVRCategoryCode.VECTOR_QUANTIZATION)
+            {
+                var palette = new Color4[1024]; //256 Codebook entries * 4 texels
+                for (int i = 0; i < palette.Length; i++)
+                {
+                    palette[i] = ReadColor(reader, i, 0);
+                }
+                var bytes = new byte[Width * Height / 4];
+                for (int i = 0; i < Width * Height / 4; i++)
+                {
+                    bytes[i] = reader.ReadByte();
+                }
+                DecodeVQ(bytes, palette);
+            }
+            else if (CategoryCode == PVRCategoryCode.RECTANGLE)
+            {
+                Pixels = new Color4[Width * Height];
+                for (int y = 0; y < Height; y++)
+                {
+                    for (int x = 0; x < Width; x++)
+                    {
+                        int index = y * Width + x;
+                        Pixels[index] = ReadColor(reader, x, y);
+                    }
+                }
             }
             else
             {
-                throw new NotImplementedException();
+                throw new NotImplementedException("Unknown category code or unsupported.");
             }
 
-            Bitmap = new Bitmap(Width, Height);
-            for (int y = 0; y < Height; y++)
-            {
-                for (int x = 0; x < Width; x++)
-                {
-                    Color4 col4 = Pixels[y * Width + x];
-                    Bitmap.SetPixel(x, y, System.Drawing.Color.FromArgb(col4.ToArgb()));
-                }
-            }
+            reader.BaseStream.Seek(baseOffset + Size, SeekOrigin.Begin);
         }
 
-        public override void Write(BinaryWriter writer)
+        protected override void _Write(BinaryWriter writer)
         {
-            //writer.Write(buffer);
+            long baseOffset = writer.BaseStream.Position;
+
+            if (HasGBIX)
+            {
+                if (GBIXContent.Length != GBIXSize)
+                {
+                    throw new Exception("GBIX Size does not match the GBIX content length!");
+                }
+                writer.Write(GBIXSize);
+                writer.Write(GBIXContent);
+            }
+            writer.Write(0x54525650); //"PVRT"
+
+            long offsetSize = writer.BaseStream.Position;
+            writer.Seek(4, SeekOrigin.Current); //Write size later
+
+            writer.Write((byte)ColorFormat);
+            writer.Write((byte)CategoryCode);
+            writer.Write((short)0);
+            writer.Write((ushort)Width);
+            writer.Write((ushort)Height);
+
+            //Write pixel data
+            if (CategoryCode == PVRCategoryCode.DDS)
+            {
+                //TODO: How to handle DDS because we can't write DDS yet.
+                throw new NotImplementedException("TODO");
+            }
+            else if (CategoryCode == PVRCategoryCode.SQUARE_TWIDDLED || CategoryCode == PVRCategoryCode.SQUARE_TWIDDLED_MIPMAP)
+            {
+                Twiddle();
+                for (int y = 0; y < Height; y++)
+                {
+                    for (int x = 0; x < Width; x++)
+                    {
+                        int index = y * Width + x;
+                        WriteColor(writer, x, y, Pixels[index]);
+                    }
+                }
+                Twiddle(); //Twiddle after writing to reset color array
+            }
+            else if (CategoryCode == PVRCategoryCode.VECTOR_QUANTIZATION)
+            {
+                throw new NotImplementedException("TODO");
+            }
+            else if (CategoryCode == PVRCategoryCode.RECTANGLE)
+            {
+                throw new NotImplementedException("TODO");
+            }
+            else
+            {
+                throw new NotImplementedException("Unknown category code or unsupported.");
+            }
+
+            //Write size
+            Size = (uint)(writer.BaseStream.Position - baseOffset);
+            writer.BaseStream.Seek(offsetSize, SeekOrigin.Begin);
+            writer.Write(Size);
+            writer.Seek(0, SeekOrigin.End);
         }
 
-        void DecodeVQ(byte[] source, Color4[] palette)
+        private void DecodeVQ(byte[] source, Color4[] palette)
         {
-            int[] swizzleMap = new int[Width / 2];
-
-            for (int i = 0; i < Width / 2; i++)
-            {
-                swizzleMap[i] = 0;
-
-                for (int j = 0, k = 1; k <= i; j++, k <<= 1)
-                {
-                    swizzleMap[i] |= (i & k) << j;
-                }
-            }
+            int[] twiddleMap = CreateTwiddleMap(Width / 2);
 
             Pixels = new Color4[Width * Height];
-
             for (int y = 0; y < Height; y += 2)
             {
                 for (int x = 0; x < Width; x += 2)
                 {
-                    int index = (source[(swizzleMap[x >> 1] << 1) | swizzleMap[y >> 1]]) * 4;
-
+                    int index = (source[(twiddleMap[x >> 1] << 1) | twiddleMap[y >> 1]]) * 4;
                     for (int x2 = 0; x2 < 2; x2++)
                     {
                         for (int y2 = 0; y2 < 2; y2++)
                         {
                             long destinationIndex = ((y + y2) * Width) + (x + x2);
-
                             Pixels[destinationIndex] = palette[index];
-
                             index++;
                         }
                     }
@@ -214,77 +403,370 @@ namespace ShenmueDKSharp.Files.Images
             }
         }
 
-        private void Unswizzle()
+        /// <summary>
+        /// Twiddles the current pixels.
+        /// </summary>
+        private void Twiddle()
         {
-            int twiddleSqr = (int)(Width < Height ? Width : Height);
+            int size = Width < Height ? Width : Height;
+            int[] twiddleMap = CreateTwiddleMap(size);
 
-            int[] swizzleMap = new int[twiddleSqr];
-
-            for (int i = 0; i < twiddleSqr; i++)
-            {
-                swizzleMap[i] = 0;
-
-                for (int j = 0, k = 1; k <= i; j++, k <<= 1)
-                {
-                    swizzleMap[i] |= (i & k) << j;
-                }
-            }
-
-            var newTexels = new Color4[Width * Height];
-
+            Color4[] newPixels = new Color4[Width * Height];
             int squareIndex = 0;
-
-            for (int sqy = 0; sqy < Height; sqy += twiddleSqr)
+            for (int sqy = 0; sqy < Height; sqy += size)
             {
-                for (int sqx = 0; sqx < Width; sqx += twiddleSqr)
+                for (int sqx = 0; sqx < Width; sqx += size)
                 {
                     long baseIndex = sqy * Width + sqx;
-
-                    for (int y = 0; y < twiddleSqr; y++)
+                    for (int y = 0; y < size; y++)
                     {
-                        for (int x = 0; x < twiddleSqr; x++)
+                        for (int x = 0; x < size; x++)
                         {
-                            int index = squareIndex + ((swizzleMap[x] << 1) | swizzleMap[y]);
-
+                            int index = squareIndex + ((twiddleMap[x] << 1) | twiddleMap[y]);
                             long destinationIndex = baseIndex + (y * Width) + x;
-
-                            newTexels[destinationIndex] = Pixels[index];
+                            newPixels[destinationIndex] = Pixels[index];
                         }
                     }
-                    squareIndex += twiddleSqr * twiddleSqr;
+                    squareIndex += size * size;
                 }
             }
-
-            Pixels = newTexels;
+            Pixels = newPixels;
         }
 
-        float Comp(ushort val, int shift, int bits)
+        /// <summary>
+        /// Reads and returns the color for the current pixel coordinates from the given reader.
+        /// </summary>
+        /// <exception cref="System.NotImplementedException">Unknown color format!</exception>
+        private Color4 ReadColor(BinaryReader reader, int pX, int pY)
         {
-            return (float)((val >> shift) & ((1 << bits) - 1)) / ((1 << bits) - 1);
-        }
-
-        Color4 ReadColor(BinaryReader br)
-        {
-            switch (Type)
+            switch (ColorFormat)
             {
-                case PVRType.RGB565:
+                case PVRColorFormat.RGB565:
                     {
-                        ushort val = br.ReadUInt16();
-                        return new Color4(Comp(val, 11, 5), Comp(val, 5, 6), Comp(val, 0, 5), 1.0f);
+                        ushort val = reader.ReadUInt16();
+                        byte r = (byte)((val & 0xF800) >> 8);
+                        byte g = (byte)((val & 0x07E0) >> 3);
+                        byte b = (byte)((val & 0x001F) << 3);
+                        return new Color4(r, g, b, 255);
                     }
-                case PVRType.ARGB1555:
+                case PVRColorFormat.ARGB1555:
                     {
-                        ushort val = br.ReadUInt16();
-                        return new Color4(Comp(val, 10, 5), Comp(val, 5, 5), Comp(val, 0, 5), Comp(val, 15, 1));
+                        ushort val = reader.ReadUInt16();
+                        byte a = (byte)((val & 0x8000) == 0x8000 ? 0xFF : 0x00);
+                        byte r = (byte)((val & 0x7C00) >> 7);
+                        byte g = (byte)((val & 0x03E0) >> 2);
+                        byte b = (byte)((val & 0x001F) << 3);
+                        return new Color4(r, g, b, a);
                     }
-                case PVRType.ARGB4444:
+                case PVRColorFormat.ARGB4444:
                     {
-                        ushort val = br.ReadUInt16();
-                        return new Color4(Comp(val, 8, 4), Comp(val, 4, 4), Comp(val, 0, 4), Comp(val, 12, 4));
+                        ushort val = reader.ReadUInt16();
+                        byte a = (byte)((val & 0xF000) >> 8);
+                        byte r = (byte)((val & 0x0F00) >> 4);
+                        byte g = (byte)(val & 0x00F0);
+                        byte b = (byte)((val & 0x000F) << 4);
+                        return new Color4(r, g, b, a);
+                    }
+                case PVRColorFormat.YUV422:
+                    {
+                        ushort val1 = reader.ReadUInt16();
+                        ushort val2 = reader.ReadUInt16();
+
+                        int Y0 = (val1 & 0xFF00) >> 8, U = (val1 & 0x00FF);
+                        int Y1 = (val2 & 0xFF00) >> 8, V = (val2 & 0x00FF);
+
+                        if ((pX & 1) == 0)
+                        {
+                            //first pixel
+                            byte r = MathExtensions.ClampByte((int)(Y0 + 1.375 * (V - 128)));
+                            byte g = MathExtensions.ClampByte((int)(Y0 - 0.6875 * (V - 128) - 0.34375 * (U - 128)));
+                            byte b = MathExtensions.ClampByte((int)(Y0 + 1.71875 * (U - 128)));
+
+                            //Go back 4 bytes for the second pixel.
+                            reader.BaseStream.Seek(-4, SeekOrigin.Current);
+
+                            return new Color4(r, g, b, 255);
+                        }
+                        else
+                        {
+                            //second pixel
+                            byte r = MathExtensions.ClampByte((int)(Y1 + 1.375 * (V - 128)));
+                            byte g = MathExtensions.ClampByte((int)(Y1 - 0.6875 * (V - 128) - 0.34375 * (U - 128)));
+                            byte b = MathExtensions.ClampByte((int)(Y1 + 1.71875 * (U - 128)));
+
+                            return new Color4(r, g, b, 255);
+                        }
+                    }
+                case PVRColorFormat.BUMP:
+                    {
+                        byte s = reader.ReadByte();
+                        byte r = reader.ReadByte();
+
+                        //Convert to angles
+                        float sAngle = s / 255.0f * 90.0f;
+                        float rAngle = r / 255.0f * 360.0f;
+
+                        //Calculate normal
+                        float x = (float)(Math.Cos(sAngle) * Math.Cos(rAngle));
+                        float y = (float) Math.Sin(sAngle);
+                        float z = (float)(Math.Cos(sAngle) * Math.Sin(rAngle));
+
+                        //Normalize to RGB ([-1,1] -> [0,1])
+                        float colorR = 0.5f * x + 0.5f;
+                        float colorG = 0.5f * y + 0.5f;
+                        float colorB = 0.5f * z + 0.5f;
+
+                        return new Color4(colorR, colorG, colorB, 1.0f);
+                    }
+                case PVRColorFormat.RGB555:
+                    {
+                        ushort val = reader.ReadUInt16();
+                        byte r = (byte)((val & 0x7C00) >> 7);
+                        byte g = (byte)((val & 0x03E0) >> 2);
+                        byte b = (byte)((val & 0x001F) << 3);
+                        return new Color4(r, g, b, 255);
+                    }
+                case PVRColorFormat.ARGB8888:
+                    {
+                        byte a = reader.ReadByte();
+                        byte r = reader.ReadByte();
+                        byte g = reader.ReadByte();
+                        byte b = reader.ReadByte();
+                        return new Color4(r, g, b, a);
+                    }
+                default:
+                    {
+                        throw new NotImplementedException("Unknown color format!");
                     }
             }
-            return Color4.Magenta;
         }
 
+        /// <summary>
+        /// Writes the given color to the given writer at the given pixel coordinates.
+        /// </summary>
+        /// <exception cref="System.NotImplementedException">Unknown color format!</exception>
+        private void WriteColor(BinaryWriter writer, int pX, int pY, Color4 color)
+        {
+            switch (ColorFormat)
+            {
+                case PVRColorFormat.RGB565:
+                    {
+                        ushort val = (ushort)(((color.R_ << 8) & 0xF800) | ((color.G_ << 3) & 0x07E0) | ((color.B_ >> 3) & 0x001F));
+                        writer.Write(val);
+                        return;
+                    }
+                case PVRColorFormat.ARGB1555:
+                    {
+                        ushort val = (ushort)(((color.A_ << 8) & 0x8000) | ((color.R_ << 7) & 0x7C00) | ((color.G_ << 2) & 0x03E0) | ((color.B_ >> 3) & 0x001F));
+                        writer.Write(val);
+                        return;
+                    }
+                case PVRColorFormat.ARGB4444:
+                    {
+                        ushort val = (ushort)(((color.A_ << 8) & 0xF000) | ((color.R_ << 4) & 0x0F00) | (color.G_ & 0x00F0) | ((color.B_ >> 4) & 0x000F));
+                        writer.Write(val);
+                        return;
+                    }
+                case PVRColorFormat.YUV422:
+                    {
+                        m_previousColor = color;
+                        if ((pX & 1) == 1)
+                        {
+                            byte r1 = m_previousColor.R_;
+                            byte g1 = m_previousColor.G_;
+                            byte b1 = m_previousColor.B_;
+
+                            byte r2 = color.R_;
+                            byte g2 = color.G_;
+                            byte b2 = color.B_;
+
+                            //compute each pixel's Y
+                            uint Y0 = (uint)(0.299 * r1 + 0.587 * r2 + 0.114 * b1);
+                            uint Y1 = (uint)(0.299 * r2 + 0.587 * g2 + 0.114 * b2);
+
+                            //average both pixel's rgb values
+                            byte r = (byte)((r2 + r1) / 2);
+                            byte g = (byte)((g2 + r1) / 2);
+                            byte b = (byte)((b2 + r1) / 2);
+
+                            //compute UV
+                            uint U = (uint)(128.0f - 0.14 * r - 0.29 * g + 0.43 * b);
+                            uint V = (uint)(128.0f + 0.36 * r - 0.29 * g - 0.07 * b);
+
+                            ushort pixel1 = (ushort)((Y0 << 8) | U);
+                            ushort pixel2 = (ushort)((Y1 << 8) | V);
+
+                            writer.Write(pixel1);
+                            writer.Write(pixel2);
+                        }
+                        return;
+                    }
+                case PVRColorFormat.BUMP:
+                    {
+                        //Normalize to normal direction vector ([0,1] -> [-1,1])
+                        float x = color.R * 2.0f - 1.0f;
+                        float y = color.G * 2.0f - 1.0f;
+                        float z = color.B * 2.0f - 1.0f;
+
+                        //Normal to angles
+                        float radius = (float)Math.Sqrt(Math.Pow(x, 2) + Math.Pow(y, 2) + Math.Pow(z, 2));
+                        float sAngle = (float)Math.Acos(z / radius);
+                        float rAngle = (float)Math.Atan(y / x);
+
+                        //Clamp angles to valid angles
+                        sAngle = MathExtensions.Clamp(sAngle, 0.0f, 90.0f);
+                        rAngle = MathExtensions.Clamp(rAngle, 0.0f, 360.0f);
+
+                        //Convert to bytes
+                        byte s = (byte)(sAngle / 90.0f * 255.0f);
+                        byte r = (byte)(rAngle / 360.0f * 255.0f);
+
+                        writer.Write(s);
+                        writer.Write(r);
+                        return;
+                    }
+                case PVRColorFormat.RGB555:
+                    {
+                        ushort val = (ushort)(((color.A_ << 8) & 0x8000) | ((color.R_ << 7) & 0x7C00) | ((color.G_ << 2) & 0x03E0) | ((color.B_ >> 3) & 0x001F));
+                        writer.Write(val);
+                        return;
+                    }
+                case PVRColorFormat.ARGB8888:
+                    {
+                        int val = color.ToArgb();
+                        writer.Write(val);
+                        return;
+                    }
+                default:
+                    {
+                        throw new NotImplementedException("Unknown color format!");
+                    }
+            }
+        }
+
+        /// <summary>
+        /// Creates an twiddle map with the given size.
+        /// </summary>
+        /// <param name="size"></param>
+        /// <returns></returns>
+        private int[] CreateTwiddleMap(int size)
+        {
+            int[] twiddleMap = new int[size];
+            for (int i = 0; i < size; i++)
+            {
+                twiddleMap[i] = 0;
+                for (int j = 0, k = 1; k <= i; j++, k <<= 1)
+                {
+                    twiddleMap[i] |= (i & k) << j;
+                }
+            }
+            return twiddleMap;
+        }
+
+        private int CalculateMipMapCount()
+        {
+            int mipMapCount = 0;
+            int tempWidth = Width;
+            while (tempWidth > 0)
+            {
+                mipMapCount++;
+                tempWidth /= 2;
+            }
+            return mipMapCount;
+        }
+
+        private class VQCodeBookEntry
+        {
+            public ushort[] Texel;
+
+            public VQCodeBookEntry()
+            {
+                Texel = new ushort[4];
+            }
+
+            public VQCodeBookEntry(BinaryReader reader)
+            {
+                Texel = new ushort[4];
+                Texel[0] = reader.ReadUInt16();
+                Texel[1] = reader.ReadUInt16();
+                Texel[2] = reader.ReadUInt16();
+                Texel[3] = reader.ReadUInt16();
+            }
+        };
+
+        private class PVRTParameters
+        {
+            public bool Rectangle { get; set; } = false;
+            public bool Twiddled { get; set; } = false;
+            public bool MipMaps { get; set; } = false;
+            public bool VQ { get; set; } = false;
+            public int CodeBookSize { get; set; } = 0;
+            public int PaletteDepth { get; set; } = 0;
+
+            public PVRTParameters(PVRCategoryCode categoryCode, int Width)
+            {
+                switch (categoryCode)
+                {
+                    case PVRCategoryCode.SQUARE_TWIDDLED:
+                        Twiddled = true;
+                        break;
+                    case PVRCategoryCode.SQUARE_TWIDDLED_MIPMAP:
+                        Twiddled = true; MipMaps = true;
+                        break;
+                    case PVRCategoryCode.RECTANGLE_TWIDDLED:
+                        Twiddled = true; Rectangle = true; 
+                        break;
+                    case PVRCategoryCode.VECTOR_QUANTIZATION:
+                        Twiddled = true; VQ = true; CodeBookSize = 256;
+                        break;
+                    case PVRCategoryCode.VECTOR_QUANTIZATION_MIPMAP:
+                        Twiddled = true; VQ = true; CodeBookSize = 256; MipMaps = true;
+                        break;
+                    case PVRCategoryCode.VECTOR_QUANTIZATION_SMALL:
+                        Twiddled = true; VQ = true;
+                        if (Width <= 16)
+                            CodeBookSize = 16;
+                        else if (Width == 32)
+                            CodeBookSize = 32;
+                        else if (Width == 64)
+                            CodeBookSize = 128;
+                        else
+                            CodeBookSize = 256;
+                        break;
+                    case PVRCategoryCode.VECTOR_QUANTIZATION_SMALL_MIPMAP:
+                        Twiddled = true; VQ = true; MipMaps = true;
+                        if (Width <= 16)
+                            CodeBookSize = 16;
+                        else if (Width == 32)
+                            CodeBookSize = 64;
+                        else
+                            CodeBookSize = 256;
+                        break;
+                    case PVRCategoryCode.RECTANGLE_STRIDE:
+                    case PVRCategoryCode.RECTANGLE:
+                        Rectangle = true;
+                        break;
+                    case PVRCategoryCode.RECTANGLE_MIPMAP:
+                        Rectangle = true; MipMaps = true;
+                        break;
+                    //Adding support for palettized formats maybe later if anyone requests it, because it isn't used in shenmue.
+                    case PVRCategoryCode.PALETTIZE_4BIT:
+                        //Twiddled = true; PaletteDepth = 4;
+                        //break;
+                    case PVRCategoryCode.PALETTIZE_4BIT_MIPMAP:
+                        //Twiddled = true; PaletteDepth = 4; MipMaps = true;
+                        //break;
+                    case PVRCategoryCode.PALETTIZE_8BIT:
+                        //Twiddled = true; PaletteDepth = 8;
+                        //break;
+                    case PVRCategoryCode.PALETTIZE_8BIT_MIPMAP:
+                        //Twiddled = true; PaletteDepth = 8; MipMaps = true;
+                        //break;
+                    default:
+                        throw new NotImplementedException("Unknown category code or unsupported.");
+                }
+            }
+        }
     }
+
 }

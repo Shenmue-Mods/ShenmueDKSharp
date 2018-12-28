@@ -1,8 +1,10 @@
-﻿using System;
+﻿using SimpleJSON;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -14,56 +16,49 @@ namespace ShenmueDKSharp.Utils
     public static class Wulinshu
     {
         private static readonly string Url = "https://wulinshu.raymonf.me";
-        private static readonly string GetFormat = "{0}/api/hash/get?page={1}&game={2}";
+        private static readonly string GetFormatQueryBoth = "{0}/api/hash/get?page={1}&q={2}&sort=0&game=both";
 
         public static string GetFilename(uint hash)
         {
             return "";
         }
 
-        /*
-        public void FetchData(string game)
+        /// <summary>
+        /// Gets the first found filename from the hash database.
+        /// </summary>
+        public static string GetFilenameFromHash(uint hash)
         {
-            string url = String.Format(GetFormat, Url, 1, game);
+            return GetFilenameFromQuery(String.Format("{0:x}", hash));
+        }
+
+        public static string GetFilenameFromQuery(string query)
+        {
+            string result = "";
+
+            string url = String.Format(GetFormatQueryBoth, Url, 1, query);
             WebRequest request = WebRequest.Create(url);
             HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-
-            string text;
-
-            int pageCount = 1;
-
             using (StreamReader sr = new StreamReader(response.GetResponseStream()))
             {
-                text = sr.ReadToEnd();
-                dynamic data = JsonConvert.DeserializeObject(text);
-                pageCount = (int)data.SelectToken("last_page").Value;
-            }
-
-            for (int i = 1; i < pageCount; i++)
-            {
-                url = String.Format(GetFormat, Url, i, game);
-                request = WebRequest.Create(url);
-                response = (HttpWebResponse)request.GetResponse();
-                using (StreamReader sr = new StreamReader(response.GetResponseStream()))
+                string jsonText = sr.ReadToEnd();
+                JSONNode node = JSONNode.Parse(jsonText);
+                if (node.Children.Count() > 1)
                 {
-                    text = sr.ReadToEnd();
-                    dynamic data = JsonConvert.DeserializeObject(text);
-                    JToken token = data.SelectToken("data");
-                    foreach (JToken child in token.Children())
+                    JSONArray dataNode = node.Children.ElementAt(1).AsArray;
+                    foreach (JSONNode child in dataNode.Children)
                     {
                         WulinshuEntry entry = new WulinshuEntry
                         {
-                            Path = child.SelectToken("path").Value<string>(),
-                            Hash = child.SelectToken("hash").Value<string>(),
-                            Matches = child.SelectToken("matches").Value<int>(),
-                            Game = child.SelectToken("game").Value<string>()
+                            Path = child.Children.ElementAt(0).Value,
+                            Hash = child.Children.ElementAt(1).Value,
+                            Game = child.Children.ElementAt(3).Value
                         };
-                        Entries.Add(entry);
+                        return entry.Path;
                     }
                 }
             }
+            return result;
         }
-        */
     }
 
     public class WulinshuEntry

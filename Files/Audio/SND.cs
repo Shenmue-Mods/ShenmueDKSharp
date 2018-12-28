@@ -12,6 +12,9 @@ namespace ShenmueDKSharp.Files.Audio
     /// </summary>
     public class SND : BaseFile
     {
+        public static bool EnableBuffering = false;
+        public override bool BufferingEnabled => EnableBuffering;
+
         public enum Option
         {
             initChanLeft = 0x0002,      // left stereo channel
@@ -36,32 +39,16 @@ namespace ShenmueDKSharp.Files.Audio
         }
 
 
-        public override void Read(Stream stream)
-        {
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                Read(reader);
-            }
-        }
-
-        public override void Write(Stream stream)
-        {
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                Write(writer);
-            }
-        }
-
-        public void Read(BinaryReader reader)
+        protected override void _Read(BinaryReader reader)
         {
             ushort channels = 1;
             short sndFormat = reader.ReadInt16();
             if (sndFormat != 1 && sndFormat != 2)
             {
-                throw new Exception("Bad snd format");
+                throw new Exception("Bad snd format: " + sndFormat);
             }
 
-            uint sndHeaderOffset = 02;
+            uint sndHeaderOffset = 20;
             int opts = 0;
             int referenceCount = 0;
             if (sndFormat == 2)
@@ -71,23 +58,50 @@ namespace ShenmueDKSharp.Files.Audio
             }
             else
             {
-                if (reader.ReadInt16() != 1)
+                short dataTypeCount = reader.ReadInt16();
+                if (dataTypeCount != 1)
                 {
                     throw new Exception("Too many data types");
                 }
-                if (reader.ReadInt16() != 5)
+                short dataType = reader.ReadInt16();
+                if (dataType != 5)
                 {
                     throw new Exception("Not sampled sound");
                 }
                 opts = reader.ReadInt32();
                 if (opts != (int)Option.initMono && opts != 0xA0 && opts != (int)Option.initStereo)
                 {
-
+                    throw new Exception("Unhandled opts: " + opts);
                 }
+            }
+            if (reader.ReadInt16() != 1)
+            {
+                throw new Exception("Too many commands");
+            }
+            ushort sndCommand = reader.ReadUInt16();
+            if (sndCommand != 0x8051 && sndCommand != 0x8050)
+            {
+                throw new Exception("Not a bufferCmd or sndCmd: " + sndCommand);
+            }
+
+            short param1 = reader.ReadInt16();
+            int param2 = reader.ReadInt32();
+            if (param1 != 0)
+            {
+                throw new Exception("Bad param1");
+            }
+            if (param2 != sndHeaderOffset)
+            {
+                throw new Exception("Bad param2");
+            }
+            int dataPointer = reader.ReadInt32();
+            if (dataPointer != 0)
+            {
+                throw new Exception("Bad data pointer");
             }
         }
 
-        public void Write(BinaryWriter writer)
+        protected override void _Write(BinaryWriter writer)
         {
         }
     }

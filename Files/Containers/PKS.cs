@@ -9,8 +9,15 @@ using System.Threading.Tasks;
 
 namespace ShenmueDKSharp.Files.Containers
 {
+    /// <summary>
+    /// PKS file container.
+    /// Mostly paired with PKF file.
+    /// </summary>
     public class PKS : BaseFile
     {
+        public static bool EnableBuffering = false;
+        public override bool BufferingEnabled => EnableBuffering;
+
         public readonly static List<string> Extensions = new List<string>()
         {
             "PKS"
@@ -30,7 +37,7 @@ namespace ShenmueDKSharp.Files.Containers
         {
             for (int i = 0; i < Identifiers.Count; i++)
             {
-                if (Helper.CompareSignature(Identifiers[i], identifier)) return true;
+                if (FileHelper.CompareSignature(Identifiers[i], identifier)) return true;
             }
             return false;
         }
@@ -42,6 +49,9 @@ namespace ShenmueDKSharp.Files.Containers
         public uint Unknown2 { get; set; }
         public IPAC IPAC { get; set; }
 
+        /// <summary>
+        /// True if the read PKS was compressed and can be set if you want to compress the PKS when writing.
+        /// </summary>
         public bool Compress;
 
         public PKS() { }
@@ -58,36 +68,20 @@ namespace ShenmueDKSharp.Files.Containers
             Read(reader);
         }
 
-        public override void Read(Stream stream)
-        {
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                Read(reader);
-            }
-        }
-
-        public override void Write(Stream stream)
-        {
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                Write(writer);
-            }
-        }
-
-        public void Read(BinaryReader reader)
+        protected override void _Read(BinaryReader reader)
         {
             byte[] gzipSignature = reader.ReadBytes(2);
             reader.BaseStream.Seek(-2, SeekOrigin.Current);
 
             Compress = false;
+            MemoryStream streamOut = null;
             if (GZ.IsValid(gzipSignature))
             {
-                MemoryStream streamOut = new MemoryStream();
-                using (GZipStream streamGZip = new GZipStream(reader.BaseStream, CompressionMode.Decompress))
-                {
-                    streamGZip.CopyTo(streamOut);
-                }
+                streamOut = new MemoryStream();
+                GZipStream streamGZip = new GZipStream(reader.BaseStream, CompressionMode.Decompress);
+                streamGZip.CopyTo(streamOut);
                 reader = new BinaryReader(streamOut);
+                reader.BaseStream.Seek(0, SeekOrigin.Begin);
                 Compress = true;
             }
 
@@ -103,7 +97,7 @@ namespace ShenmueDKSharp.Files.Containers
             }
         }
 
-        public void Write(BinaryWriter writer)
+        protected override void _Write(BinaryWriter writer)
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
@@ -131,6 +125,32 @@ namespace ShenmueDKSharp.Files.Containers
                     memoryStream.CopyTo(writer.BaseStream);
                 }
             }
+        }
+
+        /// <summary>
+        /// Unpacks all files into the given folder or, when empty, in an folder next to the PKS file.
+        /// </summary>
+        public void Unpack(string folder = "")
+        {
+            if (String.IsNullOrEmpty(folder))
+            {
+                folder = Path.GetDirectoryName(FilePath) + "\\_" + FileName + "_";
+            }
+            if (!Directory.Exists(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+            IPAC.Unpack(folder);
+        }
+
+        /// <summary>
+        /// Packs the given files into the PKS object.
+        /// The input files must have the same format as the unpack method
+        /// or the file entries have to be added manually.
+        /// </summary>
+        public void Pack(List<string> filepaths)
+        {
+            IPAC.Pack(filepaths);
         }
     }
 

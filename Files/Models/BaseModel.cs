@@ -191,13 +191,14 @@ namespace ShenmueDKSharp.Files.Models
     {
         private readonly static Encoding m_shiftJis = Encoding.GetEncoding("shift_jis");
 
-        public BaseImage Image;
-        public uint ID;
-        public byte[] NameData;
+        public BaseImage Image { get; set; }
+        public uint ID { get; set; }
+        public byte[] NameData { get; set; }
         public string Name
         {
             get { return m_shiftJis.GetString(NameData); }
         }
+        public Color4 TintColor { get; set; }
     }
 
     public class MeshFace
@@ -221,8 +222,9 @@ namespace ShenmueDKSharp.Files.Models
         public bool Unlit { get; set; } = false;
         public bool Transparent { get; set; } = false;
         public bool MirrorUVs { get; set; } = false;
-        public WrapMode Wrap { get; set; }
-        public uint TextureIndex { get; set; }
+        public WrapMode Wrap { get; set; } = WrapMode.Clamp;
+        public uint TextureIndex { get; set; } = 0;
+        public Color4 StripColor { get; set; } = Color4.White;
         public Material Material { get; set; } = new Material();
         public PrimitiveType Type { get; set; }
         public ushort[] VertexIndices { get; set; }

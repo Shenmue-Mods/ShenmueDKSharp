@@ -9,15 +9,6 @@ namespace ShenmueDKSharp.Utils
 {
     public class Helper
     {
-        public static bool CompareSignature(byte[] signature, byte[] data)
-        {
-            if (data.Length < signature.Length) return false;
-            for (int i = 0; i < signature.Length; i++)
-            {
-                if (signature[i] != data[i]) return false;
-            }
-            return true;
-        }
 
         public static bool CompareArray(byte[] array1, byte[] array2)
         {
@@ -47,26 +38,5 @@ namespace ShenmueDKSharp.Utils
             return result;
         }
 
-        public static List<string> DirSearch(string sDir)
-        {
-            List<string> files = new List<string>();
-
-            try
-            {
-                foreach (string d in Directory.GetDirectories(sDir))
-                {
-                    foreach (string f in Directory.GetFiles(d))
-                    {
-                        files.Add(f);
-                    }
-                    files.AddRange(DirSearch(d));
-                }
-            }
-            catch (System.Exception excpt)
-            {
-                Console.WriteLine(excpt.Message);
-            }
-            return files;
-        }
     }
 }

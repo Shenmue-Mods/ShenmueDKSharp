@@ -12,6 +12,8 @@ namespace ShenmueDKSharp.Files.Misc
     /// </summary>
     public class MOTN : BaseFile
     {
+        public static bool EnableBuffering = true;
+        public override bool BufferingEnabled => EnableBuffering;
 
         public uint HeaderSize; //can be used as identifier maybe, (also is offset to motion data indices)
         public uint SequenceNameTableOffset;
@@ -28,23 +30,7 @@ namespace ShenmueDKSharp.Files.Misc
             Read(reader);
         }
 
-        public override void Read(Stream stream)
-        {
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                Read(reader);
-            }
-        }
-
-        public override void Write(Stream stream)
-        {
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                Write(writer);
-            }
-        }
-
-        public void Read(BinaryReader reader)
+        protected override void _Read(BinaryReader reader)
         {
             HeaderSize = reader.ReadUInt32();
             SequenceNameTableOffset = reader.ReadUInt32();
@@ -81,7 +67,7 @@ namespace ShenmueDKSharp.Files.Misc
             }
         }
 
-        public void Write(BinaryWriter writer)
+        protected override void _Write(BinaryWriter writer)
         {
             
         }

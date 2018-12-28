@@ -14,6 +14,9 @@ namespace ShenmueDKSharp.Files.Tokens
     /// <seealso cref="ShenmueDKSharp.Files.BaseFile" />
     public class LGHT : BaseFile
     {
+        public static bool EnableBuffering = true;
+        public override bool BufferingEnabled => EnableBuffering;
+
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
         {
             new byte[4] { 0x4C, 0x47, 0x48, 0x54 } //LGHT
@@ -28,7 +31,7 @@ namespace ShenmueDKSharp.Files.Tokens
         {
             for (int i = 0; i < Identifiers.Count; i++)
             {
-                if (Helper.CompareSignature(Identifiers[i], identifier)) return true;
+                if (FileHelper.CompareSignature(Identifiers[i], identifier)) return true;
             }
             return false;
         }
@@ -51,23 +54,7 @@ namespace ShenmueDKSharp.Files.Tokens
             Read(reader);
         }
 
-        public override void Read(Stream stream)
-        {
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                Read(reader);
-            }
-        }
-
-        public override void Write(Stream stream)
-        {
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                Write(writer);
-            }
-        }
-
-        public void Read(BinaryReader reader)
+        protected override void _Read(BinaryReader reader)
         {
             long pos = reader.BaseStream.Position;
             Identifier = reader.ReadUInt32();
@@ -81,7 +68,7 @@ namespace ShenmueDKSharp.Files.Tokens
             reader.BaseStream.Seek(pos + Size, SeekOrigin.Begin);
         }
 
-        public void Write(BinaryWriter writer)
+        protected override void _Write(BinaryWriter writer)
         {
 
         }

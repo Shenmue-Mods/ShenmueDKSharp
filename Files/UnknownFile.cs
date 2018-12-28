@@ -5,25 +5,25 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShenmueDKSharp.Files.Misc
+namespace ShenmueDKSharp.Files
 {
     /// <summary>
-    /// Map information file containing various tokens.
+    /// Unknown file format class for file formats that are not covered yet.
+    /// This is used mainly for the container file formats.
     /// </summary>
-    /// <seealso cref="ShenmueDKSharp.Files.BaseFile" />
-    public class MAPINFO : BaseFile
+    public class UnknownFile : BaseFile
     {
         public static bool EnableBuffering = false;
         public override bool BufferingEnabled => EnableBuffering;
 
         protected override void _Read(BinaryReader reader)
         {
-            throw new NotImplementedException();
+            
         }
 
         protected override void _Write(BinaryWriter writer)
         {
-            throw new NotImplementedException();
+            
         }
     }
 }

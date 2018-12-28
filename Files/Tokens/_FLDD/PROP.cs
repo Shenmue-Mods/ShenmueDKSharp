@@ -14,6 +14,9 @@ namespace ShenmueDKSharp.Files.Tokens._FLDD
     /// </summary>
     public class PROP : BaseFile
     {
+        public static bool EnableBuffering = true;
+        public override bool BufferingEnabled => EnableBuffering;
+
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
         {
             new byte[4] { 0x50, 0x52, 0x4F, 0x50 } //PROP
@@ -28,7 +31,7 @@ namespace ShenmueDKSharp.Files.Tokens._FLDD
         {
             for (int i = 0; i < Identifiers.Count; i++)
             {
-                if (Helper.CompareSignature(Identifiers[i], identifier)) return true;
+                if (FileHelper.CompareSignature(Identifiers[i], identifier)) return true;
             }
             return false;
         }
@@ -51,23 +54,7 @@ namespace ShenmueDKSharp.Files.Tokens._FLDD
 
         public PROP() { }
 
-        public override void Read(Stream stream)
-        {
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                Read(reader);
-            }
-        }
-
-        public override void Write(Stream stream)
-        {
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                Write(writer);
-            }
-        }
-
-        public void Read(BinaryReader reader)
+        protected override void _Read(BinaryReader reader)
         {
             Offset = (uint)reader.BaseStream.Position;
             Identifier = reader.ReadUInt32();
@@ -88,7 +75,7 @@ namespace ShenmueDKSharp.Files.Tokens._FLDD
             Offset8 = reader.ReadUInt32();
         }
 
-        public void Write(BinaryWriter writer)
+        protected override void _Write(BinaryWriter writer)
         {
             throw new NotImplementedException();
         }

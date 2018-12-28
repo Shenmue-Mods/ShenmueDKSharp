@@ -108,6 +108,42 @@ namespace ShenmueDKSharp.Graphics
         #region Public Members
 
         /// <summary>
+        /// The red component of this Color4 structure as byte.
+        /// </summary>
+        public byte R_
+        {
+            get { return (byte)(R * Byte.MaxValue); }
+            set { R = value / (float)Byte.MaxValue; }
+        }
+
+        /// <summary>
+        /// The green component of this Color4 structure as byte.
+        /// </summary>
+        public byte G_
+        {
+            get { return (byte)(G * Byte.MaxValue); }
+            set { G = value / (float)Byte.MaxValue; }
+        }
+
+        /// <summary>
+        /// The blue component of this Color4 structure as byte.
+        /// </summary>
+        public byte B_
+        {
+            get { return (byte)(B * Byte.MaxValue); }
+            set { B = value / (float)Byte.MaxValue; }
+        }
+
+        /// <summary>
+        /// The alpha component of this Color4 structure as byte.
+        /// </summary>
+        public byte A_
+        {
+            get { return (byte)(A * Byte.MaxValue); }
+            set { A = value / (float)Byte.MaxValue; }
+        }
+
+        /// <summary>
         /// Converts this color to an integer representation with 8 bits per channel.
         /// </summary>
         /// <returns>A <see cref="System.Int32"/> that represents this instance.</returns>

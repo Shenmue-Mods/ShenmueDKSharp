@@ -11,6 +11,9 @@ namespace ShenmueDKSharp.Files.Containers
     /// </summary>
     public class AFS : BaseFile
     {
+        public static bool EnableBuffering = false;
+        public override bool BufferingEnabled => EnableBuffering;
+
         public readonly static List<string> Extensions = new List<string>()
         {
             "AFS"
@@ -30,7 +33,7 @@ namespace ShenmueDKSharp.Files.Containers
         {
             for (int i = 0; i < Identifiers.Count; i++)
             {
-                if (Helper.CompareSignature(Identifiers[i], identifier)) return true;
+                if (FileHelper.CompareSignature(Identifiers[i], identifier)) return true;
             }
             return false;
         }
@@ -56,23 +59,7 @@ namespace ShenmueDKSharp.Files.Containers
             Read(reader);
         }
 
-        public override void Read(Stream stream)
-        {
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                Read(reader);
-            }
-        }
-
-        public override void Write(Stream stream)
-        {
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                Write(writer);
-            }
-        }
-
-        public void Read(BinaryReader reader)
+        protected override void _Read(BinaryReader reader)
         {
             long baseOffset = reader.BaseStream.Position;
 
@@ -95,7 +82,7 @@ namespace ShenmueDKSharp.Files.Containers
                 index++;
             }
             
-            //read filename table offset
+            //Read filename table offset
             //This limit is just a guess, needs testing
             if (FileCount > 1016)
             {
@@ -111,16 +98,17 @@ namespace ShenmueDKSharp.Files.Containers
                 FilenameSectionSize = reader.ReadUInt32();
             }
 
-            //read filename table
             if (FilenameSectionOffset == 0)
             {
+                //Set incrementing filenames if table of content is missing.
                 for (int i = 0; i < FileCount; i++)
                 {
                     Entries[i].Filename = "file_" + i;
                 }
             }
-            else
+            else 
             {
+                //Read table of contents
                 reader.BaseStream.Seek(baseOffset + FilenameSectionOffset, SeekOrigin.Begin);
                 for (int i = 0; i < FileCount; i++)
                 {
@@ -128,7 +116,7 @@ namespace ShenmueDKSharp.Files.Containers
                 }
             }
 
-            //read file data
+            //Read file data
             foreach (AFSEntry entry in Entries)
             {
                 reader.BaseStream.Seek(baseOffset + entry.Offset, SeekOrigin.Begin);
@@ -136,7 +124,7 @@ namespace ShenmueDKSharp.Files.Containers
             }
         }
 
-        public void Write(BinaryWriter writer)
+        protected override void _Write(BinaryWriter writer)
         {
             long baseOffset = writer.BaseStream.Position;
 
@@ -144,7 +132,7 @@ namespace ShenmueDKSharp.Files.Containers
             writer.Write(Signature);
             writer.Write(FileCount);
 
-            //calculate offsets
+            //Calculate offsets
             uint startOffset = 8 + FileCount * 16;
             startOffset = startOffset + 0x0800 - (startOffset % 0x0800);
 
@@ -163,27 +151,27 @@ namespace ShenmueDKSharp.Files.Containers
                 offset += SectorSize - (offset % SectorSize); //sector padding
             }
 
-            //write offsets
+            //Write offsets
             foreach (AFSEntry entry in Entries)
             {
                 entry.WriteOffset(writer);
             }
 
-            //calculate and write filename table offset
+            //Calculate and write filename table offset
             FilenameSectionOffset = offset;
             FilenameSectionSize = (uint)Entries.Count * AFSEntry.Length;
             writer.BaseStream.Seek(baseOffset + startOffset - 8, SeekOrigin.Begin);
             writer.Write(FilenameSectionOffset);
             writer.Write(FilenameSectionSize);
 
-            //write data
+            //Write data
             foreach(AFSEntry entry in Entries)
             {
                 writer.BaseStream.Seek(baseOffset + entry.Offset, SeekOrigin.Begin);
                 entry.WriteData(writer);
             }
 
-            //write filenames
+            //Write filenames
             writer.BaseStream.Seek(baseOffset + FilenameSectionOffset, SeekOrigin.Begin);
             foreach (AFSEntry entry in Entries)
             {
@@ -191,7 +179,10 @@ namespace ShenmueDKSharp.Files.Containers
             }
         }
 
-        public void Unpack(string folder)
+        /// <summary>
+        /// Unpacks all files into the given folder or, when empty, in an folder next to the AFS file.
+        /// </summary>
+        public void Unpack(string folder = "")
         {
             foreach(AFSEntry entry in Entries)
             {
@@ -202,11 +193,34 @@ namespace ShenmueDKSharp.Files.Containers
             }
         }
 
+        public void Pack(List<string> filepaths)
+        {
+            Entries.Clear();
+            foreach (string filepath in filepaths)
+            {
+                FileInfo fileInfo = new FileInfo(filepath);
+
+                AFSEntry entry = new AFSEntry();
+                entry.Filename = Path.GetFileNameWithoutExtension(filepath);
+                entry.EntryDateTime = fileInfo.LastWriteTimeUtc;
+                using (FileStream stream = new FileStream(filepath, FileMode.Open))
+                {
+                    entry.FileSize = (uint)stream.Length;
+                    entry.Buffer = new byte[stream.Length];
+                    stream.Read(entry.Buffer, 0, entry.Buffer.Length);
+                }
+                Entries.Add(entry);
+            }
+        }
+
+        /// <summary>
+        /// Tries to map the filenames of all the AFS file entries with the give IDX file.
+        /// </summary>
         public void MapIDXFile(IDX idx)
         {
             for (int i = 0; i < idx.Entries.Count; i++)
             {
-                IDX.IDXEntry entry = idx.Entries[i];
+                IDXEntry entry = idx.Entries[i];
                 if (i >= Entries.Count) break;
                 Entries[i].IDXFilename = entry.Filename;
             }

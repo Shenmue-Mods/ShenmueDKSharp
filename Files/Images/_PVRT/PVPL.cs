@@ -1,24 +1,24 @@
 ﻿using ShenmueDKSharp.Utils;
 using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShenmueDKSharp.Files.Misc
+namespace ShenmueDKSharp.Files.Images._PVRT
 {
     /// <summary>
-    /// Scene audio/subtitles stuff
+    /// PVR palette file
     /// </summary>
-    public class SCNF : BaseFile
+    public class PVPL : BaseFile
     {
-        public static bool EnableBuffering = true;
+        public static bool EnableBuffering = false;
         public override bool BufferingEnabled => EnableBuffering;
 
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
         {
-            new byte[4] { 0x53, 0x43, 0x4E, 0x46 } //SCNF
+            new byte[4] { 0x50, 0x56, 0x50, 0x4C }  //PVPL
         };
 
         public static bool IsValid(uint identifier)
@@ -35,19 +35,25 @@ namespace ShenmueDKSharp.Files.Misc
             return false;
         }
 
-        public uint Identifier;
-
-        public SCNF() { }
+        uint Identifier;
+        uint PaletteDataSize;
+        uint Type;
+        ushort Unknown;
+        ushort PaletteEntryCount;
 
         protected override void _Read(BinaryReader reader)
         {
             Identifier = reader.ReadUInt32();
-
+            PaletteDataSize = reader.ReadUInt32();
+            Type = reader.ReadUInt32();
+            Unknown = reader.ReadUInt16();
+            PaletteEntryCount = reader.ReadUInt16();
+            throw new NotImplementedException();
         }
 
         protected override void _Write(BinaryWriter writer)
         {
-
+            throw new NotImplementedException();
         }
     }
 }

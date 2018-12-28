@@ -6,17 +6,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShenmueDKSharp.Files.Models._MT7
+namespace ShenmueDKSharp.Files.Models._MT5
 {
-    /// <summary>
-    /// MDPX/MDP7 Node
-    /// </summary>
-    public class MDPX
+    public class PTRL
     {
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
         {
-            new byte[4] { 0x4D, 0x44, 0x50, 0x58 }, //MDPX
-            new byte[4] { 0x4D, 0x44, 0x50, 0x37 }  //MDP7
+            new byte[4] { 0x50, 0x54, 0x52, 0x4C } //PTRL
         };
 
         public static bool IsValid(uint identifier)
@@ -33,24 +29,19 @@ namespace ShenmueDKSharp.Files.Models._MT7
             return false;
         }
 
-        public uint Token;
+        public uint Offset;
+
+        public uint Identifier;
         public uint Size;
-        public byte[] NameData;
-        public string Name;
 
-        public byte[] Data;
-
-        public MDPX(BinaryReader reader)
+        public PTRL(BinaryReader reader)
         {
-            long position = reader.BaseStream.Position;
-            Token = reader.ReadUInt32();
+            Offset = (uint)reader.BaseStream.Position;
+
+            Identifier = reader.ReadUInt32();
             Size = reader.ReadUInt32();
-            NameData = reader.ReadBytes(4);
-            Name = Encoding.ASCII.GetString(NameData);
 
-            Data = reader.ReadBytes((int)Size - 12);
+            reader.BaseStream.Seek(Offset + Size, SeekOrigin.Begin);
         }
-            
-
     }
 }

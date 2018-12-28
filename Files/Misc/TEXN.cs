@@ -15,7 +15,19 @@ namespace ShenmueDKSharp.Files.Misc
     /// <seealso cref="ShenmueDKSharp.Files.BaseFile" />
     public class TEXN : BaseFile
     {
+        public static bool EnableBuffering = false;
+        public override bool BufferingEnabled => EnableBuffering;
+
+        public readonly static List<string> Extensions = new List<string>()
+        {
+            "TEXN"
+        };
+
         private static Encoding m_shiftJis = Encoding.GetEncoding("shift_jis");
+
+        /// <summary>
+        /// The header size including the TEXN identifier, the entry size and the name/id data.
+        /// </summary>
         private static uint HeaderSize = 16;
 
         public readonly static List<byte[]> Identifiers = new List<byte[]>()
@@ -32,7 +44,7 @@ namespace ShenmueDKSharp.Files.Misc
         {
             for (int i = 0; i < Identifiers.Count; i++)
             {
-                if (Helper.CompareSignature(Identifiers[i], identifier)) return true;
+                if (FileHelper.CompareSignature(Identifiers[i], identifier)) return true;
             }
             return false;
         }
@@ -56,34 +68,24 @@ namespace ShenmueDKSharp.Files.Misc
             }
         }
 
-        public BaseImage Texture;
+        public PVRT Texture { get; set; }
 
 
         public TEXN() { }
-
+        public TEXN(string filepath)
+        {
+            Read(filepath);
+        }
+        public TEXN(Stream stream)
+        {
+            Read(stream);
+        }
         public TEXN(BinaryReader reader)
         {
             Read(reader);
         }
 
-
-        public override void Read(Stream stream)
-        {
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                Read(reader);
-            }
-        }
-
-        public override void Write(Stream stream)
-        {
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                Write(writer);
-            }
-        }
-
-        public void Read(BinaryReader reader)
+        protected override void _Read(BinaryReader reader)
         {
             Offset = (uint)reader.BaseStream.Position;
 
@@ -103,7 +105,7 @@ namespace ShenmueDKSharp.Files.Misc
             reader.BaseStream.Seek(Offset + EntrySize, SeekOrigin.Begin);
         }
 
-        public void Write(BinaryWriter writer)
+        protected override void _Write(BinaryWriter writer)
         {
             EntrySize = (uint)Texture.DataSize + HeaderSize;
 

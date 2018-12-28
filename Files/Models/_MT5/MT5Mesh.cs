@@ -46,8 +46,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
             Unknown_8000 = 0x0008, //ignored
             Unknown_A000 = 0x000A, //ignored
             Unknown_0B00 = 0x000B,
-            Unknown_0200 = 0x0002, //copy
-            Unknown_0300 = 0x0003, //copy
+            StripAttrib_0200 = 0x0002,
+            StripAtrrib_0300 = 0x0003,
 
             //faces (strips)
             Strip_1000 = 0x0010,
@@ -72,7 +72,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
 
             Offset = (uint)reader.BaseStream.Position;
 
-            //Console.WriteLine("MeshOffset: {0}", Offset);
+            Console.WriteLine("MeshOffset: {0}", Offset);
 
             PolyType = reader.ReadUInt32();
             VerticesOffset = reader.ReadUInt32();
@@ -87,11 +87,16 @@ namespace ShenmueDKSharp.Files.Models._MT5
             };
             MeshDiameter = reader.ReadSingle();
 
-            //Read faces
-            //d3t asm copy (Shenmue.exe+00064E60 of 1.03)
+            //Read strips/faces
             reader.BaseStream.Seek(FacesOffset, SeekOrigin.Begin);
-            uint currentTexture = 0;
+
+            //initialize states
+            uint textureIndex = 0;
+            Color4 stripColor = Color4.White;
+            bool uvFlag = false;
             uint unknown_0B00 = 0; //polytype? uv mirror? (used when reading strip)
+
+            //read strip functions
             while (reader.BaseStream.Position < reader.BaseStream.Length - 4)
             {
                 ushort stripType = reader.ReadUInt16();
@@ -115,30 +120,45 @@ namespace ShenmueDKSharp.Files.Models._MT5
                     case MT5MeshEntryType.Unknown_A000:
                         reader.BaseStream.Seek(2, SeekOrigin.Current);
                         continue;
-
+                    
                     case MT5MeshEntryType.Unknown_0B00:
                         unknown_0B00 = reader.ReadUInt16();
                         //Console.WriteLine("0B00: {0:X}", unknown_0B00);
                         continue;
 
-                    case MT5MeshEntryType.Unknown_0200:
-                    case MT5MeshEntryType.Unknown_0300:
+                    case MT5MeshEntryType.StripAttrib_0200:
+                    case MT5MeshEntryType.StripAtrrib_0300:
                         uint size = reader.ReadUInt16();
                         long offset = reader.BaseStream.Position;
 
-                        //first byte controls uv
-                        uint unknown = reader.ReadUInt32();
-                        //Console.WriteLine("0200/0300: {0:X}", unknown);
-
-                        if (size / 2 > 0)
+                        //Debug output whole attribute bytes
+                        byte[] bytes = reader.ReadBytes((int)size);
+                        StringBuilder hex = new StringBuilder(bytes.Length * 2);
+                        foreach (byte a in bytes)
                         {
+                            hex.AppendFormat("{0:X2}", a);
                         }
+                        //Console.WriteLine(hex.ToString());
+                        reader.BaseStream.Seek(offset, SeekOrigin.Begin);
+
+                        //first byte controls uv somehow
+                        uint unknown = reader.ReadUInt32();
+                        uvFlag = (unknown & 1) == 1; //TODO: use this flag
+
+                        //skip unknown stuff
+                        reader.BaseStream.Seek(3, SeekOrigin.Current);
+
+                        //strip color
+                        byte stripB = reader.ReadByte();
+                        byte stripG = reader.ReadByte();
+                        byte stripR = reader.ReadByte();
+                        stripColor = new Color4(stripR, stripG, stripB, 255);
 
                         reader.BaseStream.Seek(offset + size, SeekOrigin.Begin);
                         continue;
 
                     case MT5MeshEntryType.Texture:
-                        currentTexture = reader.ReadUInt16();
+                        textureIndex = reader.ReadUInt16();
                         continue;
 
                     //Face strips
@@ -180,7 +200,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
                         {
                             MeshFace face = new MeshFace();
                             face.Type = MeshFace.PrimitiveType.TriangleStrip;
-                            face.TextureIndex = currentTexture;
+                            face.TextureIndex = textureIndex;
+                            face.StripColor = stripColor;
 
                             short stripLength = reader.ReadInt16();
                             if (stripLength < 0)

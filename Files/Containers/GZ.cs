@@ -14,6 +14,9 @@ namespace ShenmueDKSharp.Files.Containers
     /// </summary>
     public class GZ : BaseFile
     {
+        public static bool EnableBuffering = false;
+        public override bool BufferingEnabled => EnableBuffering;
+
         public readonly static List<string> Extensions = new List<string>()
         {
             "GZ"
@@ -33,7 +36,7 @@ namespace ShenmueDKSharp.Files.Containers
         {
             for (int i = 0; i < Identifiers.Count; i++)
             {
-                if (Helper.CompareSignature(Identifiers[i], identifier)) return true;
+                if (FileHelper.CompareSignature(Identifiers[i], identifier)) return true;
             }
             return false;
         }
@@ -59,7 +62,8 @@ namespace ShenmueDKSharp.Files.Containers
             Encrypted = 32 //file is encrypted, encryption header present
         }
 
-        public BaseFile File;
+        public string ContentFileName { get; set; }
+        public byte[] ContentBuffer { get; set; }
 
         public GZ() { }
         public GZ(string filename)
@@ -75,65 +79,75 @@ namespace ShenmueDKSharp.Files.Containers
             Read(reader);
         }
 
-
-        public override void Read(Stream stream)
-        {
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                Read(reader);
-            }
-        }
-
-        public override void Write(Stream stream)
-        {
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                Write(writer);
-            }
-        }
-
-        public void Read(BinaryReader reader)
+        protected override void _Read(BinaryReader reader)
         {
             byte[] identifier = reader.ReadBytes(2);
             if (!IsValid(identifier)) return;
 
-            //TODO read header correctly
+            //TODO: read header correctly
             reader.BaseStream.Seek(10, SeekOrigin.Begin);
 
-            //reading filename from header
+            //Reading filename from header
             byte ch = reader.ReadByte();
-            string fName = "";
+            ContentFileName = "";
             while (ch != 0)
             {
-                fName += (char)ch;
+                ContentFileName += (char)ch;
                 ch = reader.ReadByte();
             }
 
+            //Decompress GZip into buffer
             reader.BaseStream.Seek(0, SeekOrigin.Begin);
-            using (MemoryStream streamOut = new MemoryStream())
+            MemoryStream streamOut = new MemoryStream();
+            GZipStream streamGZip = new GZipStream(reader.BaseStream, CompressionMode.Decompress);
+            streamGZip.CopyTo(streamOut);
+            ContentBuffer = streamOut.GetBuffer();
+        }
+
+        protected override void _Write(BinaryWriter writer)
+        {
+            using (MemoryStream memoryStream = new MemoryStream())
             {
-                using (GZipStream streamGZip = new GZipStream(reader.BaseStream, CompressionMode.Decompress))
+                memoryStream.Write(ContentBuffer, 0, ContentBuffer.Length);
+                using (MemoryStream compressedStream = new MemoryStream())
                 {
-                    streamGZip.CopyTo(streamOut);
+                    using (GZipStream compressionStream = new GZipStream(compressedStream, CompressionMode.Compress, false))
+                    {
+                        memoryStream.CopyTo(compressionStream);
+                        compressionStream.CopyTo(writer.BaseStream);
+                    }
                 }
-                Buffer = streamOut.GetBuffer();
             }
-
         }
 
-        public void Write(BinaryWriter writer)
+        /// <summary>
+        /// Unpacks the file into the given folder or, when empty, in an folder next to the GZ file.
+        /// </summary>
+        public void Unpack(string folder = "")
         {
-
+            if (String.IsNullOrEmpty(folder))
+            {
+                folder = Path.GetDirectoryName(FilePath) + "\\_" + FileName + "_";
+            }
+            if (!Directory.Exists(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+            using (FileStream stream = new FileStream(String.Format(folder + "\\{0}", ContentFileName), FileMode.Create))
+            {
+                stream.Write(ContentBuffer, 0, ContentBuffer.Length);
+            }
         }
 
-        public static void Unpack(string folder)
+        /// <summary>
+        /// Packs the given file into the GZ object.
+        /// </summary>
+        public void Pack(string filepath)
         {
-            throw new NotImplementedException();
-        }
-
-        public static void Pack(string[] filenames)
-        {
-            throw new NotImplementedException();
+            using (FileStream stream = new FileStream(filepath, FileMode.Open))
+            {
+                stream.Read(ContentBuffer, 0, (int)stream.Length);
+            }
         }
     }
 }
