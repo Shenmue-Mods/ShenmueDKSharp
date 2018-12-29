@@ -22,7 +22,7 @@ public void ReadMT7(string filename)
   {
     foreach(MeshFace face in node.Faces)
     {
-      face.GetFloatArray(node, Vertex.VertexFormat.VertexNormalUV)
+      face.GetFloatArray(node, Vertex.VertexFormat.VertexNormalUV);
     }
   }
 }
