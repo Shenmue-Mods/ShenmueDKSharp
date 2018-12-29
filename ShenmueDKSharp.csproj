@@ -63,6 +63,7 @@
     <Compile Include="Files\Containers\PKF.cs" />
     <Compile Include="Files\Containers\PKS.cs" />
     <Compile Include="Files\Containers\SPR.cs" />
+    <Compile Include="Files\Containers\TAC.cs" />
     <Compile Include="Files\Containers\TAD.cs" />
     <Compile Include="Files\FileHelper.cs" />
     <Compile Include="Files\Images\BMP.cs" />
@@ -216,6 +217,7 @@
     <Compile Include="Files\Subtitles\SRF.cs" />
     <Compile Include="Files\Subtitles\SUB.cs" />
     <Compile Include="Extensions\BinaryReaderExtensions.cs" />
+    <Compile Include="Utils\FilenameDatabase.cs" />
     <Compile Include="Utils\Helper.cs" />
     <Compile Include="Extensions\MathExtensions.cs" />
     <Compile Include="Utils\MurmurHash2.cs" />
@@ -227,6 +229,7 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="Resources\DXT1_CodecTest.dds" />
+    <None Include="Resources\FilenameDatabase.gz" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">

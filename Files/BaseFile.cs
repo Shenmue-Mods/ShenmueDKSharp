@@ -92,7 +92,7 @@ namespace ShenmueDKSharp.Files
                 reader.BaseStream.Seek(baseOffset, SeekOrigin.Begin);
                 Buffer = reader.ReadBytes((int)size);
             }
-            reader.Close();
+            //reader.Close();
         }
 
         /// <summary>

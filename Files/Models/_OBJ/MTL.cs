@@ -61,11 +61,24 @@ namespace ShenmueDKSharp.Files.Models._OBJ
                     //TODO: Make this somehow better
                     throw new ArgumentException("Filepath was not given.");
                 }
-                string texturePath = String.Format("{0}\\{1}", Path.GetDirectoryName(FilePath), textureName);
-                string texDir = Path.GetDirectoryName(texturePath);
-                if (!Directory.Exists(texDir))
+
+                string texturePath = "";
+                string dir = Path.GetDirectoryName(FilePath);
+                if (String.IsNullOrEmpty(dir) || dir == "\\")
                 {
-                    Directory.CreateDirectory(texDir);
+                    texturePath = textureName;
+                }
+                else
+                {
+                    texturePath = String.Format("{0}\\{1}", Path.GetDirectoryName(FilePath), textureName);
+                    string texDir = Path.GetDirectoryName(texturePath);
+                    if (!String.IsNullOrEmpty(texDir))
+                    {
+                        if (!Directory.Exists(texDir))
+                        {
+                            Directory.CreateDirectory(texDir);
+                        }
+                    }
                 }
 
                 Bitmap bmp = texture.Image.CreateBitmap();

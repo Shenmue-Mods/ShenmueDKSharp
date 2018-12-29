@@ -51,7 +51,17 @@ namespace ShenmueDKSharp.Files.Models
                 //TODO: Make this somehow better
                 throw new ArgumentException("Filepath was not given.");
             }
-            string mtlPath = String.Format("{0}\\{1}.mtl", Path.GetDirectoryName(FilePath), Path.GetFileNameWithoutExtension(FilePath));
+
+            string mtlPath = "";
+            string dir = Path.GetDirectoryName(FilePath);
+            if (String.IsNullOrEmpty(dir) || dir == "\\")
+            {
+                mtlPath = Path.ChangeExtension(FilePath, ".mtl");
+            }
+            else
+            {
+                mtlPath = String.Format("{0}\\{1}", Path.GetDirectoryName(FilePath), Path.ChangeExtension(FilePath, ".mtl"));
+            }
             mtl.Write(mtlPath);
 
             CultureInfo cultureInfo = new CultureInfo("en-GB");

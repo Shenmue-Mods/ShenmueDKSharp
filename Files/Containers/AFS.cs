@@ -184,7 +184,15 @@ namespace ShenmueDKSharp.Files.Containers
         /// </summary>
         public void Unpack(string folder = "")
         {
-            foreach(AFSEntry entry in Entries)
+            if (String.IsNullOrEmpty(folder))
+            {
+                folder = Path.GetDirectoryName(FilePath) + "\\_" + FileName + "_";
+            }
+            if (!Directory.Exists(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+            foreach (AFSEntry entry in Entries)
             {
                 using (FileStream stream = File.Open(folder + "\\" + entry.Filename, FileMode.Create))
                 {

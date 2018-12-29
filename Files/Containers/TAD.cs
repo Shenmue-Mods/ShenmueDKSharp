@@ -54,6 +54,20 @@ namespace ShenmueDKSharp.Files.Containers
 
         public List<TADEntry> Entries = new List<TADEntry>();
 
+        public TAD() { }
+        public TAD(string filepath)
+        {
+            Read(filepath);
+        }
+        public TAD(Stream stream)
+        {
+            Read(stream);
+        }
+        public TAD(BinaryReader reader)
+        {
+            Read(reader);
+        }
+
         public void CalculateHeaderChecksum()
         {
             HeaderChecksum = MurmurHash2.Hash(GetHeaderBytes(true), TADHeaderSize);
@@ -64,18 +78,19 @@ namespace ShenmueDKSharp.Files.Containers
             FileType = reader.ReadUInt32();
             Identifier1 = reader.ReadUInt32();
             Identifier2 = reader.ReadUInt32();
-            reader.ReadUInt32();
+            reader.BaseStream.Seek(4, SeekOrigin.Current);
             UnixTimestamp = new DateTime(1970, 1, 1).AddSeconds(reader.ReadInt32());
-            reader.ReadUInt32();
+            reader.BaseStream.Seek(4, SeekOrigin.Current);
             char[] typeBuffer = new char[4];
             reader.Read(typeBuffer, 0, 4);
             RenderType = new string(typeBuffer);
-            reader.ReadUInt32();
+            reader.BaseStream.Seek(4, SeekOrigin.Current);
             HeaderChecksum = reader.ReadUInt32();
-            reader.ReadUInt32();
+            reader.BaseStream.Seek(4, SeekOrigin.Current);
             TacSize = reader.ReadUInt32();
-            reader.ReadUInt32();
+            reader.BaseStream.Seek(4, SeekOrigin.Current);
             FileCount = reader.ReadUInt32();
+            reader.BaseStream.Seek(8, SeekOrigin.Current); //Skip file count duplicate
 
             for (int i = 0; i < FileCount; i++)
             {
@@ -90,6 +105,7 @@ namespace ShenmueDKSharp.Files.Containers
         {
             CalculateHeaderChecksum();
             writer.Write(GetHeaderBytes());
+            writer.Write(FileCount); //Write file count duplicate
 
             foreach(TADEntry entry in Entries)
             {
@@ -98,84 +114,24 @@ namespace ShenmueDKSharp.Files.Containers
         }
 
         /// <summary>
-        /// Unpacks all the files from the given TAC file to the given folder or in a folder next to the TAD file.
+        /// Assigns the filenames to each TAD entry.
         /// </summary>
-        public void Unpack(string tacFilepath, string folder = "")
+        /// <param name="raymonf">True for using raymonf's wulinshu database else the cached database is used which is faster.</param>
+        public void AssignFileNames(bool raymonf = false)
         {
-            if (String.IsNullOrEmpty(folder))
+            if (raymonf)
             {
-                folder = Path.GetDirectoryName(FilePath) + "\\_" + FileName + "_";
-            }
-            if (!Directory.Exists(folder))
-            {
-                Directory.CreateDirectory(folder);
-            }
-
-            using (FileStream stream = File.Open(tacFilepath, FileMode.Open))
-            {
-                int counter = 0;
                 foreach (TADEntry entry in Entries)
                 {
                     entry.FileName = Wulinshu.GetFilenameFromHash(entry.FirstHash);
-
-                    stream.Seek(entry.FileOffset, SeekOrigin.Begin);
-                    byte[] fileBuffer = new byte[entry.FileSize];
-                    stream.Read(fileBuffer, 0, fileBuffer.Length);
-
-                    entry.FilePath = "";
-                    if (String.IsNullOrEmpty(entry.FileName))
-                    {
-                        entry.FilePath = String.Format("{0}\\{1}", folder, counter.ToString());
-                    }
-                    else
-                    {
-                        entry.FilePath = entry.FileName.Replace('/', '\\');
-                        entry.FilePath = folder + "\\" + entry.FilePath;
-
-                        string dir = Path.GetDirectoryName(entry.FilePath);
-                        if (!Directory.Exists(dir))
-                        {
-                            Directory.CreateDirectory(dir);
-                        }
-                    }
-                    using (FileStream entryStream = File.Create(entry.FilePath))
-                    {
-                        entryStream.Write(fileBuffer, 0, fileBuffer.Length);
-                    }
-                    counter++;
                 }
             }
-        }
-
-        /// <summary>
-        /// Packs the given entries to the given TAC file.
-        /// </summary>
-        public void Pack(string tacFilepath, List<TADEntry> entries)
-        {
-            using (FileStream stream = File.Create(tacFilepath))
+            else
             {
-                FileCount = 0;
-                foreach (TADEntry entry in entries)
+                foreach (TADEntry entry in Entries)
                 {
-                    FileCount++;
-                    if (String.IsNullOrEmpty(entry.FilePath))
-                    {
-                        throw new ArgumentException("TAD entry was missing the source filepath!");
-                    }
-
-                    byte[] buffer;
-                    using (FileStream entryStream = File.Open(entry.FilePath, FileMode.Open))
-                    {
-                        buffer = new byte[stream.Length];
-                        stream.Read(buffer, 0, buffer.Length);
-
-                        entry.FileOffset = (uint)stream.Position;
-                        entry.FileSize = (uint)buffer.Length;
-                    }
-                    stream.Write(buffer, 0, buffer.Length);
+                    entry.FileName = FilenameDatabase.GetFilename(entry.FirstHash, entry.SecondHash);
                 }
-                TacSize = (uint)stream.Length;
-                UnixTimestamp = DateTime.UtcNow + TimeSpan.FromDays(365 * 5);
             }
         }
 
@@ -240,11 +196,11 @@ namespace ShenmueDKSharp.Files.Containers
         /// </summary>
         public string FileName { get; set; }
 
-        public uint FirstHash;
-        public uint SecondHash;
-        public uint Unknown;
-        public uint FileOffset;
-        public uint FileSize;
+        public uint FirstHash { get; set; }
+        public uint SecondHash { get; set; }
+        public uint Unknown { get; set; }
+        public uint FileOffset { get; set; }
+        public uint FileSize { get; set; }
 
         public TADEntry() { }
         public TADEntry(byte[] data)

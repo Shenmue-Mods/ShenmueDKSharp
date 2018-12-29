@@ -65,7 +65,7 @@ namespace ShenmueDKSharp.Files.Containers
 
         protected override void _Read(BinaryReader reader)
         {
-            long baseOffset = reader.BaseStream.Length;
+            long baseOffset = reader.BaseStream.Position;
 
             //Read header
             Signature = reader.ReadUInt32();
@@ -75,7 +75,7 @@ namespace ShenmueDKSharp.Files.Containers
             Entries.Clear();
 
             //Read the table of content
-            reader.BaseStream.Seek(baseOffset + ContentSize, SeekOrigin.Begin);
+            reader.BaseStream.Seek(baseOffset + DictionaryOffset, SeekOrigin.Begin);
             for (int i = 0; i < FileCount; i++)
             {
                 IPACEntry entry = new IPACEntry();

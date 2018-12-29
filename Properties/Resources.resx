@@ -121,4 +121,7 @@
   <data name="DXT1_CodecTest" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\DXT1_CodecTest.dds;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="FilenameDatabase" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\FilenameDatabase.gz;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
 </root>
