@@ -54,7 +54,7 @@ namespace ShenmueDKSharp.Files.Models
 
             string mtlPath = "";
             string dir = Path.GetDirectoryName(FilePath);
-            if (String.IsNullOrEmpty(dir) || dir == "\\")
+            if (String.IsNullOrEmpty(dir) || dir == "\\" || Path.GetExtension(FilePath) == ".OBJ" || Path.GetExtension(FilePath) == ".obj")
             {
                 mtlPath = Path.ChangeExtension(FilePath, ".mtl");
             }
