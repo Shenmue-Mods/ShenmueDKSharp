@@ -145,11 +145,6 @@ namespace ShenmueDKSharp.Files.Images
             Width = reader.ReadUInt16();
             Height = reader.ReadUInt16();
 
-            if (ColorFormat == PVRColorFormat.BUMP)
-            {
-                //throw new Exception("HELLO");
-            }
-
             if (CategoryCode == PVRCategoryCode.DDS || CategoryCode == PVRCategoryCode.DDS_2)
             {
                 if (!(ColorFormat == PVRColorFormat.DDS_RGB24 || ColorFormat == PVRColorFormat.DDS_RGBA32))

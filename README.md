@@ -1,4 +1,3 @@
-
 # Shenmue Developer Kit for C#
 Shenmue I & II HD Modding SDK for C#
 
@@ -150,13 +149,23 @@ For more informations about the file formats see the [wulinshu wiki](https://wul
 | CSV | :x: | :x: | Comma-separated values | |
 | EMU | :x: | :x: | Emulator file | |
 
-## Credits
+## Used by these projects
+- [ShenmueHDTools](https://github.com/derplayer/ShenmueHDTools) - GUI file unpacker/packer and converter for Shenmue I&II file formats.
+- [wudecon](https://github.com/LemonHaze420/wudecon) - CLI file unpacker/converter for Shenmue I&II file formats.
 
+## Credits
+Contributers:
+- [LemonHaze](https://github.com/LemonHaze420) - SDK development and testing
+- [DerPlayer](https://github.com/derplayer) - SDK testing
+
+Starting code:
 - [SHENTRAD Team](http://shenmuesubs.sourceforge.net/) - Shenmue I & II DC ground work
-- [Shenmue-Mods](https://github.com/Shenmue-Mods/Shenmue-Mods) - Modding knowledge database
-- [Raymonf](https://wulinshu.raymonf.me/#/) - Wulinshu TAD hash database
+- [ShenmueHDTools](https://github.com/derplayer/ShenmueHDTools) - Project where it all started
 - [Fishbiter](https://github.com/Fishbiter/Shenmunity_plugin) - MT5, MOTN and PVRT starting code
 - [hellwig](https://github.com/hellwig/shencon) - MT5 incompleted code
 - [yazgoo](https://github.com/yazgoo/mt5_extraction_tools) - MT5 and MT7 rough starting point
 - [KFreon](https://github.com/KFreon/CSharpImageLibrary) - DDS reader/writer base code
 
+Other:
+- [Shenmue-Mods](https://github.com/Shenmue-Mods/Shenmue-Mods) - Modding knowledge database
+- [Raymonf](https://wulinshu.raymonf.me/#/) - Wulinshu TAD hash database

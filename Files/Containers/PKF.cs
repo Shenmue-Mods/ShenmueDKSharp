@@ -1,4 +1,5 @@
-﻿using ShenmueDKSharp.Utils;
+﻿using ShenmueDKSharp.Files.Misc;
+using ShenmueDKSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -114,6 +115,17 @@ namespace ShenmueDKSharp.Files.Containers
                 entry.Read(reader);
                 entry.Index = (uint)i;
                 Entries.Add(entry);
+
+                if (TextureDatabase.Automatic)
+                {
+                    if (entry.TokenString.ToUpper() == "TEXN")
+                    {
+                        using (MemoryStream stream = new MemoryStream(entry.Buffer))
+                        {
+                            TextureDatabase.AddTexture(new TEXN(stream));
+                        }
+                    }
+                }
             }
 
             if (Compress)

@@ -1,4 +1,5 @@
 ﻿using ShenmueDKSharp.Files.Misc;
+using ShenmueDKSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -66,7 +67,12 @@ namespace ShenmueDKSharp.Files.Containers
             while (reader.BaseStream.CanRead)
             {
                 if (reader.BaseStream.Position >= reader.BaseStream.Length - 16) break;
-                Textures.Add(new TEXN(reader));
+                TEXN texture = new TEXN(reader);
+                if (TextureDatabase.Automatic)
+                {
+                    TextureDatabase.AddTexture(texture);
+                }
+                Textures.Add(texture);
             }
         }
 

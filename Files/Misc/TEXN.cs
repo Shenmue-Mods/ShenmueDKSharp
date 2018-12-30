@@ -57,9 +57,15 @@ namespace ShenmueDKSharp.Files.Misc
         /// </summary>
         public uint EntrySize { get; set; }
 
-        public byte[] IDNameData { get; set; }
+        /// <summary>
+        /// Unique texture ID with name.
+        /// Used for identification of textures.
+        /// </summary>
+        public UInt64 ID_Name { get; set; }
+
         public uint TextureID { get; set; }
         public byte[] NameData { get; set; }
+
         public string Name
         {
             get
@@ -92,15 +98,15 @@ namespace ShenmueDKSharp.Files.Misc
             Identifier = reader.ReadUInt32();
             EntrySize = reader.ReadUInt32();
 
-            IDNameData = reader.ReadBytes(8);
+            ID_Name = reader.ReadUInt64();
             reader.BaseStream.Seek(-8, SeekOrigin.Current);
             TextureID = reader.ReadUInt32();
             NameData = reader.ReadBytes(4);
 
-            FileName = String.Format("{0}.{1}.TEXN", Helper.ByteArrayToString(IDNameData), Name.Replace("\0", "_"));
+            FileName = String.Format("{0}.{1}.TEXN", Helper.ByteArrayToString(BitConverter.GetBytes(ID_Name)), Name.Replace("\0", "_"));
 
             Texture = new PVRT(reader);
-            Texture.FileName = String.Format("{0}.{1}.PVR", Helper.ByteArrayToString(IDNameData), Name.Replace("\0", "_"));
+            Texture.FileName = String.Format("{0}.{1}.PVR", Helper.ByteArrayToString(BitConverter.GetBytes(ID_Name)), Name.Replace("\0", "_"));
 
             reader.BaseStream.Seek(Offset + EntrySize, SeekOrigin.Begin);
         }

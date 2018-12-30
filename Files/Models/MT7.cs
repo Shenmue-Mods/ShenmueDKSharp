@@ -1,4 +1,5 @@
 ﻿using ShenmueDKSharp.Files.Images;
+using ShenmueDKSharp.Files.Misc;
 using ShenmueDKSharp.Files.Models._MT7;
 using ShenmueDKSharp.Utils;
 using System;
@@ -144,35 +145,21 @@ namespace ShenmueDKSharp.Files.Models
                 }
             }
             
-            //Crawling for textures up one dictionary (TODO: make this dictionary changeable)
+            //Crawling for textures up one dictionary (TODO: Make this directory changeable)
             FileStream fileStream = (FileStream)reader.BaseStream;
             string dir = Path.GetDirectoryName(Path.GetDirectoryName(fileStream.Name));
-            List<string> files = FileHelper.DirSearch(dir);
+            TextureDatabase.SearchDirectory(dir);
 
             foreach (TextureEntry entry in TextureEntries)
             {
                 if (entry.Texture != null) continue;
-                //TODO: Add new TEXN method
-                string searchHex = Helper.ByteArrayToString(entry.Data);
-                foreach (string file in files)
-                {
-                    string filename = Path.GetFileName(file);
-                    if (filename.Contains(searchHex))
-                    {
-                        using (FileStream stream = File.Open(file, FileMode.Open))
-                        {
-                            Texture tex = new Texture();
-                            tex.ID = entry.ID;
-                            tex.NameData = entry.NameData;
-                            using (BinaryReader br = new BinaryReader(stream))
-                            {
-                                tex.Image = new PVRT(br);
-                            }
-                            entry.Texture = tex;
-                        }
-                        break;
-                    }
-                }
+
+                UInt64 idName = BitConverter.ToUInt64(entry.Data, 0);
+                TEXN texture = TextureDatabase.FindTexture(idName);
+                entry.Texture = new Texture();
+                entry.Texture.ID = texture.TextureID;
+                entry.Texture.NameData = texture.NameData;
+                entry.Texture.Image = texture.Texture;
             }
 
             //Populate base class textures

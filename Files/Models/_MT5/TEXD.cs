@@ -1,4 +1,5 @@
 ﻿using ShenmueDKSharp.Files.Images;
+using ShenmueDKSharp.Files.Misc;
 using ShenmueDKSharp.Utils;
 using System;
 using System.Collections.Generic;
@@ -76,54 +77,19 @@ namespace ShenmueDKSharp.Files.Models._MT5
                         tex.NameData = reader.ReadBytes(4);
 
                         reader.BaseStream.Seek(-8, SeekOrigin.Current);
-                        byte[] nameData = reader.ReadBytes(8);
+                        UInt64 idName = reader.ReadUInt64();
 
                         FileStream fileStream = (FileStream)reader.BaseStream;
                         string dir = Path.GetDirectoryName(Path.GetDirectoryName(fileStream.Name));
-                        List<string> files = FileHelper.DirSearch(dir);
+                        TextureDatabase.SearchDirectory(dir);
 
-                        string searchHex = Helper.ByteArrayToString(nameData);
-                        bool found = false;
-                        foreach (string file in files)
+                        TEXN texture = TextureDatabase.FindTexture(idName);
+                        if (texture != null)
                         {
-                            string extension = Path.GetExtension(file).ToUpper();
-                            if (extension == ".TEXN")
-                            {
-                                using (FileStream stream = File.Open(file, FileMode.Open))
-                                {
-                                    using (BinaryReader br = new BinaryReader(stream))
-                                    {
-                                        br.BaseStream.Seek(8, SeekOrigin.Current); //Skip TEXN and size
-                                        byte[] texnNameData = br.ReadBytes(8);
-                                        if (Helper.CompareArray(nameData, texnNameData))
-                                        {
-                                            tex.Image = new PVRT(br);
-                                            Textures.Add(tex);
-                                            found = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            if (extension == ".PVR") //old method
-                            {
-                                string filename = Path.GetFileName(file);
-                                if (filename.Contains(searchHex))
-                                {
-                                    using (FileStream stream = File.Open(file, FileMode.Open))
-                                    {
-                                        using (BinaryReader br = new BinaryReader(stream))
-                                        {
-                                            tex.Image = new PVRT(br);
-                                            Textures.Add(tex);
-                                        }
-                                    }
-                                    found = true;
-                                    break;
-                                }
-                            }
+                            tex.Image = texture.Texture;
+                            Textures.Add(tex);
                         }
-                        if (!found)
+                        else
                         {
                             Textures.Add(null);
                         }
