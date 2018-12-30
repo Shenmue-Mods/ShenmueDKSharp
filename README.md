@@ -61,7 +61,7 @@ For more informations about the file formats see the [wulinshu wiki](https://wul
 | 0x01 | RGB565 | :heavy_check_mark: | :heavy_check_mark: | Format without alpha value and consisting of five bits of RB values and six bits of G value. |  |
 | 0x02 | ARGB4444 | :heavy_check_mark: | :heavy_check_mark: | Format consisting of four bits of alpha value and four bits of RGB values. |  |
 | 0x03 | YUV422 | :heavy_check_mark: | :heavy_check_mark: | YUV422 format |  |
-| 0x04 | BUMP | :large_orange_diamond: | :large_orange_diamond: | Bump map with positiv only normal vectors (S and R direction angles) | Untested |
+| 0x04 | BUMP | :heavy_check_mark: | :heavy_check_mark: | Bump map with positiv only normal vectors (S and R direction angles) |  |
 | 0x05 | RGB555 | :heavy_check_mark: | :heavy_check_mark: | for PCX compatible only | |
 | 0x06 | ARGB8888 | :large_orange_diamond: | :large_orange_diamond: | Format consisting of 1 byte of alpha value and 1 byte of RGB values. | Conflicting defines |
 | 0x06 | YUV420 | :x: | :x: | YUV420 format :maple_leaf:. For YUV converter | Conflicting defines |
