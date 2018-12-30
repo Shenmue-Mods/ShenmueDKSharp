@@ -93,9 +93,9 @@ namespace ShenmueDKSharp.Files.Containers
             }
             foreach(TEXN entry in Textures)
             {
-                using (FileStream stream = File.Open(folder + "\\" + entry.Texture.FileName, FileMode.Create))
+                using (FileStream stream = File.Open(folder + "\\" + entry.FileName, FileMode.Create))
                 {
-                    entry.Texture.Write(stream);
+                    entry.Write(stream);
                 }
             }
         }

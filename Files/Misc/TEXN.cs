@@ -115,7 +115,8 @@ namespace ShenmueDKSharp.Files.Misc
             writer.Write(TextureID);
             writer.Write(NameData);
 
-            Texture.Write(writer);
+            //TODO: Write buffer until we can convert all texture formats back and forth.
+            Texture.WriteBuffer(writer); 
         }
 
     }

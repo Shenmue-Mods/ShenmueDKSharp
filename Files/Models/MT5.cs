@@ -75,10 +75,10 @@ namespace ShenmueDKSharp.Files.Models
             RootNode = new MT5Node(reader, null);
 
             reader.BaseStream.Seek(TextureOffset, SeekOrigin.Begin);
-            TEXD texture = new TEXD(reader);
+            TEXD textureDatabase = new TEXD(reader);
 
             //Populate base class textures
-            foreach(Texture tex in texture.Textures)
+            foreach(Texture tex in textureDatabase.Textures)
             {
                 Textures.Add(tex);
             }

@@ -82,7 +82,8 @@ namespace ShenmueDKSharp.Files.Images
             BMP_MIPMAP                          = 0x0F, //Converted to Twiddled Mipmap
             VECTOR_QUANTIZATION_SMALL           = 0x10,
             VECTOR_QUANTIZATION_SMALL_MIPMAP    = 0x11,
-            DDS                                 = 0x80
+            DDS                                 = 0x80,
+            DDS_2                               = 0x87
         }
 
         public override int DataSize => (int)Size;
@@ -146,10 +147,10 @@ namespace ShenmueDKSharp.Files.Images
 
             if (ColorFormat == PVRColorFormat.BUMP)
             {
-                throw new Exception("HELLO");
+                //throw new Exception("HELLO");
             }
 
-            if (CategoryCode == PVRCategoryCode.DDS)
+            if (CategoryCode == PVRCategoryCode.DDS || CategoryCode == PVRCategoryCode.DDS_2)
             {
                 if (!(ColorFormat == PVRColorFormat.DDS_RGB24 || ColorFormat == PVRColorFormat.DDS_RGBA32))
                 {
@@ -311,7 +312,7 @@ namespace ShenmueDKSharp.Files.Images
             }
             else
             {
-                throw new NotImplementedException("Unknown category code or unsupported.");
+                throw new NotImplementedException("Unknown category code or unsupported: " + CategoryCode);
             }
 
             reader.BaseStream.Seek(baseOffset + Size, SeekOrigin.Begin);
@@ -477,7 +478,7 @@ namespace ShenmueDKSharp.Files.Images
 
                         if ((pX & 1) == 0)
                         {
-                            //first pixel
+                            //First pixel
                             byte r = MathExtensions.ClampByte((int)(Y0 + 1.375 * (V - 128)));
                             byte g = MathExtensions.ClampByte((int)(Y0 - 0.6875 * (V - 128) - 0.34375 * (U - 128)));
                             byte b = MathExtensions.ClampByte((int)(Y0 + 1.71875 * (U - 128)));
@@ -489,7 +490,7 @@ namespace ShenmueDKSharp.Files.Images
                         }
                         else
                         {
-                            //second pixel
+                            //Second pixel
                             byte r = MathExtensions.ClampByte((int)(Y1 + 1.375 * (V - 128)));
                             byte g = MathExtensions.ClampByte((int)(Y1 - 0.6875 * (V - 128) - 0.34375 * (U - 128)));
                             byte b = MathExtensions.ClampByte((int)(Y1 + 1.71875 * (U - 128)));
@@ -499,24 +500,28 @@ namespace ShenmueDKSharp.Files.Images
                     }
                 case PVRColorFormat.BUMP:
                     {
-                        byte s = reader.ReadByte();
                         byte r = reader.ReadByte();
+                        byte s = reader.ReadByte();
 
                         //Convert to angles
-                        float sAngle = s / 255.0f * 90.0f;
-                        float rAngle = r / 255.0f * 360.0f;
+                        double rAngle = r / 255.0 * 360.0;
+                        double sAngle = s / 255.0 * 90.0;
+
+                        //To radians
+                        double rRadian = MathHelper.DegreesToRadians(rAngle);
+                        double sRadian = MathHelper.DegreesToRadians(sAngle);
 
                         //Calculate normal
-                        float x = (float)(Math.Cos(sAngle) * Math.Cos(rAngle));
-                        float y = (float) Math.Sin(sAngle);
-                        float z = (float)(Math.Cos(sAngle) * Math.Sin(rAngle));
+                        double x = Math.Cos(sRadian) * Math.Cos(rRadian);
+                        double y = Math.Cos(sRadian) * Math.Sin(rRadian);
+                        double z = Math.Sin(sRadian);
 
                         //Normalize to RGB ([-1,1] -> [0,1])
-                        float colorR = 0.5f * x + 0.5f;
-                        float colorG = 0.5f * y + 0.5f;
-                        float colorB = 0.5f * z + 0.5f;
+                        double colorR = 0.5 * x + 0.5;
+                        double colorG = 0.5 * y + 0.5; //Y/Z flip
+                        double colorB = 0.5 * z + 0.5; //Z/Y flip
 
-                        return new Color4(colorR, colorG, colorB, 1.0f);
+                        return new Color4((float)colorR, (float)colorG, (float)colorB, 1.0f);
                     }
                 case PVRColorFormat.RGB555:
                     {
@@ -528,10 +533,10 @@ namespace ShenmueDKSharp.Files.Images
                     }
                 case PVRColorFormat.ARGB8888:
                     {
-                        byte a = reader.ReadByte();
-                        byte r = reader.ReadByte();
-                        byte g = reader.ReadByte();
                         byte b = reader.ReadByte();
+                        byte g = reader.ReadByte();
+                        byte r = reader.ReadByte();
+                        byte a = reader.ReadByte();
                         return new Color4(r, g, b, a);
                     }
                 default:
@@ -580,16 +585,16 @@ namespace ShenmueDKSharp.Files.Images
                             byte g2 = color.G_;
                             byte b2 = color.B_;
 
-                            //compute each pixel's Y
+                            //Compute each pixel's Y
                             uint Y0 = (uint)(0.299 * r1 + 0.587 * r2 + 0.114 * b1);
                             uint Y1 = (uint)(0.299 * r2 + 0.587 * g2 + 0.114 * b2);
 
-                            //average both pixel's rgb values
+                            //Average both pixel's rgb values
                             byte r = (byte)((r2 + r1) / 2);
                             byte g = (byte)((g2 + r1) / 2);
                             byte b = (byte)((b2 + r1) / 2);
 
-                            //compute UV
+                            //Compute UV
                             uint U = (uint)(128.0f - 0.14 * r - 0.29 * g + 0.43 * b);
                             uint V = (uint)(128.0f + 0.36 * r - 0.29 * g - 0.07 * b);
 
@@ -604,25 +609,30 @@ namespace ShenmueDKSharp.Files.Images
                 case PVRColorFormat.BUMP:
                     {
                         //Normalize to normal direction vector ([0,1] -> [-1,1])
-                        float x = color.R * 2.0f - 1.0f;
-                        float y = color.G * 2.0f - 1.0f;
-                        float z = color.B * 2.0f - 1.0f;
+                        double x = color.R * 2.0 - 1.0;
+                        double z = color.G * 2.0 - 1.0; //Y/Z flip
+                        double y = color.B * 2.0 - 1.0; //Z/Y flip
 
-                        //Normal to angles
-                        float radius = (float)Math.Sqrt(Math.Pow(x, 2) + Math.Pow(y, 2) + Math.Pow(z, 2));
-                        float sAngle = (float)Math.Acos(z / radius);
-                        float rAngle = (float)Math.Atan(y / x);
+                        //Normal to radians
+                        double radius = Math.Sqrt(Math.Pow(x, 2) + Math.Pow(y, 2) + Math.Pow(z, 2));
+                        double rRadian = Math.Atan2(y, x);
+                        double sRadian = Math.Asin(z / radius);
+
+                        //Radians to angles
+                        double rAngle = MathHelper.RadiansToDegrees(rRadian);
+                        rAngle = rAngle < 0.0 ? rAngle + 360.0 : rAngle;
+                        double sAngle = MathHelper.RadiansToDegrees(sRadian);
 
                         //Clamp angles to valid angles
-                        sAngle = MathExtensions.Clamp(sAngle, 0.0f, 90.0f);
                         rAngle = MathExtensions.Clamp(rAngle, 0.0f, 360.0f);
+                        sAngle = MathExtensions.Clamp(sAngle, 0.0f, 90.0f);
 
                         //Convert to bytes
-                        byte s = (byte)(sAngle / 90.0f * 255.0f);
-                        byte r = (byte)(rAngle / 360.0f * 255.0f);
+                        byte r = (byte)Math.Round(rAngle / 360.0f * 255.0f);
+                        byte s = (byte)Math.Round(sAngle / 90.0f * 255.0f);
 
-                        writer.Write(s);
                         writer.Write(r);
+                        writer.Write(s);
                         return;
                     }
                 case PVRColorFormat.RGB555:

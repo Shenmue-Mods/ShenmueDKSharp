@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace ShenmueDKSharp.Files.Models._MT5
 {
     /// <summary>
-    /// MT5 texture segment
+    /// MT5 texture database segment
     /// </summary>
     public class TEXD
     {

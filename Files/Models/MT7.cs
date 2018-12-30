@@ -152,6 +152,7 @@ namespace ShenmueDKSharp.Files.Models
             foreach (TextureEntry entry in TextureEntries)
             {
                 if (entry.Texture != null) continue;
+                //TODO: Add new TEXN method
                 string searchHex = Helper.ByteArrayToString(entry.Data);
                 foreach (string file in files)
                 {
