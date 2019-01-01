@@ -224,6 +224,7 @@
     <Compile Include="Utils\NodeParser.cs" />
     <Compile Include="Extensions\ObjectExtensions.cs" />
     <Compile Include="Utils\SimpleJSON.cs" />
+    <Compile Include="Utils\TextureDatabase.cs" />
     <Compile Include="Utils\Wulinshu.cs" />
   </ItemGroup>
   <ItemGroup>
