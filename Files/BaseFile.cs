@@ -111,6 +111,11 @@ namespace ShenmueDKSharp.Files
         {
             FilePath = filepath;
             FileName = Path.GetFileName(filepath);
+            string directory = Path.GetDirectoryName(FilePath);
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
             using (FileStream stream = File.Open(filepath, FileMode.Create))
             {
                 Write(stream);

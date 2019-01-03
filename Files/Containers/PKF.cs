@@ -111,6 +111,12 @@ namespace ShenmueDKSharp.Files.Containers
             for (int i = 0; i < FileCount; i++)
             {
                 if (reader.BaseStream.Position == reader.BaseStream.Length) break;
+
+                //Test read token to filter out broken PKF files
+                uint token = reader.ReadUInt32();
+                if (token == 0) continue;
+                reader.BaseStream.Seek(-4, SeekOrigin.Current);
+
                 PKFEntry entry = new PKFEntry();
                 entry.Read(reader);
                 entry.Index = (uint)i;
