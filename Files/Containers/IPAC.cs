@@ -146,6 +146,7 @@ namespace ShenmueDKSharp.Files.Containers
             }
             foreach (IPACEntry entry in Entries)
             {
+                if (String.IsNullOrEmpty(entry.Filename) || String.IsNullOrEmpty(entry.Extension)) continue;
                 using (FileStream stream = new FileStream(String.Format(folder + "\\{0}.{1}", entry.Filename, entry.Extension), FileMode.Create))
                 {
                     stream.Write(entry.Buffer, 0, entry.Buffer.Length);
