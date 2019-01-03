@@ -81,7 +81,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
 
                         FileStream fileStream = (FileStream)reader.BaseStream;
                         string dir = Path.GetDirectoryName(Path.GetDirectoryName(fileStream.Name));
-                        TextureDatabase.SearchDirectory(dir);
+                        //TextureDatabase.SearchDirectory(dir);
 
                         TEXN texture = TextureDatabase.FindTexture(idName);
                         if (texture != null)

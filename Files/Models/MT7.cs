@@ -148,7 +148,7 @@ namespace ShenmueDKSharp.Files.Models
             //Crawling for textures up one dictionary (TODO: Make this directory changeable)
             FileStream fileStream = (FileStream)reader.BaseStream;
             string dir = Path.GetDirectoryName(Path.GetDirectoryName(fileStream.Name));
-            TextureDatabase.SearchDirectory(dir);
+            //TextureDatabase.SearchDirectory(dir);
 
             foreach (TextureEntry entry in TextureEntries)
             {

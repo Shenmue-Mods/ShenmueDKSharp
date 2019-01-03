@@ -32,6 +32,7 @@ namespace ShenmueDKSharp.Utils
             foreach (string filepath in filepaths)
             {
                 if (FileHelper.IsFileLocked(filepath)) continue;
+                if (Path.GetExtension(filepath).ToUpper() != ".TEXN") continue;
                 using (FileStream stream = new FileStream(filepath, FileMode.Open))
                 {
                     byte[] buffer = new byte[4];
@@ -41,7 +42,7 @@ namespace ShenmueDKSharp.Utils
                         stream.Seek(-4, SeekOrigin.Current);
                         TEXN texture = new TEXN(stream);
                         texture.FilePath = filepath;
-                        m_textures.Add(texture);
+                        AddTexture(texture);
                     }
                 }
             }
