@@ -153,6 +153,7 @@ namespace ShenmueDKSharp.Files.Containers
         /// <param name="filename">The filename that will be searched for inside the TAD file.</param>
         public byte[] GetFileBuffer(string filename)
         {
+            filename = filename.ToLower();
             foreach (TADEntry entry in TAD.Entries)
             {
                 if (entry.FileName.Contains(filename))
