@@ -6,23 +6,23 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Helper;
+using ShenmueDKSharp.Extensions;
 
-namespace REFileKit.Headers
+namespace ShenmueDKSharp.Files.Images._DDS
 {
     /// <summary>
     /// Contains header information about a DDS File.
     /// </summary>
-    public class DDS_Header : AbstractHeader
+    public class DDS_Header
     {
-        const int MaxHeaderSize = ImageFormats.DDS_DX10_HEADER_LENGTH;
+
+        const int MaxHeaderSize = DDSFormats.DDS_DX10_HEADER_LENGTH;
 
         /// <summary>
         /// Characters beginning a file that indicate file is a DDS image.
         /// </summary>
         public const string Identifier = "DDS ";
 
-        #region Standard Enums and structs
         /// <summary>
         /// Contains information about DDS Pixel Format.
         /// </summary>
@@ -117,7 +117,7 @@ namespace REFileKit.Headers
             /// Build PixelFormat sub-header for a specified surface format.
             /// </summary>
             /// <param name="surfaceFormat">Format to base PixelHeader on.</param>
-            public DDS_PIXELFORMAT(ImageEngineFormat surfaceFormat) : this()
+            public DDS_PIXELFORMAT(DDSFormat surfaceFormat) : this()
             {
                 dwSize = 32;
                 dwFourCC = ParseFormatToFourCC(surfaceFormat);
@@ -128,13 +128,12 @@ namespace REFileKit.Headers
                 switch (surfaceFormat)
                 {
                     // Compressed formats don't need anything written here since pitch/linear size is unreliable. Why bother?
-                    #region Uncompressed
-                    case ImageEngineFormat.DDS_G8_L8:
+                    case DDSFormat.DDS_G8_L8:
                         dwFlags |= DDS_PFdwFlags.DDPF_LUMINANCE;
                         dwRGBBitCount = 8;
                         dwRBitMask = 0xFF;
                         break;
-                    case ImageEngineFormat.DDS_ARGB_8:
+                    case DDSFormat.DDS_ARGB_8:
                         dwFlags |= DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
                         dwRGBBitCount = 32;
                         dwABitMask = 0xFF000000;
@@ -142,7 +141,7 @@ namespace REFileKit.Headers
                         dwGBitMask = 0x0000FF00;
                         dwBBitMask = 0x000000FF;
                         break;
-                    case ImageEngineFormat.DDS_ARGB_4:
+                    case DDSFormat.DDS_ARGB_4:
                         dwFlags |= DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
                         dwRGBBitCount = 24;
                         dwABitMask = 0xF000;
@@ -150,32 +149,32 @@ namespace REFileKit.Headers
                         dwGBitMask = 0x00F0;
                         dwBBitMask = 0x000F;
                         break;
-                    case ImageEngineFormat.DDS_V8U8:
+                    case DDSFormat.DDS_V8U8:
                         dwFlags |= DDS_PFdwFlags.DDPF_SIGNED;
                         dwRGBBitCount = 16;
                         dwRBitMask = 0x00FF;
                         dwGBitMask = 0xFF00;
                         break;
-                    case ImageEngineFormat.DDS_A8L8:
+                    case DDSFormat.DDS_A8L8:
                         dwFlags |= DDS_PFdwFlags.DDPF_LUMINANCE | DDS_PFdwFlags.DDPF_ALPHAPIXELS;
                         dwRGBBitCount = 16;
                         dwABitMask = 0xFF00;
                         dwRBitMask = 0x00FF;
                         break;
-                    case ImageEngineFormat.DDS_RGB_8:
+                    case DDSFormat.DDS_RGB_8:
                         dwFlags |= DDS_PFdwFlags.DDPF_RGB;
                         dwRBitMask = 0xFF0000;
                         dwGBitMask = 0x00FF00;
                         dwBBitMask = 0x0000FF;
                         dwRGBBitCount = 24;
                         break;
-                    case ImageEngineFormat.DDS_G16_R16:
+                    case DDSFormat.DDS_G16_R16:
                         dwFlags |= DDS_PFdwFlags.DDPF_RGB;
                         dwGBitMask = 0xFFFF0000;
                         dwRBitMask = 0x0000FFFF;
                         dwRGBBitCount = 32;
                         break;
-                    case ImageEngineFormat.DDS_ABGR_8:
+                    case DDSFormat.DDS_ABGR_8:
                         dwFlags |= DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
                         dwRGBBitCount = 32;
                         dwABitMask = 0xFF000000;
@@ -183,7 +182,7 @@ namespace REFileKit.Headers
                         dwGBitMask = 0x0000FF00;
                         dwRBitMask = 0x000000FF;
                         break;
-                    case ImageEngineFormat.DDS_ARGB_32F:
+                    case DDSFormat.DDS_ARGB_32F:
                         dwFlags |= DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
                         dwFourCC = FourCC.DX10;
                         dwRGBBitCount = 128;
@@ -192,7 +191,6 @@ namespace REFileKit.Headers
                         dwGBitMask = 0;
                         dwBBitMask = 0;
                         break;
-                    #endregion Uncompressed
                 }
             }
 
@@ -433,12 +431,12 @@ namespace REFileKit.Headers
 
             /// <summary>
             /// Used in some old files for YUV uncompressed data. i.e. dwRGBBitCount contains YUV bitcount, dwRBitMask contains Y mask, dwGBitMask contains U mask, dwBBitMask contains V mask.
-            /// YUV is a weird colourspace. Y = intensity, UV = colour. Y = 0-1 (0-255), U,V = -0.5-0.5 (-128-127) or 0-255.
+            /// YUV is a weird colorspace. Y = intensity, UV = color. Y = 0-1 (0-255), U,V = -0.5-0.5 (-128-127) or 0-255.
             /// </summary>
             DDPF_YUV = 0x200,           
 
             /// <summary>
-            /// Old flag for single channel colour uncompressed. dwRGBBitCount contains luminescence channel bit count, dwRBitMask contains channel mask. Can combine with DDPF_ALPHAPIXELS for 2 channel DDS file.
+            /// Old flag for single channel color uncompressed. dwRGBBitCount contains luminescence channel bit count, dwRBitMask contains channel mask. Can combine with DDPF_ALPHAPIXELS for 2 channel DDS file.
             /// </summary>
             DDPF_LUMINANCE = 0x20000,    // Older flag for single channel uncompressed data
 
@@ -447,9 +445,7 @@ namespace REFileKit.Headers
             /// </summary>
             DDPF_SIGNED = 0x80000,
         }
-        #endregion Standard Enums and Structs
 
-        #region DXGI/DX10
         /// <summary>
         /// Additional header used by DXGI/DX10 DDS'.
         /// </summary>
@@ -511,7 +507,8 @@ namespace REFileKit.Headers
             /// <returns>String header.</returns>
             public override string ToString()
             {
-                return Helper.General.StringifyObject(this, true);
+                return base.ToString();
+                //return UsefulThings.General.StringifyObject(this, true);
             }
         }
 
@@ -720,13 +717,14 @@ namespace REFileKit.Headers
             Mode_7
         }
 
-        #endregion DXGI/DX10
 
-        #region Properties
         /// <summary>
         /// Size of header in bytes. Must be 124.
         /// </summary>
         public int dwSize { get; set; }
+
+        public int Width { get; set; }
+        public int Height { get; set; }
 
         /// <summary>
         /// Option flags.
@@ -782,25 +780,24 @@ namespace REFileKit.Headers
         /// Not used as per Windows DDS spec.
         /// </summary>
         public int dwReserved2;
-        #endregion Properties
 
         /// <summary>
         /// Additional header for newer DX10 images.
         /// </summary>
         public DDS_DXGI_DX10_Additional DX10_DXGI_AdditionalHeader { get; private set; }
 
-        ImageEngineFormat format = ImageEngineFormat.Unknown;
+        DDSFormat format = DDSFormat.Unknown;
         /// <summary>
         /// Surface format of DDS.
         /// e.g. DXT1, V8U8, etc
         /// </summary>
-        public override ImageEngineFormat Format
+        public DDSFormat Format
         {
             get
             {
-                if (format == ImageEngineFormat.Unknown)
+                if (format == DDSFormat.Unknown)
                     if (ddspf.dwFourCC == FourCC.DX10)
-                        format = ImageEngineFormat.DDS_DX10;
+                        format = DDSFormat.DDS_DX10;
 
                 format = DetermineDDSSurfaceFormat(ddspf);
                 return format;
@@ -827,9 +824,8 @@ namespace REFileKit.Headers
         /// </summary>
         /// <param name="stream">Fully formatted DDS image.</param>
         /// <returns>Header length.</returns>
-        protected override long Load(Stream stream)
+        public long Load(Stream stream)
         {
-            base.Load(stream);
             var temp = stream.ReadBytes(MaxHeaderSize);
 
             if (!CheckIdentifier(temp))
@@ -878,7 +874,7 @@ namespace REFileKit.Headers
         /// <param name="Height">Height of top mipmap.</param>
         /// <param name="Width">Width of top mipmap.</param>
         /// <param name="surfaceformat">Format header represents.</param>
-        public DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat, DXGI_FORMAT dx10Format = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
+        public DDS_Header(int Mips, int Height, int Width, DDSFormat surfaceformat, DXGI_FORMAT dx10Format = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
         {
             dwSize = 124;
             dwFlags = DDSdwFlags.DDSD_CAPS | DDSdwFlags.DDSD_HEIGHT | DDSdwFlags.DDSD_WIDTH | DDSdwFlags.DDSD_PIXELFORMAT | (Mips != 1 ? DDSdwFlags.DDSD_MIPMAPCOUNT : 0);
@@ -888,9 +884,9 @@ namespace REFileKit.Headers
             dwMipMapCount = Mips == 1 ? 1 : Mips;
             ddspf = new DDS_PIXELFORMAT(surfaceformat);
 
-            if (surfaceformat == ImageEngineFormat.DDS_DX10 || surfaceformat == ImageEngineFormat.DDS_ARGB_32F)
+            if (surfaceformat == DDSFormat.DDS_DX10 || surfaceformat == DDSFormat.DDS_ARGB_32F)
             {
-                if (surfaceformat == ImageEngineFormat.DDS_ARGB_32F)
+                if (surfaceformat == DDSFormat.DDS_ARGB_32F)
                     dx10Format = DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT;
 
                 DX10_DXGI_AdditionalHeader = new DDS_DXGI_DX10_Additional
@@ -912,18 +908,18 @@ namespace REFileKit.Headers
         /// <param name="fourCC">FourCC of DDS (DXT1-5)</param>
         /// <param name="additionalDX10"></param>
         /// <returns>Friendly format.</returns>
-        static ImageEngineFormat ParseFourCC(FourCC fourCC, DXGI_FORMAT additionalDX10 = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
+        static DDSFormat ParseFourCC(FourCC fourCC, DXGI_FORMAT additionalDX10 = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
         {
             if (fourCC == FourCC.DX10)
-                return ImageEngineFormat.DDS_DX10; // TODO: Need to add these at some point.
+                return DDSFormat.DDS_DX10; // TODO: Need to add these at some point.
 
-            if (Enum.IsDefined(typeof(ImageEngineFormat), (int)fourCC))
-                return (ImageEngineFormat)fourCC;
+            if (Enum.IsDefined(typeof(DDSFormat), (int)fourCC))
+                return (DDSFormat)fourCC;
             else
-                return ImageEngineFormat.Unknown;
+                return DDSFormat.Unknown;
         }
 
-        static FourCC ParseFormatToFourCC(ImageEngineFormat format)
+        static FourCC ParseFormatToFourCC(DDSFormat format)
         {
             if (Enum.IsDefined(typeof(FourCC), (int)format))
                 return (FourCC)format;
@@ -936,18 +932,18 @@ namespace REFileKit.Headers
         /// </summary>
         /// <param name="ddspf">DDS PixelFormat structure.</param>
         /// <returns>Friendly format.</returns>
-        public static ImageEngineFormat DetermineDDSSurfaceFormat(DDS_Header.DDS_PIXELFORMAT ddspf)
+        public static DDSFormat DetermineDDSSurfaceFormat(DDS_Header.DDS_PIXELFORMAT ddspf)
         {
-            ImageEngineFormat format = ParseFourCC(ddspf.dwFourCC);
+            DDSFormat format = ParseFourCC(ddspf.dwFourCC);
 
-            if (format == ImageEngineFormat.Unknown)
+            if (format == DDSFormat.Unknown)
             {
                 // Due to some previous settings, need to check these first.
                 if (ddspf.dwABitMask <= 4 && ddspf.dwABitMask != 0 &&
                     ddspf.dwBBitMask <= 4 && ddspf.dwBBitMask != 0 &&
                     ddspf.dwGBitMask <= 4 && ddspf.dwGBitMask != 0 &&
                     ddspf.dwRBitMask <= 4 && ddspf.dwRBitMask != 0)
-                    format = ImageEngineFormat.DDS_CUSTOM;
+                    format = DDSFormat.DDS_CUSTOM;
 
 
                 // KFreon: Apparently all these flags mean it's a V8U8 image...
@@ -957,7 +953,7 @@ namespace REFileKit.Headers
                            ddspf.dwBBitMask == 0x00 &&
                            ddspf.dwABitMask == 0x00 &&
                            (ddspf.dwFlags & DDS_PFdwFlags.DDPF_SIGNED) == DDS_PFdwFlags.DDPF_SIGNED)
-                    format = ImageEngineFormat.DDS_V8U8;
+                    format = DDSFormat.DDS_V8U8;
 
                 // KFreon: Test for L8/G8
                 else if (ddspf.dwABitMask == 0 &&
@@ -966,12 +962,12 @@ namespace REFileKit.Headers
                         ddspf.dwRBitMask == 0xFF &&
                         ddspf.dwFlags == DDS_PFdwFlags.DDPF_LUMINANCE &&
                         ddspf.dwRGBBitCount == 8)
-                    format = ImageEngineFormat.DDS_G8_L8;
+                    format = DDSFormat.DDS_G8_L8;
 
                 // KFreon: A8L8. This can probably be something else as well, but it seems to work for now
                 else if (ddspf.dwRGBBitCount == 16 &&
                         ddspf.dwFlags == (DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_LUMINANCE))
-                    format = ImageEngineFormat.DDS_A8L8;
+                    format = DDSFormat.DDS_A8L8;
 
                 // KFreon: G_R only.
                 else if (((ddspf.dwFlags & DDS_PFdwFlags.DDPF_RGB) == DDS_PFdwFlags.DDPF_RGB && !((ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS)) &&
@@ -979,7 +975,7 @@ namespace REFileKit.Headers
                         ddspf.dwBBitMask == 0 &&
                         ddspf.dwGBitMask != 0 &&
                         ddspf.dwRBitMask != 0)
-                    format = ImageEngineFormat.DDS_G16_R16;
+                    format = DDSFormat.DDS_G16_R16;
 
                 // KFreon: RGB. RGB channels have something in them, but alpha doesn't.
                 else if (((ddspf.dwFlags & DDS_PFdwFlags.DDPF_RGB) == DDS_PFdwFlags.DDPF_RGB && !((ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS)) &&
@@ -990,9 +986,9 @@ namespace REFileKit.Headers
                 {
                     // TODO more formats?
                     if (ddspf.dwBBitMask == 31)
-                        format = ImageEngineFormat.DDS_R5G6B5;
+                        format = DDSFormat.DDS_R5G6B5;
                     else
-                        format = ImageEngineFormat.DDS_RGB_8;
+                        format = DDSFormat.DDS_RGB_8;
                 }
 
                 // KFreon: RGB and A channels are present.
@@ -1003,12 +999,12 @@ namespace REFileKit.Headers
                         ddspf.dwRBitMask != 0)
                 {
                     // TODO: Some more formats here?
-                    format = ImageEngineFormat.DDS_ARGB_8;
+                    format = DDSFormat.DDS_ARGB_8;
                 }
 
                 // KFreon: If nothing else fits, but there's data in one of the bitmasks, assume it can be read.
                 else if (ddspf.dwABitMask != 0 || ddspf.dwRBitMask != 0 || ddspf.dwGBitMask != 0 || ddspf.dwBBitMask != 0)
-                    format = ImageEngineFormat.DDS_CUSTOM;
+                    format = DDSFormat.DDS_CUSTOM;
                 else
                     throw new FormatException("DDS Format is unknown.");
             }

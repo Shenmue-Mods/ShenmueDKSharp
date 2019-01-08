@@ -48,48 +48,48 @@ For more informations about the file formats see the [wulinshu wiki](https://wul
 | Name| Read | Write | Description | Notes |
 | ------------- | ------------- | ------------- | ------------- | ------------- |
 | PVRT | :large_orange_diamond: | :large_orange_diamond: | PowerVR Texture | Not all formats working but enough for MT5 and MT7 |
-| DDS | :large_orange_diamond: | :large_orange_diamond: | DirectDraw_Surface | Only reads first mipmap |
-| JPEG | :x: | :x: | JPEG format |  |
-| BMP | :x: | :x: | Bitmap format |  |
-| PNG | :x: | :x: | PNG format |  |
+| DDS | :heavy_check_mark: | :heavy_check_mark: | DirectDraw_Surface |  |
+| JPEG | :heavy_check_mark: | :heavy_check_mark: | JPEG format |  |
+| BMP | :heavy_check_mark: | :heavy_check_mark: | Bitmap format |  |
+| PNG | :heavy_check_mark: | :heavy_check_mark: | PNG format |  |
 
 #### PVR color formats
 
-| Value | Name | Read | Write | Description | Notes |
-| -------------| ------------- | ------------- | ------------- | ------------- | ------------- |
-| 0x00 | ARGB1555 | :heavy_check_mark: | :heavy_check_mark: | Format consisting of one bit of alpha value and five bits of RGB values. |  |
-| 0x01 | RGB565 | :heavy_check_mark: | :heavy_check_mark: | Format without alpha value and consisting of five bits of RB values and six bits of G value. |  |
-| 0x02 | ARGB4444 | :heavy_check_mark: | :heavy_check_mark: | Format consisting of four bits of alpha value and four bits of RGB values. |  |
-| 0x03 | YUV422 | :heavy_check_mark: | :heavy_check_mark: | YUV422 format |  |
-| 0x04 | BUMP | :heavy_check_mark: | :heavy_check_mark: | Bump map with positiv only normal vectors (S and R direction angles) |  |
-| 0x05 | RGB555 | :heavy_check_mark: | :heavy_check_mark: | for PCX compatible only | |
-| 0x06 | ARGB8888 | :large_orange_diamond: | :large_orange_diamond: | Format consisting of 1 byte of alpha value and 1 byte of RGB values. | Conflicting defines |
-| 0x06 | YUV420 | :x: | :x: | YUV420 format :maple_leaf:. For YUV converter | Conflicting defines |
-| 0x80 | DDS_RGB24 | :heavy_check_mark: | :x: | RGB24 format |  |
-| 0x81 | DDS_RGBA32 | :heavy_check_mark: | :x: | RGBA32 format |  |
+| Value | Name | Read | Write | Description |
+| -------------| ------------- | ------------- | ------------- | ------------- | 
+| 0x00 | ARGB1555 | :heavy_check_mark: | :heavy_check_mark: | Format consisting of one bit of alpha value and five bits of RGB values. |
+| 0x01 | RGB565 | :heavy_check_mark: | :heavy_check_mark: | Format without alpha value and consisting of five bits of RB values and six bits of G value. |
+| 0x02 | ARGB4444 | :heavy_check_mark: | :heavy_check_mark: | Format consisting of four bits of alpha value and four bits of RGB values. |
+| 0x03 | YUV422 | :heavy_check_mark: | :heavy_check_mark: | YUV422 format |
+| 0x04 | BUMP | :heavy_check_mark: | :heavy_check_mark: | Bump map with positiv only normal vectors (S and R direction angles) |
+| 0x05 | RGB555 | :heavy_check_mark: | :heavy_check_mark: | for PCX compatible only |
+| 0x06 | ARGB8888 | :heavy_check_mark: | :heavy_check_mark: | Format consisting of 1 byte of alpha value and 1 byte of RGB values. (Palettize only!) |
+| 0x80 | DDS_RGB24 | :heavy_check_mark: | :heavy_check_mark: | RGB24 format (DXT1) |
+| 0x81 | DDS_RGBA32 | :heavy_check_mark: | :heavy_check_mark: | RGBA32 format (DXT3) |
 
 #### PVR data formats
 
 | Value | Name | Read | Write | Notes |
 | ------------- | ------------- | ------------- | ------------- | ------------- |
 | 0x01 | SQUARE_TWIDDLED | :heavy_check_mark: | :heavy_check_mark: |  |
-| 0x02 | SQUARE_TWIDDLED_MIPMAP | :x: | :x: |  |
-| 0x03 | VECTOR_QUANTIZATION | :heavy_check_mark: | :x: |  |
-| 0x04 | VECTOR_QUANTIZATION_MIPMAP | :x: | :x: |  |
-| 0x05 | PALETTIZE_4BIT | :x: | :x: | Not needed |
-| 0x06 | PALETTIZE_4BIT_MIPMAP | :x: | :x: | Not needed |
-| 0x07 | PALETTIZE_8BIT | :x: | :x: | Not needed |
-| 0x08 | PALETTIZE_8BIT_MIPMAP | :x: | :x: | Not needed |
-| 0x09 | RECTANGLE | :heavy_check_mark: | :x: |  |
+| 0x02 | SQUARE_TWIDDLED_MIPMAP | :heavy_check_mark: | :heavy_check_mark: |  |
+| 0x03 | VECTOR_QUANTIZATION | :heavy_check_mark: | :heavy_check_mark: |  |
+| 0x04 | VECTOR_QUANTIZATION_MIPMAP | :heavy_check_mark: | :heavy_check_mark: |  |
+| 0x05 | PALETTIZE_4BIT | :heavy_check_mark: | :heavy_check_mark: |  |
+| 0x06 | PALETTIZE_4BIT_MIPMAP | :heavy_check_mark: | :heavy_check_mark: |  |
+| 0x07 | PALETTIZE_8BIT | :heavy_check_mark: | :heavy_check_mark: |  |
+| 0x08 | PALETTIZE_8BIT_MIPMAP | :heavy_check_mark: | :heavy_check_mark: |  |
+| 0x09 | RECTANGLE | :heavy_check_mark: | :heavy_check_mark: |  |
 | 0x0A | RECTANGLE_MIPMAP | :x: | :x: | Reserved: Can't use. |
-| 0x0B | RECTANGLE_STRIDE | :heavy_check_mark: | :x: |  |
-| 0x0C | RECTANGLE_STRIDE_MIPMAP | :x: | :x: |Reserved: Can't use. |
-| 0x0D | RECTANGLE_TWIDDLED | :heavy_check_mark: | :x: | Should not be supported  |
-| 0x0E | BMP | :x: | :x: | Converted to Twiddled |
-| 0x0F | BMP_MIPMAP | :x: | :x: | Converted to Twiddled Mipmap |
-| 0x10 | VECTOR_QUANTIZATION_SMALL | :x: | :x: |  |
-| 0x11 | VECTOR_QUANTIZATION_SMALL_MIPMAP | :x: | :x: |  |
-| 0x80 | DDS | :heavy_check_mark: | :x: | DDS format |
+| 0x0B | RECTANGLE_STRIDE | :heavy_check_mark: | :heavy_check_mark: |  |
+| 0x0C | RECTANGLE_STRIDE_MIPMAP | :x: | :x: | Reserved: Can't use. |
+| 0x0D | RECTANGLE_TWIDDLED | :heavy_check_mark: | :heavy_check_mark: | Should not be supported.  |
+| 0x0E | BMP | :x: | :x: | No information. |
+| 0x0F | BMP_MIPMAP | :x: | :x: | No information. |
+| 0x10 | VECTOR_QUANTIZATION_SMALL | :heavy_check_mark: | :heavy_check_mark: |  |
+| 0x11 | VECTOR_QUANTIZATION_SMALL_MIPMAP | :heavy_check_mark: | :heavy_check_mark: |  |
+| 0x80 | DDS | :heavy_check_mark: | :heavy_check_mark: | DDS format |
+| 0x87 | DDS | :heavy_check_mark: | :heavy_check_mark: | DDS format |
 
 ### Models/Animation
 
@@ -122,9 +122,10 @@ For more informations about the file formats see the [wulinshu wiki](https://wul
 | ------------- | ------------- | ------------- | ------------- | ------------- |
 | CHRD | :x: | :x: | | |
 | CHRM | :x: | :x: | | |
+| COLS | :x: | :x: | Collisions (sm1) | |
 | DOOR | :x: | :x: | Door portals? | |
 | ECAM | :x: | :x: | | |
-| FLDD | :x: | :x: | | |
+| FLDD | :x: | :x: | Collisions (sm2)| |
 | LGHT | :x: | :x: | Lighting data | |
 | MAPR | :x: | :x: | | |
 | MAPT | :x: | :x: | | |
@@ -154,16 +155,17 @@ For more informations about the file formats see the [wulinshu wiki](https://wul
 - [wudecon](https://github.com/LemonHaze420/wudecon) - CLI file unpacker/converter for Shenmue I&II file formats.
 
 ## Credits
-Contributers:
+Contributors:
 - [LemonHaze](https://github.com/LemonHaze420) - SDK development and testing
 - [DerPlayer](https://github.com/derplayer) - SDK testing
 
 Starting code:
 - [SHENTRAD Team](http://shenmuesubs.sourceforge.net/) - Shenmue I & II DC ground work
 - [ShenmueHDTools](https://github.com/derplayer/ShenmueHDTools) - Project where it all started
-- [Fishbiter](https://github.com/Fishbiter/Shenmunity_plugin) - MT5, MOTN and PVRT starting code
+- [Fishbiter](https://github.com/Fishbiter/Shenmunity_plugin) - MT5 and MOTN starting code
 - [hellwig](https://github.com/hellwig/shencon) - MT5 incompleted code
 - [yazgoo](https://github.com/yazgoo/mt5_extraction_tools) - MT5 and MT7 rough starting point
+- [nickworonekin](https://github.com/nickworonekin/puyotools) - PVR reader/writer base code
 - [KFreon](https://github.com/KFreon/CSharpImageLibrary) - DDS reader/writer base code
 
 Other:

@@ -4,16 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace REFileKit.DDS
+namespace ShenmueDKSharp.Files.Images._DDS
 {
     internal static class DX10_Helpers
     {
-        public struct LDRColourEndPointPair
+        public struct LDRColorEndPointPair
         {
-            public LDRColour A;
-            public LDRColour B;
+            public LDRColor A;
+            public LDRColor B;
 
-            public LDRColourEndPointPair(LDRColour a, LDRColour b)
+            public LDRColorEndPointPair(LDRColor a, LDRColor b)
             {
                 A = a;
                 B = b;
@@ -28,15 +28,14 @@ namespace REFileKit.DDS
 
         
 
-        #region Structs
-        public struct LDRColour
+        public struct LDRColor
         {
             public int R;
             public int G;
             public int B;
             public int A;
 
-            public LDRColour(byte R, byte G, byte B, byte A)
+            public LDRColor(byte R, byte G, byte B, byte A)
             {
                 this.R = R;
                 this.B = B;
@@ -44,7 +43,7 @@ namespace REFileKit.DDS
                 this.A = A;
             }
 
-            public LDRColour(float r, float g, float b, float a)
+            public LDRColor(float r, float g, float b, float a)
             {
                 R = (byte)(Clamp(r, 0f, 1f) * 255);
                 G = (byte)(Clamp(g, 0f, 1f) * 255);
@@ -69,16 +68,16 @@ namespace REFileKit.DDS
             }
         }
 
-        public struct HDRColour
+        public struct HDRColor
         {
             public float R, G, B, A;
 
-            public HDRColour(LDRColour colour)
+            public HDRColor(LDRColor color)
             {
-                R = colour.R * 1f / 255f;
-                G = colour.G * 1f / 255f;
-                B = colour.B * 1f / 255f;
-                A = colour.A * 1f / 255f;
+                R = color.R * 1f / 255f;
+                G = color.G * 1f / 255f;
+                B = color.B * 1f / 255f;
+                A = color.A * 1f / 255f;
             }
 
             public override string ToString()
@@ -86,9 +85,7 @@ namespace REFileKit.DDS
                 return $"R: {R}, G: {G}, B: {B}, A: {A}";
             }
         }
-        #endregion Structs
 
-        #region Constants
         internal const int BC67_WEIGHT_MAX = 64;
         internal const int BC67_WEIGHT_ROUND = 32;
         internal const int BC67_WEIGHT_SHIFT = 6;
@@ -97,9 +94,7 @@ namespace REFileKit.DDS
         internal const int BC7_MAX_SHAPES = 64;
         internal const int BC7_MAX_INDICIES = 16;
         internal const int BC7_NUM_CHANNELS = 4;
-        #endregion Constants
 
-        #region Tables
         // 3,64,16
         internal static byte[][][] PartitionTable = new byte[3][][]
         {   // 1 Region case has no subsets (all 0)
@@ -380,11 +375,9 @@ namespace REFileKit.DDS
         internal static int[] AWeights2 = new int[] { 0, 21, 43, 64 };
         internal static int[] AWeights3 = new int[] { 0, 9, 18, 27, 37, 46, 55, 64 };
         internal static int[] AWeights4 = new int[] { 0, 4, 9, 13, 17, 21, 26, 30, 34, 38, 43, 47, 51, 55, 60, 64 };
-        #endregion Tables
 
 
-        #region Decompression Helpers
-        internal static int InterpolateA(LDRColour lDRColour1, LDRColour lDRColour2, int wa, int waPrec)
+        internal static int InterpolateA(LDRColor lDRColor1, LDRColor lDRColor2, int wa, int waPrec)
         {
             int[] weights = null;
             switch (waPrec)
@@ -401,12 +394,12 @@ namespace REFileKit.DDS
                 default:
                     return 0;
             }
-            return (lDRColour1.A * (BC67_WEIGHT_MAX - weights[wa]) + lDRColour2.A * weights[wa] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
+            return (lDRColor1.A * (BC67_WEIGHT_MAX - weights[wa]) + lDRColor2.A * weights[wa] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
         }
 
-        internal static LDRColour InterpolateRGB(LDRColour lDRColour1, LDRColour lDRColour2, int wc, int wcPrec)
+        internal static LDRColor InterpolateRGB(LDRColor lDRColor1, LDRColor lDRColor2, int wc, int wcPrec)
         {
-            LDRColour temp = new LDRColour();
+            LDRColor temp = new LDRColor();
             int[] weights = null;
             switch (wcPrec)
             {
@@ -422,9 +415,9 @@ namespace REFileKit.DDS
                 default:
                     return temp;
             }
-            temp.R = (lDRColour1.R * (BC67_WEIGHT_MAX - weights[wc]) + lDRColour2.R * weights[wc] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
-            temp.G = (lDRColour1.G * (BC67_WEIGHT_MAX - weights[wc]) + lDRColour2.G * weights[wc] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
-            temp.B = (lDRColour1.B * (BC67_WEIGHT_MAX - weights[wc]) + lDRColour2.B * weights[wc] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
+            temp.R = (lDRColor1.R * (BC67_WEIGHT_MAX - weights[wc]) + lDRColor2.R * weights[wc] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
+            temp.G = (lDRColor1.G * (BC67_WEIGHT_MAX - weights[wc]) + lDRColor2.G * weights[wc] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
+            temp.B = (lDRColor1.B * (BC67_WEIGHT_MAX - weights[wc]) + lDRColor2.B * weights[wc] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
             return temp;
         }
 
@@ -439,14 +432,14 @@ namespace REFileKit.DDS
             return false;
         }
 
-        internal static LDRColour Unquantise(LDRColour colour, LDRColour rGBPrecisionWithP)
+        internal static LDRColor Unquantise(LDRColor color, LDRColor rGBPrecisionWithP)
         {
-            LDRColour temp = new LDRColour()
+            LDRColor temp = new LDRColor()
             {
-                R = Unquantise(colour.R, rGBPrecisionWithP.R),
-                G = Unquantise(colour.G, rGBPrecisionWithP.G),
-                B = Unquantise(colour.B, rGBPrecisionWithP.B),
-                A = rGBPrecisionWithP.A > 0 ? Unquantise(colour.A, rGBPrecisionWithP.A) : 255
+                R = Unquantise(color.R, rGBPrecisionWithP.R),
+                G = Unquantise(color.G, rGBPrecisionWithP.G),
+                B = Unquantise(color.B, rGBPrecisionWithP.B),
+                A = rGBPrecisionWithP.A > 0 ? Unquantise(color.A, rGBPrecisionWithP.A) : 255
             };
             return temp;
         }
@@ -487,6 +480,5 @@ namespace REFileKit.DDS
             start += length;
             return ret;
         }
-        #endregion Decompression Helpers
     }
 }

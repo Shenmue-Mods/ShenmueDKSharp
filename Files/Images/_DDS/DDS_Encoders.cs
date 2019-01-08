@@ -3,22 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static REFileKit.DDS.DDSGeneral;
-using static REFileKit.DDS.DDS_BlockHelpers;
-using REFileKit.Headers;
+using static ShenmueDKSharp.Files.Images._DDS.DDSFormats;
+using static ShenmueDKSharp.Files.Images._DDS.DDSGeneral;
+using static ShenmueDKSharp.Files.Images._DDS.DDS_BlockHelpers;
 
-namespace REFileKit.DDS
+namespace ShenmueDKSharp.Files.Images._DDS
 {
     internal static class DDS_Encoders
     {
-        #region Compressed
-        internal static void CompressBC1Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, ImageFormats.ImageEngineFormatDetails formatDetails)
+        internal static void CompressBC1Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, DDSFormatDetails formatDetails)
         {
             CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition, true, (alphaSetting == AlphaSettings.RemoveAlphaChannel ? 0 : DXT1AlphaThreshold), alphaSetting, formatDetails);
         }
 
-
-        internal static void CompressBC2Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, ImageFormats.ImageEngineFormatDetails formatDetails)
+        internal static void CompressBC2Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, DDSFormatDetails formatDetails)
         {
             // Compress Alpha
             if (alphaSetting == AlphaSettings.RemoveAlphaChannel)
@@ -40,11 +38,11 @@ namespace REFileKit.DDS
             }
             
 
-            // Compress Colour
+            // Compress Color
             CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f, alphaSetting, formatDetails);
         }
 
-        internal static void CompressBC3Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, ImageFormats.ImageEngineFormatDetails formatDetails)
+        internal static void CompressBC3Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, DDSFormatDetails formatDetails)
         {
             // Compress Alpha
             if (alphaSetting == AlphaSettings.RemoveAlphaChannel)
@@ -56,19 +54,19 @@ namespace REFileKit.DDS
             else
                 Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 3, false, formatDetails);
 
-            // Compress Colour
+            // Compress Color
             CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f, alphaSetting, formatDetails);
         }
 
         // ATI1
-        internal static void CompressBC4Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, ImageFormats.ImageEngineFormatDetails formatDetails)
+        internal static void CompressBC4Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, DDSFormatDetails formatDetails)
         {
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false, formatDetails);
         }
 
 
         // ATI2 3Dc
-        internal static void CompressBC5Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, ImageFormats.ImageEngineFormatDetails formatDetails)
+        internal static void CompressBC5Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, DDSFormatDetails formatDetails)
         {
             // Green: Channel 1.
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 1, false, formatDetails);
@@ -77,18 +75,17 @@ namespace REFileKit.DDS
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, 2, false, formatDetails);
         }
 
-        internal static void CompressBC6Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, ImageFormats.ImageEngineFormatDetails formatDetails)
+        internal static void CompressBC6Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, DDSFormatDetails formatDetails)
         {
             BC6.CompressBC6Block(imgData, sourcePosition, sourceLineLength, destination, destPosition);
         }
 
-        internal static void CompressBC7Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, ImageFormats.ImageEngineFormatDetails formatDetails)
+        internal static void CompressBC7Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, DDSFormatDetails formatDetails)
         {
             BC7.CompressBC7Block(imgData, sourcePosition, sourceLineLength, destination, destPosition);
         }
-        #endregion Compressed
 
-        internal static void WriteUncompressed(byte[] source, byte[] destination, int destStart, DDS_Header.DDS_PIXELFORMAT dest_ddspf, ImageFormats.ImageEngineFormatDetails sourceFormatDetails, ImageFormats.ImageEngineFormatDetails destFormatDetails)
+        internal static void WriteUncompressed(byte[] source, byte[] destination, int destStart, DDS_Header.DDS_PIXELFORMAT dest_ddspf, DDSFormatDetails sourceFormatDetails, DDSFormatDetails destFormatDetails)
         {
             int byteCount = dest_ddspf.dwRGBBitCount / 8;
             bool requiresSignedAdjust = (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED;
@@ -106,7 +103,7 @@ namespace REFileKit.DDS
             // NOTE: Ordering array is in ARGB order, and the stored indices change depending on detected channel order.
             // A negative index indicates channel doesn't exist in data and sets channel to 0xFF.
 
-            if (destFormatDetails.Format == ImageEngineFormat.DDS_ARGB_32F)
+            if (destFormatDetails.Format == DDSFormat.DDS_ARGB_32F)
             {
                 AMask = 4;
                 BMask = 3;
@@ -136,26 +133,20 @@ namespace REFileKit.DDS
 
             int sourceIncrement = 4 * sourceFormatDetails.ComponentSize;
 
-            if (ImageEngine.EnableThreading)
-                Parallel.For(0, source.Length / sourceIncrement, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (ind, loopState) =>
+            if (EnableThreading)
+                Parallel.For(0, source.Length / sourceIncrement, new ParallelOptions { MaxDegreeOfParallelism = ThreadCount }, (ind, loopState) =>
                 {
-                    if (ImageEngine.IsCancellationRequested)
-                        loopState.Stop();
-
                     WriteUncompressedPixel(source, ind * sourceIncrement, sourceInds, sourceFormatDetails, masks, destination, destStart + ind * byteCount, destInds, destFormatDetails, oneChannel, twoChannel, requiresSignedAdjust);
                 });
             else
                 for (int i = 0; i < source.Length; i += 4 * sourceFormatDetails.ComponentSize, destStart += byteCount)
                 {
-                    if (ImageEngine.IsCancellationRequested)
-                        break;
-
                     WriteUncompressedPixel(source, i, sourceInds, sourceFormatDetails, masks, destination, destStart, destInds, destFormatDetails, oneChannel, twoChannel, requiresSignedAdjust);
                 }
         }
 
-        static void WriteUncompressedPixel(byte[] source, int sourceStart, int[] sourceInds, ImageFormats.ImageEngineFormatDetails sourceFormatDetails, uint[] masks,
-            byte[] destination, int destStart, int[] destInds, ImageFormats.ImageEngineFormatDetails destFormatDetails, bool oneChannel, bool twoChannel, bool requiresSignedAdjust)
+        static void WriteUncompressedPixel(byte[] source, int sourceStart, int[] sourceInds, DDSFormatDetails sourceFormatDetails, uint[] masks,
+            byte[] destination, int destStart, int[] destInds, DDSFormatDetails destFormatDetails, bool oneChannel, bool twoChannel, bool requiresSignedAdjust)
         {
             if (twoChannel) // No large components - silly spec...
             {
@@ -184,7 +175,7 @@ namespace REFileKit.DDS
                 {
                     uint mask = masks[i];
                     if (mask != 0)
-                        destFormatDetails.WriteColour(source, sourceStart + sourceInds[i], sourceFormatDetails, destination, destStart + destInds[i]);
+                        destFormatDetails.WriteColor(source, sourceStart + sourceInds[i], sourceFormatDetails, destination, destStart + destInds[i]);
                 }
 
                 // Signed adjustments - Only happens for bytes for now. V8U8

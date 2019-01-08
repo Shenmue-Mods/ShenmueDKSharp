@@ -6,12 +6,11 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static REFileKit.DDS.DDS_BlockHelpers;
-using Helper;
 using System.Numerics;
-using static REFileKit.DDS.DX10_Helpers;
+using static ShenmueDKSharp.Files.Images._DDS.DDS_BlockHelpers;
+using static ShenmueDKSharp.Files.Images._DDS.DX10_Helpers;
 
-namespace REFileKit.DDS
+namespace ShenmueDKSharp.Files.Images._DDS
 {
     /// <summary>
     /// Adapted almost wholesale from DirectXTex from Microsoft. https://github.com/Microsoft/DirectXTex
@@ -23,15 +22,15 @@ namespace REFileKit.DDS
             public readonly int Partitions;
             public readonly int PartitionBits;
             public readonly int IndexPrecision;
-            public readonly LDRColour RawRGBPrecision;
-            public readonly LDRColour RGBPrecisionWithP;
+            public readonly LDRColor RawRGBPrecision;
+            public readonly LDRColor RGBPrecisionWithP;
             public readonly int APrecision;
             public readonly int PBits;
             public readonly int RotationBits;
             public readonly int IndexModeBits;
             public readonly int modeVal;
 
-            public Mode(int modeVal, int partitions, int partitionBits, int IndexPrecision, LDRColour rawrgbPrecision, LDRColour RGBPrecisionWithP, int APrecision, int PBits, int RotationBits, int IndexModeBits)
+            public Mode(int modeVal, int partitions, int partitionBits, int IndexPrecision, LDRColor rawrgbPrecision, LDRColor RGBPrecisionWithP, int APrecision, int PBits, int RotationBits, int IndexModeBits)
             {
                 this.modeVal = modeVal;
                 this.Partitions = partitions;
@@ -48,32 +47,31 @@ namespace REFileKit.DDS
 
         // Mode: Partitions, partitionBits, indexPrecision, rgbPrecision, rgbPrecisionWithP, APrecision, PBits, Rotation, IndexMode
         static Mode[] Modes = new Mode[] {
-            /* Mode 0: */ new Mode(0, 2, 4, 3, new LDRColour(4, 4, 4, 0), new LDRColour(5, 5, 5, 0), 0, 6, 0, 0),
-            /* Mode 1: */ new Mode(1, 1, 6, 3, new LDRColour(6, 6, 6, 0), new LDRColour(7, 7, 7, 0), 0, 2, 0, 0),
-            /* Mode 2: */ new Mode(2, 2, 6, 2, new LDRColour(5, 5, 5, 0), new LDRColour(5, 5, 5, 0), 0, 0, 0, 0),
-            /* Mode 3: */ new Mode(3, 1, 6, 2, new LDRColour(7, 7, 7, 0), new LDRColour(8, 8, 8, 0), 0, 4, 0, 0),
-            /* Mode 4: */ new Mode(4, 0, 0, 2, new LDRColour(5, 5, 5, 6), new LDRColour(5, 5, 5, 6), 3, 0, 2, 1),
-            /* Mode 5: */ new Mode(5, 0, 0, 2, new LDRColour(7, 7, 7, 8), new LDRColour(7, 7, 7, 8), 2, 0, 2, 0),
-            /* Mode 6: */ new Mode(6, 0, 0, 4, new LDRColour(7, 7, 7, 7), new LDRColour(8, 8, 8, 8), 0, 2, 0, 0),
-            /* Mode 7: */ new Mode(7, 1, 6, 2, new LDRColour(5, 5, 5, 5), new LDRColour(6, 6, 6, 6), 0, 4, 0, 0),
+            /* Mode 0: */ new Mode(0, 2, 4, 3, new LDRColor(4, 4, 4, 0), new LDRColor(5, 5, 5, 0), 0, 6, 0, 0),
+            /* Mode 1: */ new Mode(1, 1, 6, 3, new LDRColor(6, 6, 6, 0), new LDRColor(7, 7, 7, 0), 0, 2, 0, 0),
+            /* Mode 2: */ new Mode(2, 2, 6, 2, new LDRColor(5, 5, 5, 0), new LDRColor(5, 5, 5, 0), 0, 0, 0, 0),
+            /* Mode 3: */ new Mode(3, 1, 6, 2, new LDRColor(7, 7, 7, 0), new LDRColor(8, 8, 8, 0), 0, 4, 0, 0),
+            /* Mode 4: */ new Mode(4, 0, 0, 2, new LDRColor(5, 5, 5, 6), new LDRColor(5, 5, 5, 6), 3, 0, 2, 1),
+            /* Mode 5: */ new Mode(5, 0, 0, 2, new LDRColor(7, 7, 7, 8), new LDRColor(7, 7, 7, 8), 2, 0, 2, 0),
+            /* Mode 6: */ new Mode(6, 0, 0, 4, new LDRColor(7, 7, 7, 7), new LDRColor(8, 8, 8, 8), 0, 2, 0, 0),
+            /* Mode 7: */ new Mode(7, 1, 6, 2, new LDRColor(5, 5, 5, 5), new LDRColor(6, 6, 6, 6), 0, 4, 0, 0),
         };
 
-        private static LDRColour Interpolate(LDRColour lDRColour1, LDRColour lDRColour2, int wc, int wa, int wcPrec, int waPrec)
+        private static LDRColor Interpolate(LDRColor lDRColor1, LDRColor lDRColor2, int wc, int wa, int wcPrec, int waPrec)
         {
-            LDRColour temp = InterpolateRGB(lDRColour1, lDRColour2, wc, wcPrec);
-            temp.A = InterpolateA(lDRColour1, lDRColour2, wa, waPrec);
+            LDRColor temp = InterpolateRGB(lDRColor1, lDRColor2, wc, wcPrec);
+            temp.A = InterpolateA(lDRColor1, lDRColor2, wa, waPrec);
             return temp;
         }
 
-        #region Decompression
-        public static LDRColour[] DecompressBC7(byte[] source, int sourceStart)
+        public static LDRColor[] DecompressBC7(byte[] source, int sourceStart)
         {
             int start = 0;
             while (start < 128 && GetBit(source, sourceStart, ref start) == 0) { }
             int modeVal = start - 1;
             Mode mode = Modes[modeVal];
 
-            var outColours = new LDRColour[NUM_PIXELS_PER_BLOCK];
+            var outColors = new LDRColor[NUM_PIXELS_PER_BLOCK];
 
             if (modeVal < 8)
             {
@@ -87,9 +85,9 @@ namespace REFileKit.DDS
                 int rotation = GetBits(source, sourceStart, ref start, mode.RotationBits);
                 int indexMode = GetBits(source, sourceStart, ref start, mode.IndexModeBits);
 
-                LDRColour[] c = new LDRColour[6];
-                LDRColour RGBPrecision = mode.RawRGBPrecision;
-                LDRColour RGBPrecisionWithP = mode.RGBPrecisionWithP;
+                LDRColor[] c = new LDRColor[6];
+                LDRColor RGBPrecision = mode.RawRGBPrecision;
+                LDRColor RGBPrecisionWithP = mode.RGBPrecisionWithP;
 
                 // Red
                 for(i = 0; i < numEndPoints; i++)
@@ -170,7 +168,7 @@ namespace REFileKit.DDS
                 int[] w1 = new int[NUM_PIXELS_PER_BLOCK];
                 int[] w2 = new int[NUM_PIXELS_PER_BLOCK];
 
-                // Read colour indicies
+                // Read color indicies
                 for (i = 0; i < NUM_PIXELS_PER_BLOCK; i++)
                 {
                     int numBits = IsFixUpOffset(partitions, shape, i) ? indexPrecision - 1 : indexPrecision;
@@ -201,7 +199,7 @@ namespace REFileKit.DDS
                 for (i = 0; i < NUM_PIXELS_PER_BLOCK; i++)
                 {
                     int region = PartitionTable[partitions][shape][i];
-                    LDRColour outPixel;
+                    LDRColor outPixel;
                     if (APrecision == 0)
                         outPixel = Interpolate(c[region << 1], c[(region << 1) + 1], w1[i], w1[i], indexPrecision, indexPrecision);
                     else
@@ -231,26 +229,24 @@ namespace REFileKit.DDS
                             break;
                     }
 
-                    outColours[i] = outPixel;
+                    outColors[i] = outPixel;
                 }
-                return outColours;
+                return outColors;
             }
             else
             {
-                return outColours;
+                return outColors;
             }
         }
-        #endregion Decompression
 
 
-        #region Compression
         internal static void CompressBC7Block(byte[] source, int sourceStart, int sourceLineLength, byte[] destination, int destStart)  // Flags?
         {
-            LDRColourEndPointPair[][] AllEndPoints = new LDRColourEndPointPair[BC7_MAX_SHAPES][];
+            LDRColorEndPointPair[][] AllEndPoints = new LDRColorEndPointPair[BC7_MAX_SHAPES][];
             for(int i = 0; i < BC7_MAX_SHAPES; i++)
-                AllEndPoints[i] = new LDRColourEndPointPair[BC7_MAX_REGIONS];
+                AllEndPoints[i] = new LDRColorEndPointPair[BC7_MAX_REGIONS];
 
-            LDRColour[] block = new LDRColour[NUM_PIXELS_PER_BLOCK];
+            LDRColor[] block = new LDRColor[NUM_PIXELS_PER_BLOCK];
 
             // Fill block from source data
             for (int i = 0; i < 4; i++)
@@ -258,7 +254,7 @@ namespace REFileKit.DDS
                 for (int j = 0; j < 4; j++)
                 {
                     var offset = sourceStart + (i * sourceLineLength) + j * 4;  // TODO Component sizes
-                    block[i * 4 + j] = new LDRColour(
+                    block[i * 4 + j] = new LDRColor(
                         source[offset + 2],  // Red
                         source[offset + 1],  // Green
                         source[offset],      // Blue
@@ -382,16 +378,14 @@ namespace REFileKit.DDS
                     }
                 }
             }
-            Console.WriteLine();
         }
 
-        #region Compression Helpers
-        static float Refine(int shape, int rotation, int indexMode, LDRColourEndPointPair[][] AllEndPoints, Mode mode, LDRColour[] block, byte[] destination, int destStart)
+        static float Refine(int shape, int rotation, int indexMode, LDRColorEndPointPair[][] AllEndPoints, Mode mode, LDRColor[] block, byte[] destination, int destStart)
         {
-            LDRColourEndPointPair[] EndPoints = AllEndPoints[shape];
+            LDRColorEndPointPair[] EndPoints = AllEndPoints[shape];
             
-            LDRColourEndPointPair[] OrgEndPoints = new LDRColourEndPointPair[BC7_MAX_REGIONS];
-            LDRColourEndPointPair[] OptEndPoints = new LDRColourEndPointPair[BC7_MAX_REGIONS];
+            LDRColorEndPointPair[] OrgEndPoints = new LDRColorEndPointPair[BC7_MAX_REGIONS];
+            LDRColorEndPointPair[] OptEndPoints = new LDRColorEndPointPair[BC7_MAX_REGIONS];
 
             int[] orgIdx = new int[NUM_PIXELS_PER_BLOCK];
             int[] orgIdx2 = new int[NUM_PIXELS_PER_BLOCK];
@@ -430,7 +424,7 @@ namespace REFileKit.DDS
             }
         }
 
-        static void EmitBlock(Mode mode, byte[] destination, int destStart, int rotation, int indexMode, int shape, LDRColourEndPointPair[] endPoints, int[] indicies, int[] alphaIndicies)
+        static void EmitBlock(Mode mode, byte[] destination, int destStart, int rotation, int indexMode, int shape, LDRColorEndPointPair[] endPoints, int[] indicies, int[] alphaIndicies)
         {
             int i = 0;
             int startBit = 0;
@@ -545,9 +539,9 @@ namespace REFileKit.DDS
             start += length;
         }
 
-        static void OptimiseEndPoints(Mode mode, int indexMode, LDRColour[] block, float[] afOrgErr, LDRColourEndPointPair[] aOrgEndPoints, LDRColourEndPointPair[] aOptEndPoints, int shape)
+        static void OptimiseEndPoints(Mode mode, int indexMode, LDRColor[] block, float[] afOrgErr, LDRColorEndPointPair[] aOrgEndPoints, LDRColorEndPointPair[] aOptEndPoints, int shape)
         {
-            LDRColour[] pixels = new LDRColour[NUM_PIXELS_PER_BLOCK];
+            LDRColor[] pixels = new LDRColor[NUM_PIXELS_PER_BLOCK];
 
             for (int p = 0; p <= mode.Partitions; p++)
             {
@@ -562,11 +556,11 @@ namespace REFileKit.DDS
 
         }
 
-        static void OptimiseOne(float fOrgErr, Mode mode, ref LDRColourEndPointPair org, ref LDRColourEndPointPair opt, int indexMode, LDRColour[] block, int np)
+        static void OptimiseOne(float fOrgErr, Mode mode, ref LDRColorEndPointPair org, ref LDRColorEndPointPair opt, int indexMode, LDRColor[] block, int np)
         {
             float fOptErr = fOrgErr;
             opt = org; 
-            LDRColourEndPointPair new_a = new LDRColourEndPointPair(), new_b = new LDRColourEndPointPair(), newEndPoints = new LDRColourEndPointPair();
+            LDRColorEndPointPair new_a = new LDRColorEndPointPair(), new_b = new LDRColorEndPointPair(), newEndPoints = new LDRColorEndPointPair();
             bool do_b;
 
             // Optimise each channel separately
@@ -699,9 +693,9 @@ namespace REFileKit.DDS
             Exhaustive(mode, 3, opt, ref opt.A.A, ref opt.B.A, mode.RGBPrecisionWithP.A, fOrgErr, indexMode, np, block);
         }
 
-        static unsafe void Exhaustive(Mode mode, int ch, LDRColourEndPointPair endPoint, ref int A, ref int B, int prec, float fOrgErr, int indexMode, int np, LDRColour[] block)
+        static unsafe void Exhaustive(Mode mode, int ch, LDRColorEndPointPair endPoint, ref int A, ref int B, int prec, float fOrgErr, int indexMode, int np, LDRColor[] block)
         {
-            LDRColourEndPointPair temp;
+            LDRColorEndPointPair temp;
             if (fOrgErr == 0)
                 return;
 
@@ -748,7 +742,7 @@ namespace REFileKit.DDS
                         *tempAChannel = a;
                         *tempBChannel = b;
 
-                        float err = MapColours(indexMode, mode, temp, np, block, bestErr);
+                        float err = MapColors(indexMode, mode, temp, np, block, bestErr);
                         if (err < bestErr)
                         {
                             amin = a;
@@ -767,7 +761,7 @@ namespace REFileKit.DDS
                         *tempAChannel = a;
                         *tempBChannel = b;
 
-                        float err = MapColours(indexMode, mode, temp, np, block, bestErr);
+                        float err = MapColors(indexMode, mode, temp, np, block, bestErr);
                         if (err < bestErr)
                         {
                             amin = a;
@@ -786,9 +780,9 @@ namespace REFileKit.DDS
             }
         }
 
-        static unsafe float PerturbOne(Mode mode, int ch, ref LDRColourEndPointPair newEndPoints, ref LDRColourEndPointPair oldEndPoints, float oldErr, bool do_b, int indexMode, LDRColour[] block, int np)
+        static unsafe float PerturbOne(Mode mode, int ch, ref LDRColorEndPointPair newEndPoints, ref LDRColorEndPointPair oldEndPoints, float oldErr, bool do_b, int indexMode, LDRColor[] block, int np)
         {
-            LDRColourEndPointPair temp = newEndPoints = oldEndPoints;
+            LDRColorEndPointPair temp = newEndPoints = oldEndPoints;
             float minErr = oldErr;
 
             int prec = 0;
@@ -831,7 +825,7 @@ namespace REFileKit.DDS
                     else
                         *tmp_c = tmp;
 
-                    float totalError = MapColours(indexMode, mode, temp, np, block, minErr);
+                    float totalError = MapColors(indexMode, mode, temp, np, block, minErr);
                     {
                         improved = true;
                         minErr = totalError;
@@ -876,12 +870,12 @@ namespace REFileKit.DDS
             return minErr;
         }
 
-        static float MapColours(int indexMode, Mode mode, LDRColourEndPointPair endPoints, int np, LDRColour[] block, float minErr)
+        static float MapColors(int indexMode, Mode mode, LDRColorEndPointPair endPoints, int np, LDRColor[] block, float minErr)
         {
             int indexPrec = indexMode != 0 ? mode.APrecision : mode.IndexPrecision;
             int aIndexPrec = indexMode != 0 ? mode.IndexPrecision : mode.APrecision;
 
-            LDRColour[] palette = new LDRColour[BC7_MAX_INDICIES];
+            LDRColor[] palette = new LDRColor[BC7_MAX_INDICIES];
             float totalErr = 0;
 
             GeneratePaletteQuantized(endPoints, mode, palette, indexMode);
@@ -898,7 +892,7 @@ namespace REFileKit.DDS
             return totalErr;
         }
 
-        static void AssignIndicies(int shape, int indexMode, Mode mode, LDRColourEndPointPair[] endPoints, int[] indicies, int[] alphaIndicies, float[] afTotalErr, LDRColour[] block)
+        static void AssignIndicies(int shape, int indexMode, Mode mode, LDRColorEndPointPair[] endPoints, int[] indicies, int[] alphaIndicies, float[] afTotalErr, LDRColor[] block)
         {
             int indexPrecision = indexMode != 0 ? mode.APrecision : mode.IndexPrecision;
             int alphaIndexPrecision = indexMode != 0 ? mode.IndexPrecision : mode.APrecision;
@@ -909,9 +903,9 @@ namespace REFileKit.DDS
             int highestIndexBit = numIndicies >> 1;
             int alphaHighestIndexBit = alphaNumIndicies >> 1;
 
-            LDRColour[][] palette = new LDRColour[BC7_MAX_REGIONS][];
+            LDRColor[][] palette = new LDRColor[BC7_MAX_REGIONS][];
             for (int i = 0; i < BC7_MAX_REGIONS; i++)
-                palette[i] = new LDRColour[BC7_MAX_INDICIES];
+                palette[i] = new LDRColor[BC7_MAX_INDICIES];
 
             // Get list of possibles
             for (int p = 0; p <= mode.Partitions; p++)
@@ -983,7 +977,7 @@ namespace REFileKit.DDS
             }
         }
 
-        static void GeneratePaletteQuantized(LDRColourEndPointPair endPoints, Mode mode, LDRColour[] palette, int indexMode)
+        static void GeneratePaletteQuantized(LDRColorEndPointPair endPoints, Mode mode, LDRColor[] palette, int indexMode)
         {
             int indexPrecision = indexMode != 0 ? mode.APrecision : mode.IndexPrecision;
             int alphaIndexPrecision = indexMode != 0 ? mode.IndexPrecision : mode.APrecision;
@@ -991,8 +985,8 @@ namespace REFileKit.DDS
             int numIndicies = 1 << indexPrecision;
             int alphaNumIndicies = 1 << alphaIndexPrecision;
 
-            LDRColour a = Unquantise(endPoints.A, mode.RGBPrecisionWithP);
-            LDRColour b = Unquantise(endPoints.B, mode.RGBPrecisionWithP);
+            LDRColor a = Unquantise(endPoints.A, mode.RGBPrecisionWithP);
+            LDRColor b = Unquantise(endPoints.B, mode.RGBPrecisionWithP);
 
             if (alphaIndexPrecision == 0)
             {
@@ -1009,17 +1003,17 @@ namespace REFileKit.DDS
             }
         }
 
-        static LDRColour Quantize(LDRColour colour, LDRColour precision)
+        static LDRColor Quantize(LDRColor color, LDRColor precision)
         {
-            LDRColour q = new LDRColour
+            LDRColor q = new LDRColor
             {
-                R = Quantize(colour.R, precision.R),
-                G = Quantize(colour.G, precision.G),
-                B = Quantize(colour.B, precision.B)
+                R = Quantize(color.R, precision.R),
+                G = Quantize(color.G, precision.G),
+                B = Quantize(color.B, precision.B)
             };
 
             if (precision.A != 0)
-                q.A = Quantize(colour.A, precision.A);
+                q.A = Quantize(color.A, precision.A);
             else
                 q.A = 255;
 
@@ -1032,9 +1026,9 @@ namespace REFileKit.DDS
             return round >> (8 - precision);
         }
 
-        static float RoughMSE(int modeVal, LDRColourEndPointPair[][] allEndPoints, LDRColour[] block, int shape, int indexMode)
+        static float RoughMSE(int modeVal, LDRColorEndPointPair[][] allEndPoints, LDRColor[] block, int shape, int indexMode)
         {
-            LDRColourEndPointPair[] EndPoints = allEndPoints[shape];
+            LDRColorEndPointPair[] EndPoints = allEndPoints[shape];
 
             Mode mode = Modes[modeVal];
 
@@ -1045,16 +1039,16 @@ namespace REFileKit.DDS
             int alphaNumIndicies = 1 << alphaPrecision;
 
             int[] pixelIndicies = new int[NUM_PIXELS_PER_BLOCK];
-            LDRColour[][] palette = new LDRColour[BC7_MAX_REGIONS][];
+            LDRColor[][] palette = new LDRColor[BC7_MAX_REGIONS][];
             for (int i = 0; i < BC7_MAX_REGIONS; i++)
-                palette[i] = new LDRColour[BC7_MAX_INDICIES];
+                palette[i] = new LDRColor[BC7_MAX_INDICIES];
 
 
             // Convert block to "HDR", I'm just putting it in the 0-1 range.
-            RGBColour[] Colour = new RGBColour[block.Length];
+            RGBColor[] Color = new RGBColor[block.Length];
             float factor = 255f;
             for (int i = 0; i < block.Length; i++)
-                Colour[i] = new RGBColour(block[i].R / factor, block[i].G / factor, block[i].B / factor, block[i].A / factor);
+                Color[i] = new RGBColor(block[i].R / factor, block[i].G / factor, block[i].B / factor, block[i].A / factor);
 
             for (int p = 0; p <= partitions; p++)
             {
@@ -1078,9 +1072,9 @@ namespace REFileKit.DDS
 
                 if (alphaPrecision == 0)
                 {
-                    RGBColour[] MinMax= OptimiseRGBA_BC67(Colour, 4, np, pixelIndicies);
-                    EndPoints[p].A = new LDRColour(MinMax[0].r, MinMax[0].g, MinMax[0].b, MinMax[0].a);
-                    EndPoints[p].B = new LDRColour(MinMax[1].r, MinMax[1].g, MinMax[1].b, MinMax[1].a);
+                    RGBColor[] MinMax= OptimiseRGBA_BC67(Color, 4, np, pixelIndicies);
+                    EndPoints[p].A = new LDRColor(MinMax[0].r, MinMax[0].g, MinMax[0].b, MinMax[0].a);
+                    EndPoints[p].B = new LDRColor(MinMax[1].r, MinMax[1].g, MinMax[1].b, MinMax[1].a);
                 }
                 else
                 {
@@ -1091,9 +1085,9 @@ namespace REFileKit.DDS
                         maxA = Math.Max(maxA, block[pixelIndicies[i]].A);
                     }
 
-                    RGBColour[] MinMax = OptimiseRGB_BC67(Colour, 4, np, pixelIndicies);
-                    EndPoints[p].A = new LDRColour(MinMax[0].r, MinMax[0].g, MinMax[0].b, MinMax[0].a);
-                    EndPoints[p].B = new LDRColour(MinMax[1].r, MinMax[1].g, MinMax[1].b, MinMax[1].a);
+                    RGBColor[] MinMax = OptimiseRGB_BC67(Color, 4, np, pixelIndicies);
+                    EndPoints[p].A = new LDRColor(MinMax[0].r, MinMax[0].g, MinMax[0].b, MinMax[0].a);
+                    EndPoints[p].B = new LDRColor(MinMax[1].r, MinMax[1].g, MinMax[1].b, MinMax[1].a);
                     EndPoints[p].A.A = minA;
                     EndPoints[p].B.A = maxA;
                 }
@@ -1127,7 +1121,7 @@ namespace REFileKit.DDS
             return totalError;
         }
 
-        private static float ComputeError(LDRColour pixelColour, LDRColour[] palette, int indexPrecision, int alphaPrecision, int[] bestIdxs = null)
+        private static float ComputeError(LDRColor pixelColor, LDRColor[] palette, int indexPrecision, int alphaPrecision, int[] bestIdxs = null)
         {
             float totalError = 0, bestError = float.MaxValue;
 
@@ -1141,8 +1135,8 @@ namespace REFileKit.DDS
             }
 
             // Vector dots
-            var vPixel = new Vector4(pixelColour.R, pixelColour.G, pixelColour.B, pixelColour.A);
-            var vPixel3 = new Vector3(pixelColour.R, pixelColour.G, pixelColour.B);
+            var vPixel = new Vector4(pixelColor.R, pixelColor.G, pixelColor.B, pixelColor.A);
+            var vPixel3 = new Vector3(pixelColor.R, pixelColor.G, pixelColor.B);
 
             if (alphaPrecision == 0)
             {
@@ -1189,7 +1183,7 @@ namespace REFileKit.DDS
                 bestError = float.MaxValue;
                 for (int i = 0; i < alphaNumIndicies && bestError > 0; i++)
                 {
-                    float ea = pixelColour.A - palette[i].A;
+                    float ea = pixelColor.A - palette[i].A;
                     float err = ea * ea;
                     if (err > bestError)
                         break;
@@ -1207,7 +1201,5 @@ namespace REFileKit.DDS
 
             return totalError;
         }
-        #endregion Compression Helpers
-        #endregion Compression
     }
 }

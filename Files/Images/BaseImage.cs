@@ -2,13 +2,19 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ShenmueDKSharp.Files.Images
 {
+    /// <summary>
+    /// Base image class which all image classes inherit from.
+    /// </summary>
+    /// <seealso cref="ShenmueDKSharp.Files.BaseFile" />
     public abstract class BaseImage : BaseFile
     {
         /// <summary>
@@ -20,13 +26,9 @@ namespace ShenmueDKSharp.Files.Images
         /// </summary>
         public int Height { get; set; }
         /// <summary>
-        /// [DEPRECATED] Pixel buffer.
-        /// </summary>
-        public Color4[] Pixels { get; set; }
-        /// <summary>
         /// Mipmaps pixel buffers.
         /// </summary>
-        public List<Color4[]> MipMaps { get; set; }
+        public List<MipMap> MipMaps { get; set; } = new List<MipMap>();
         /// <summary>
         /// True of the image has an transparency channel.
         /// </summary>
@@ -38,68 +40,81 @@ namespace ShenmueDKSharp.Files.Images
         public abstract int DataSize { get; }
 
         /// <summary>
-        /// Creates an Bitmap object of the current pixel data for usage inside WinForms.
+        /// Creates an GDI+ bitmap object of the given mipmap.
         /// </summary>
-        /// <returns></returns>
-        public Bitmap CreateBitmap()
+        public Bitmap CreateBitmap(int mipmap = 0)
         {
-            Bitmap bitmap = new Bitmap(Width, Height);
-            for (int y = 0; y < Height; y++)
-            {
-                for (int x = 0; x < Width; x++)
-                {
-                    Color4 col4 = Pixels[y * Width + x];
-                    bitmap.SetPixel(x, y, Color.FromArgb(col4.ToArgb()));
-                }
-            }
-            return bitmap;
-        }
-
-        /// <summary>
-        /// Returns the pixel buffer of the given mipmap index.
-        /// </summary>
-        /// <param name="mipmap">The mipmap index</param>
-        /// <returns></returns>
-        /// <exception cref="System.IndexOutOfRangeException">Mipmap index out of range!</exception>
-        public Color4[] GetPixels(int mipmap = 0)
-        {
-            if (mipmap >= MipMaps.Count)
+            if (mipmap >= MipMaps.Count || mipmap < 0)
             {
                 throw new IndexOutOfRangeException("Mipmap index out of range!");
             }
-            return MipMaps[mipmap];
+            return MipMaps[mipmap].GetBitmap();
         }
 
-        /// <summary>
-        /// Returns the pixel from the given coordinates of the pixel buffer.
-        /// </summary>
-        /// <param name="x">The x index starting from 0</param>
-        /// <param name="y">The y index starting from 0</param>
-        /// <returns></returns>
-        /// <exception cref="System.IndexOutOfRangeException">
-        /// Index of X is out of range!
-        /// or
-        /// Index of Y is out of range!
-        /// or
-        /// Index out of range! Does the pixel buffer have an incorrect size?
-        /// </exception>
-        public Color4 GetPixel(int x, int y)
-        {
-            if (x >= Width || x < 0)
-            {
-                throw new IndexOutOfRangeException("Index of X is out of range!");
-            }
-            if (y >= Height || y < 0)
-            {
-                throw new IndexOutOfRangeException("Index of Y is out of range!");
-            }
+    }
 
-            int index = y * Width + x;
-            if (index >= Pixels.Length)
+    public class MipMap
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+
+        /// <summary>
+        /// BGRA32 byte array.
+        /// </summary>
+        public byte[] Pixels { get; set; }
+
+        public MipMap() { }
+        /// <summary>
+        /// Copy constructor.
+        /// </summary>
+        public MipMap(MipMap mipmap)
+        {
+            Width = mipmap.Width;
+            Height = mipmap.Height;
+            Pixels = new byte[Width * Height * 4];
+            Array.Copy(mipmap.Pixels, Pixels, Pixels.Length);
+        }
+        public MipMap(byte[] data, int width, int height)
+        {
+            Width = width;
+            Height = height;
+            Pixels = new byte[Width * Height * 4];
+            Array.Copy(data, Pixels, Pixels.Length);
+        }
+        public MipMap(int width, int height)
+        {
+            Width = width;
+            Height = height;
+            Pixels = new byte[Width * Height * 4];
+        }
+
+        public Bitmap GetBitmap()
+        {
+            Bitmap bmp = new Bitmap(Width, Height, PixelFormat.Format32bppArgb);
+            BitmapData bmpData = bmp.LockBits(new Rectangle(0, 0, Width, Height),
+                                                ImageLockMode.WriteOnly,
+                                                bmp.PixelFormat);
+
+            IntPtr ptr = bmpData.Scan0;
+            int bytes = bmpData.Stride * bmp.Height;
+
+            Marshal.Copy(Pixels, 0, ptr, bytes);
+            bmp.UnlockBits(bmpData);
+            return bmp;
+        }
+
+        public Color4[] GetPixelsAsColor4()
+        {
+            Color4[] result = new Color4[Pixels.Length / 4];
+            for (int i = 0; i < result.Length; i++)
             {
-                throw new IndexOutOfRangeException("Index out of range! Does the pixel buffer have an incorrect size?");
+                Color4 color = result[i];
+                color.B_ = Pixels[i * 4];
+                color.G_ = Pixels[i * 4 + 1];
+                color.R_ = Pixels[i * 4 + 2];
+                color.A_ = Pixels[i * 4 + 3];
             }
-            return Pixels[y * Width + x];
+            return result;
         }
     }
 }

@@ -5,27 +5,27 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static REFileKit.DDS.DX10_Helpers;
+using static ShenmueDKSharp.Files.Images._DDS.DDSFormats;
+using static ShenmueDKSharp.Files.Images._DDS.DDSGeneral;
+using static ShenmueDKSharp.Files.Images._DDS.DX10_Helpers;
 
-namespace REFileKit.DDS
+namespace ShenmueDKSharp.Files.Images._DDS
 {
     internal static class DDS_BlockHelpers
     {
         const double OneThird = 1f / 3f;
         const double TwoThirds = 2f / 3f;
 
-        #region Block Compression
-        #region RGB DXT
         /// <summary>
         /// This region contains stuff adpated/taken from the DirectXTex project: https://github.com/Microsoft/DirectXTex
         /// Things needed to be in the range 0-1 instead of 0-255, hence new struct etc
         /// </summary>
         [DebuggerDisplay("R:{r}, G:{g}, B:{b}, A:{a}")]
-        internal struct RGBColour
+        internal struct RGBColor
         {
             public float r, g, b, a;
 
-            public RGBColour(float red, float green, float blue, float alpha)
+            public RGBColor(float red, float green, float blue, float alpha)
             {
                 r = red;
                 g = green;
@@ -48,42 +48,42 @@ namespace REFileKit.DDS
         static uint[] psteps3 = { 0, 2, 1 };
         static uint[] psteps4 = { 0, 2, 3, 1 };
 
-        static RGBColour Luminance = new RGBColour(0.2125f / 0.7154f, 1f, 0.0721f / 0.7154f, 1f);
-        static RGBColour LuminanceInv = new RGBColour(0.7154f / 0.2125f, 1f, 0.7154f / 0.0721f, 1f);
+        static RGBColor Luminance = new RGBColor(0.2125f / 0.7154f, 1f, 0.0721f / 0.7154f, 1f);
+        static RGBColor LuminanceInv = new RGBColor(0.7154f / 0.2125f, 1f, 0.7154f / 0.0721f, 1f);
 
-        static RGBColour Decode565(uint wColour)
+        static RGBColor Decode565(uint wColor)
         {
-            RGBColour colour = new RGBColour()
+            RGBColor color = new RGBColor()
             {
-                r = ((wColour >> 11) & 0x1F) / 31f,
-                g = ((wColour >> 5) & 0x3F) / 63f,
-                b = ((wColour >> 0) & 0x1F) / 31f,
+                r = ((wColor >> 11) & 0x1F) / 31f,
+                g = ((wColor >> 5) & 0x3F) / 63f,
+                b = ((wColor >> 0) & 0x1F) / 31f,
                 a = 1f
             };
-            return colour;
+            return color;
         }
 
-        static uint Encode565(RGBColour colour)
+        static uint Encode565(RGBColor color)
         {
-            RGBColour temp = new RGBColour()
+            RGBColor temp = new RGBColor()
             {
-                r = (colour.r < 0f) ? 0f : (colour.r > 1f) ? 1f : colour.r,
-                g = (colour.g < 0f) ? 0f : (colour.g > 1f) ? 1f : colour.g,
-                b = (colour.b < 0f) ? 0f : (colour.b > 1f) ? 1f : colour.b
+                r = (color.r < 0f) ? 0f : (color.r > 1f) ? 1f : color.r,
+                g = (color.g < 0f) ? 0f : (color.g > 1f) ? 1f : color.g,
+                b = (color.b < 0f) ? 0f : (color.b > 1f) ? 1f : color.b
             };
             return (uint)(temp.r * 31f + 0.5f) << 11 | (uint)(temp.g * 63f + 0.5f) << 5 | (uint)(temp.b * 31f + 0.5f);
         }
 
 
-        static RGBColour ReadColourFromTexel(byte[] texel, int i, bool premultiply, ImageFormats.ImageEngineFormatDetails formatDetails)
+        static RGBColor ReadColorFromTexel(byte[] texel, int i, bool premultiply, DDSFormatDetails formatDetails)
         {
             // Pull out rgb from texel
-            // Create current pixel colour
-            RGBColour current = new RGBColour();
+            // Create current pixel color
+            RGBColor current = new RGBColor();
 
             // Check that texel is big enough
             if (i + 3 >= texel.Length)
-                return current;  // Fully transparent colour
+                return current;  // Fully transparent color
 
 
             current.a = formatDetails.ReadFloat(texel, i + 3 * formatDetails.ComponentSize);
@@ -94,18 +94,18 @@ namespace REFileKit.DDS
             return current;
         }
 
-        internal static RGBColour[] OptimiseRGB(RGBColour[] Colour, int uSteps)
+        internal static RGBColor[] OptimiseRGB(RGBColor[] Color, int uSteps)
         {
             float[] pC = uSteps == 3 ? pC3 : pC4;
             float[] pD = uSteps == 3 ? pD3 : pD4;
 
             // Find min max
-            RGBColour X = Luminance;
-            RGBColour Y = new RGBColour();
+            RGBColor X = Luminance;
+            RGBColor Y = new RGBColor();
 
-            for (int i = 0; i < Colour.Length; i++)
+            for (int i = 0; i < Color.Length; i++)
             {
-                RGBColour current = Colour[i];
+                RGBColor current = Color[i];
 
                 // X = min, Y = max
                 if (current.r < X.r)
@@ -129,7 +129,7 @@ namespace REFileKit.DDS
             }
 
             // Diagonal axis - starts with difference between min and max
-            RGBColour diag = new RGBColour()
+            RGBColor diag = new RGBColor()
             {
                 r = Y.r - X.r,
                 g = Y.g - X.g,
@@ -138,30 +138,30 @@ namespace REFileKit.DDS
             float fDiag = diag.r * diag.r + diag.g * diag.g + diag.b * diag.b;
             if (fDiag < 1.175494351e-38F)
             {
-                RGBColour min1 = new RGBColour()
+                RGBColor min1 = new RGBColor()
                 {
                     r = X.r,
                     g = X.g,
                     b = X.b
                 };
-                RGBColour max1 = new RGBColour()
+                RGBColor max1 = new RGBColor()
                 {
                     r = Y.r,
                     g = Y.g,
                     b = Y.b
                 };
-                return new RGBColour[] { min1, max1 };
+                return new RGBColor[] { min1, max1 };
             }
 
             float FdiagInv = 1f / fDiag;
 
-            RGBColour Dir = new RGBColour()
+            RGBColor Dir = new RGBColor()
             {
                 r = diag.r * FdiagInv,
                 g = diag.g * FdiagInv,
                 b = diag.b * FdiagInv
             };
-            RGBColour Mid = new RGBColour()
+            RGBColor Mid = new RGBColor()
             {
                 r = (X.r + Y.r) * .5f,
                 g = (X.g + Y.g) * .5f,
@@ -169,13 +169,13 @@ namespace REFileKit.DDS
             };
             float[] fDir = new float[4];
 
-            for (int i = 0; i < Colour.Length; i++)
+            for (int i = 0; i < Color.Length; i++)
             {
-                RGBColour pt = new RGBColour()
+                RGBColor pt = new RGBColor()
                 {
-                    r = Dir.r * (Colour[i].r - Mid.r),
-                    g = Dir.g * (Colour[i].g - Mid.g),
-                    b = Dir.b * (Colour[i].b - Mid.b)
+                    r = Dir.r * (Color[i].r - Mid.r),
+                    g = Dir.g * (Color[i].g - Mid.g),
+                    b = Dir.b * (Color[i].b - Mid.b)
                 };
                 float f = 0;
                 f = pt.r + pt.g + pt.b;
@@ -218,26 +218,26 @@ namespace REFileKit.DDS
 
             if (fDiag < 1f / 4096f)
             {
-                RGBColour min1 = new RGBColour()
+                RGBColor min1 = new RGBColor()
                 {
                     r = X.r,
                     g = X.g,
                     b = X.b
                 };
-                RGBColour max1 = new RGBColour()
+                RGBColor max1 = new RGBColor()
                 {
                     r = Y.r,
                     g = Y.g,
                     b = Y.b
                 };
-                return new RGBColour[] { min1, max1 };
+                return new RGBColor[] { min1, max1 };
             }
 
             // newtons method for local min of sum of squares error.
             float fsteps = uSteps - 1;
             for (int iteration = 0; iteration < 8; iteration++)
             {
-                RGBColour[] pSteps = new RGBColour[4];
+                RGBColor[] pSteps = new RGBColor[4];
 
                 for (int iStep = 0; iStep < uSteps; iStep++)
                 {
@@ -247,7 +247,7 @@ namespace REFileKit.DDS
                 }
 
 
-                // colour direction
+                // color direction
                 Dir.r = Y.r - X.r;
                 Dir.g = Y.g - X.g;
                 Dir.b = Y.b - X.b;
@@ -264,13 +264,13 @@ namespace REFileKit.DDS
 
                 // Evaluate function and derivatives
                 float d2X = 0, d2Y = 0;
-                RGBColour dX, dY;
-                dX = new RGBColour();
-                dY = new RGBColour();
+                RGBColor dX, dY;
+                dX = new RGBColor();
+                dY = new RGBColor();
 
-                for (int i = 0; i < Colour.Length; i++)
+                for (int i = 0; i < Color.Length; i++)
                 {
-                    RGBColour current = Colour[i];
+                    RGBColor current = Color[i];
 
                     float fDot = (current.r - X.r) * Dir.r + (current.g - X.g) * Dir.g + (current.b - X.b) * Dir.b;
 
@@ -282,7 +282,7 @@ namespace REFileKit.DDS
                     else
                         iStep = (int)(fDot + .5f);
 
-                    RGBColour diff = new RGBColour()
+                    RGBColor diff = new RGBColor()
                     {
                         r = pSteps[iStep].r - current.r,
                         g = pSteps[iStep].g - current.g,
@@ -327,34 +327,34 @@ namespace REFileKit.DDS
                 }
             }
 
-            RGBColour min = new RGBColour()
+            RGBColor min = new RGBColor()
             {
                 r = X.r,
                 g = X.g,
                 b = X.b
             };
-            RGBColour max = new RGBColour()
+            RGBColor max = new RGBColor()
             {
                 r = Y.r,
                 g = Y.g,
                 b = Y.b
             };
-            return new RGBColour[] { min, max };
+            return new RGBColor[] { min, max };
         }
 
 
-        internal static RGBColour[] OptimiseRGB_BC67(RGBColour[] Colour, int uSteps, int np, int[] pixelIndicies)
+        internal static RGBColor[] OptimiseRGB_BC67(RGBColor[] Color, int uSteps, int np, int[] pixelIndicies)
         {
             float[] pC = uSteps == 3 ? pC3 : pC4;
             float[] pD = uSteps == 3 ? pD3 : pD4;
 
             // Find min max
-            RGBColour X = new RGBColour(1f, 1f, 1f, 0f);
-            RGBColour Y = new RGBColour(0f, 0f, 0f, 0f);
+            RGBColor X = new RGBColor(1f, 1f, 1f, 0f);
+            RGBColor Y = new RGBColor(0f, 0f, 0f, 0f);
 
             for (int i = 0; i < np; i++)
             {
-                RGBColour current = Colour[pixelIndicies[i]];
+                RGBColor current = Color[pixelIndicies[i]];
 
                 // X = min, Y = max
                 if (current.r < X.r)
@@ -379,7 +379,7 @@ namespace REFileKit.DDS
 
 
             // Diagonal axis - starts with difference between min and max
-            RGBColour diag = new RGBColour()
+            RGBColor diag = new RGBColor()
             {
                 r = Y.r - X.r,
                 g = Y.g - X.g,
@@ -387,18 +387,18 @@ namespace REFileKit.DDS
             };
             float fDiag = diag.r * diag.r + diag.g * diag.g + diag.b * diag.b;
             if (fDiag < 1.175494351e-38F)
-                return new RGBColour[] { X, Y };
+                return new RGBColor[] { X, Y };
 
             float FdiagInv = 1f / fDiag;
 
-            RGBColour Dir = new RGBColour()
+            RGBColor Dir = new RGBColor()
             {
                 r = diag.r * FdiagInv,
                 g = diag.g * FdiagInv,
                 b = diag.b * FdiagInv
             };
 
-            RGBColour Mid = new RGBColour()
+            RGBColor Mid = new RGBColor()
             {
                 r = (X.r + Y.r) * 0.5f,
                 g = (X.g + Y.g) * 0.5f,
@@ -408,9 +408,9 @@ namespace REFileKit.DDS
 
             for (int i = 0; i < np; i++)
             {
-                var current = Colour[pixelIndicies[i]];
+                var current = Color[pixelIndicies[i]];
 
-                RGBColour pt = new RGBColour()
+                RGBColor pt = new RGBColor()
                 {
                     r = Dir.r * (current.r - Mid.r),
                     g = Dir.g * (current.g - Mid.g),
@@ -456,13 +456,13 @@ namespace REFileKit.DDS
             }
 
             if (fDiag < 1f / 4096f)
-                return new RGBColour[] { X, Y };
+                return new RGBColor[] { X, Y };
 
             // newtons method for local min of sum of squares error.
             float fsteps = uSteps - 1;
             for (int iteration = 0; iteration < 8; iteration++)
             {
-                RGBColour[] pSteps = new RGBColour[4];
+                RGBColor[] pSteps = new RGBColor[4];
 
                 for (int iStep = 0; iStep < uSteps; iStep++)
                 {
@@ -472,7 +472,7 @@ namespace REFileKit.DDS
                 }
 
 
-                // colour direction
+                // color direction
                 Dir.r = Y.r - X.r;
                 Dir.g = Y.g - X.g;
                 Dir.b = Y.b - X.b;
@@ -489,13 +489,13 @@ namespace REFileKit.DDS
 
                 // Evaluate function and derivatives
                 float d2X = 0, d2Y = 0;
-                RGBColour dX, dY;
-                dX = new RGBColour();
-                dY = new RGBColour();
+                RGBColor dX, dY;
+                dX = new RGBColor();
+                dY = new RGBColor();
 
                 for (int i = 0; i < np; i++)
                 {
-                    RGBColour current = Colour[pixelIndicies[i]];
+                    RGBColor current = Color[pixelIndicies[i]];
 
                     float fDot = 
                         (current.r - X.r) * Dir.r + 
@@ -513,7 +513,7 @@ namespace REFileKit.DDS
                         iStep = (int)(fDot + .5f);
 
 
-                    RGBColour diff = new RGBColour()
+                    RGBColor diff = new RGBColor()
                     {
                         r = pSteps[iStep].r - current.r,
                         g = pSteps[iStep].g - current.g,
@@ -560,22 +560,22 @@ namespace REFileKit.DDS
                 }
             }
 
-            return new RGBColour[] { X, Y };
+            return new RGBColor[] { X, Y };
         }
 
 
-        internal static RGBColour[] OptimiseRGBA_BC67(RGBColour[] Colour, int uSteps, int np, int[] pixelIndicies)
+        internal static RGBColor[] OptimiseRGBA_BC67(RGBColor[] Color, int uSteps, int np, int[] pixelIndicies)
         {
             float[] pC = uSteps == 3 ? pC3 : pC4;
             float[] pD = uSteps == 3 ? pD3 : pD4;
 
             // Find min max
-            RGBColour X = new RGBColour(1f, 1f, 1f, 1f);
-            RGBColour Y = new RGBColour();
+            RGBColor X = new RGBColor(1f, 1f, 1f, 1f);
+            RGBColor Y = new RGBColor();
 
             for (int i = 0; i < np; i++)
             {
-                RGBColour current = Colour[pixelIndicies[i]];
+                RGBColor current = Color[pixelIndicies[i]];
 
                 // X = min, Y = max
                 if (current.r < X.r)
@@ -605,7 +605,7 @@ namespace REFileKit.DDS
             }
 
             // Diagonal axis - starts with difference between min and max
-            RGBColour diag = new RGBColour()
+            RGBColor diag = new RGBColor()
             {
                 r = Y.r - X.r,
                 g = Y.g - X.g,
@@ -614,18 +614,18 @@ namespace REFileKit.DDS
             };
             float fDiag = diag.r * diag.r + diag.g * diag.g + diag.b * diag.b + diag.a * diag.a;
             if (fDiag < 1.175494351e-38F)
-                return new RGBColour[] { X, Y };
+                return new RGBColor[] { X, Y };
 
             float FdiagInv = 1f / fDiag;
 
-            RGBColour Dir = new RGBColour()
+            RGBColor Dir = new RGBColor()
             {
                 r = diag.r * FdiagInv,
                 g = diag.g * FdiagInv,
                 b = diag.b * FdiagInv,
                 a = diag.a * FdiagInv
             };
-            RGBColour Mid = new RGBColour()
+            RGBColor Mid = new RGBColor()
             {
                 r = (X.r + Y.r) * 0.5f,
                 g = (X.g + Y.g) * 0.5f,
@@ -636,9 +636,9 @@ namespace REFileKit.DDS
 
             for (int i = 0; i < np; i++)
             {
-                var current = Colour[pixelIndicies[i]];
+                var current = Color[pixelIndicies[i]];
 
-                RGBColour pt = new RGBColour()
+                RGBColor pt = new RGBColor()
                 {
                     r = Dir.r * (current.r - Mid.r),
                     g = Dir.g * (current.g - Mid.g),
@@ -689,7 +689,7 @@ namespace REFileKit.DDS
             }
 
             if (fDiag < 1f / 4096f)
-                return new RGBColour[] { X, Y };
+                return new RGBColor[] { X, Y };
 
 
             // newtons method for local min of sum of squares error.
@@ -697,7 +697,7 @@ namespace REFileKit.DDS
             float err = float.MaxValue;
             for (int iteration = 0; iteration < 8 && err > 0f; iteration++)
             {
-                RGBColour[] pSteps = new RGBColour[BC7_MAX_INDICIES];
+                RGBColor[] pSteps = new RGBColor[BC7_MAX_INDICIES];
 
                 for (int iStep = 0; iStep < uSteps; iStep++)
                 {
@@ -708,7 +708,7 @@ namespace REFileKit.DDS
                 }
 
 
-                // colour direction
+                // color direction
                 Dir.r = Y.r - X.r;
                 Dir.g = Y.g - X.g;
                 Dir.b = Y.b - X.b;
@@ -727,13 +727,13 @@ namespace REFileKit.DDS
 
                 // Evaluate function and derivatives
                 float d2X = 0, d2Y = 0;
-                RGBColour dX, dY;
-                dX = new RGBColour();
-                dY = new RGBColour();
+                RGBColor dX, dY;
+                dX = new RGBColor();
+                dY = new RGBColor();
 
                 for (int i = 0; i < np; i++)
                 {
-                    RGBColour current = Colour[pixelIndicies[i]];
+                    RGBColor current = Color[pixelIndicies[i]];
 
                     float fDot =
                         (current.r - X.r) * Dir.r +
@@ -749,7 +749,7 @@ namespace REFileKit.DDS
                     else
                         iStep = (int)(fDot + .5f);
 
-                    RGBColour diff = new RGBColour()
+                    RGBColor diff = new RGBColor()
                     {
                         r = pSteps[iStep].r - current.r,
                         g = pSteps[iStep].g - current.g,
@@ -799,23 +799,23 @@ namespace REFileKit.DDS
                 }
             }
 
-            return new RGBColour[] { X, Y };
+            return new RGBColor[] { X, Y };
         }
 
 
 
-        static int CheckDXT1TexelFullTransparency(RGBColour[] texel, byte[] destination, int destPosition, double alphaRef)
+        static int CheckDXT1TexelFullTransparency(RGBColor[] texel, byte[] destination, int destPosition, double alphaRef)
         {
-            int uColourKey = 0;
+            int uColorKey = 0;
 
             // Alpha stuff
             for (int i = 0; i < 16; i++)
             {
                 if (texel[i].a < alphaRef)
-                    uColourKey++;
+                    uColorKey++;
             }
 
-            if (uColourKey == 16)
+            if (uColorKey == 16)
             {
                 // Entire texel is transparent
 
@@ -825,23 +825,23 @@ namespace REFileKit.DDS
                 return -1;
             }
 
-            return uColourKey > 0 ? 3 : 4;
+            return uColorKey > 0 ? 3 : 4;
         }
 
         /// <summary>
         /// Not exactly sure what this does or why.
         /// </summary>
-        static void DoColourFixErrorCorrection(RGBColour[] Colour, RGBColour[] texel)
+        static void DoColorFixErrorCorrection(RGBColor[] Color, RGBColor[] texel)
         {
-            RGBColour[] Error = new RGBColour[16];
+            RGBColor[] Error = new RGBColor[16];
             for (int i = 0; i < 16; i++)
             {
-                RGBColour current = new RGBColour(texel[i].r, texel[i].g, texel[i].b, texel[i].a);
+                RGBColor current = new RGBColor(texel[i].r, texel[i].g, texel[i].b, texel[i].a);
 
                 if (true)  // Dither
                 {
                     // Adjust for accumulated error
-                    // This works by figuring out the error between the current pixel colour and the adjusted colour? Dunno what the adjustment is. Looks like a 5:6:5 range adaptation
+                    // This works by figuring out the error between the current pixel color and the adjusted color? Dunno what the adjustment is. Looks like a 5:6:5 range adaptation
                     // Then, this error is distributed across the "next" few pixels and not the previous.
                     current.r += Error[i].r;
                     current.g += Error[i].g;
@@ -850,32 +850,32 @@ namespace REFileKit.DDS
 
 
                 // 5:6:5 range adaptation?
-                Colour[i].r = (int)(current.r * 31f + .5f) * (1f / 31f);
-                Colour[i].g = (int)(current.g * 63f + .5f) * (1f / 63f);
-                Colour[i].b = (int)(current.b * 31f + .5f) * (1f / 31f);
+                Color[i].r = (int)(current.r * 31f + .5f) * (1f / 31f);
+                Color[i].g = (int)(current.g * 63f + .5f) * (1f / 63f);
+                Color[i].b = (int)(current.b * 31f + .5f) * (1f / 31f);
 
-                DoSomeDithering(current, i, Colour, i, Error);
+                DoSomeDithering(current, i, Color, i, Error);
 
-                Colour[i].r *= Luminance.r;
-                Colour[i].g *= Luminance.g;
-                Colour[i].b *= Luminance.b;
+                Color[i].r *= Luminance.r;
+                Color[i].g *= Luminance.g;
+                Color[i].b *= Luminance.b;
             }
         }
 
-        static RGBColour[] DoSomethingWithPalette(int uSteps, uint wColourA, uint wColourB, RGBColour ColourA, RGBColour ColourB)
+        static RGBColor[] DoSomethingWithPalette(int uSteps, uint wColorA, uint wColorB, RGBColor ColorA, RGBColor ColorB)
         {
-            // Create palette colours
-            RGBColour[] step = new RGBColour[4];
+            // Create palette colors
+            RGBColor[] step = new RGBColor[4];
 
-            if ((uSteps == 3) == (wColourA <= wColourB))
+            if ((uSteps == 3) == (wColorA <= wColorB))
             {
-                step[0] = ColourA;
-                step[1] = ColourB;
+                step[0] = ColorA;
+                step[1] = ColorB;
             }
             else
             {
-                step[0] = ColourB;
-                step[1] = ColourA;
+                step[0] = ColorB;
+                step[1] = ColorA;
             }
 
 
@@ -901,15 +901,15 @@ namespace REFileKit.DDS
         }
 
 
-        static uint DoOtherColourFixErrorCorrection(RGBColour[] texel, int uSteps, double alphaRef, RGBColour[] step, RGBColour Dir)
+        static uint DoOtherColorFixErrorCorrection(RGBColor[] texel, int uSteps, double alphaRef, RGBColor[] step, RGBColor Dir)
         {
             uint dw = 0;
-            RGBColour[] Error = new RGBColour[16];
+            RGBColor[] Error = new RGBColor[16];
 
             uint[] psteps = uSteps == 3 ? psteps3 : psteps4;
             for (int i = 0; i < 16; i++)
             {
-                RGBColour current = new RGBColour(texel[i].r, texel[i].g, texel[i].b, texel[i].a);
+                RGBColor current = new RGBColor(texel[i].r, texel[i].g, texel[i].b, texel[i].a);
 
                 if ((uSteps == 3) && (current.a < alphaRef))
                 {
@@ -947,13 +947,13 @@ namespace REFileKit.DDS
             return dw;
         }
 
-        static void DoSomeDithering(RGBColour current, int index, RGBColour[] InnerColour, int InnerIndex, RGBColour[] Error)
+        static void DoSomeDithering(RGBColor current, int index, RGBColor[] InnerColor, int InnerIndex, RGBColor[] Error)
         {
             if (true)  // Dither
             {
-                // Calculate difference between current pixel colour and adapted pixel colour?
-                var inner = InnerColour[InnerIndex];
-                RGBColour diff = new RGBColour()
+                // Calculate difference between current pixel color and adapted pixel color?
+                var inner = InnerColor[InnerIndex];
+                RGBColor diff = new RGBColor()
                 {
                     r = current.a * (byte)(current.r - inner.r),
                     g = current.a * (byte)(current.g - inner.g),
@@ -994,21 +994,21 @@ namespace REFileKit.DDS
             }
         }
 
-        internal static void CompressRGBTexel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool isDXT1, double alphaRef, AlphaSettings alphaSetting, ImageFormats.ImageEngineFormatDetails formatDetails)
+        internal static void CompressRGBTexel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool isDXT1, double alphaRef, AlphaSettings alphaSetting, DDSFormatDetails formatDetails)
         {
             int uSteps = 4;
 
             bool premultiply = alphaSetting == AlphaSettings.Premultiply;
 
             // Read texel
-            RGBColour[] sourceTexel = new RGBColour[16];
+            RGBColor[] sourceTexel = new RGBColor[16];
             int position = sourcePosition;
             int count = 0;
             for (int i = 1; i <= 4; i++)
             {
                 for (int j = 0; j < 4; j++)
                 {
-                    sourceTexel[count++] = ReadColourFromTexel(imgData, position, premultiply, formatDetails);
+                    sourceTexel[count++] = ReadColorFromTexel(imgData, position, premultiply, formatDetails);
                     position += 4 * formatDetails.ComponentSize;
                 }
 
@@ -1016,7 +1016,7 @@ namespace REFileKit.DDS
             }
 
 
-            // TODO replace RGBColour with a SIMD vector for speed. Test difference between vector4 and vector<T>, might not be better.
+            // TODO replace RGBColor with a SIMD vector for speed. Test difference between vector4 and vector<T>, might not be better.
 
             // Determine if texel is fully and entirely transparent. If so, can set to white and continue.
             if (isDXT1)
@@ -1026,43 +1026,43 @@ namespace REFileKit.DDS
                     return;
             }
 
-            RGBColour[] Colour = new RGBColour[16];
+            RGBColor[] Color = new RGBColor[16];
 
-            // Some kind of colour adjustment. Not sure what it does, especially if it wasn't dithering...
-            DoColourFixErrorCorrection(Colour, sourceTexel);
+            // Some kind of color adjustment. Not sure what it does, especially if it wasn't dithering...
+            DoColorFixErrorCorrection(Color, sourceTexel);
             
 
-            // Palette colours
-            RGBColour ColourA, ColourB, ColourC, ColourD;
-            ColourA = new RGBColour();
-            ColourB = new RGBColour();
-            ColourC = new RGBColour();
-            ColourD = new RGBColour();
+            // Palette colors
+            RGBColor ColorA, ColorB, ColorC, ColorD;
+            ColorA = new RGBColor();
+            ColorB = new RGBColor();
+            ColorC = new RGBColor();
+            ColorD = new RGBColor();
 
             // OPTIMISER
-            RGBColour[] minmax = OptimiseRGB(Colour, uSteps);
-            ColourA = minmax[0];
-            ColourB = minmax[1];
+            RGBColor[] minmax = OptimiseRGB(Color, uSteps);
+            ColorA = minmax[0];
+            ColorB = minmax[1];
 
-            // Create interstitial colours?
-            ColourC.r = ColourA.r * LuminanceInv.r;
-            ColourC.g = ColourA.g * LuminanceInv.g;
-            ColourC.b = ColourA.b * LuminanceInv.b;
+            // Create interstitial colors?
+            ColorC.r = ColorA.r * LuminanceInv.r;
+            ColorC.g = ColorA.g * LuminanceInv.g;
+            ColorC.b = ColorA.b * LuminanceInv.b;
 
-            ColourD.r = ColourB.r * LuminanceInv.r;
-            ColourD.g = ColourB.g * LuminanceInv.g;
-            ColourD.b = ColourB.b * LuminanceInv.b;
+            ColorD.r = ColorB.r * LuminanceInv.r;
+            ColorD.g = ColorB.g * LuminanceInv.g;
+            ColorD.b = ColorB.b * LuminanceInv.b;
 
 
             // Yeah...dunno
-            uint wColourA = Encode565(ColourC);
-            uint wColourB = Encode565(ColourD);
+            uint wColorA = Encode565(ColorC);
+            uint wColorB = Encode565(ColorD);
 
-            // Min max are equal - only interpolate 4 interstitial colours
-            if (uSteps == 4 && wColourA == wColourB)
+            // Min max are equal - only interpolate 4 interstitial colors
+            if (uSteps == 4 && wColorA == wColorB)
             {
-                var c2 = BitConverter.GetBytes(wColourA);
-                var c1 = BitConverter.GetBytes(wColourB);  ///////////////////// MIN MAX
+                var c2 = BitConverter.GetBytes(wColorA);
+                var c1 = BitConverter.GetBytes(wColorB);  ///////////////////// MIN MAX
 
                 destination[destPosition] = c2[0];
                 destination[destPosition + 1] = c2[1];
@@ -1072,47 +1072,47 @@ namespace REFileKit.DDS
                 return;
             }
 
-            // Interpolate 6 colours or something
-            ColourC = Decode565(wColourA);
-            ColourD = Decode565(wColourB);
+            // Interpolate 6 colors or something
+            ColorC = Decode565(wColorA);
+            ColorD = Decode565(wColorB);
 
-            ColourA.r = ColourC.r * Luminance.r;
-            ColourA.g = ColourC.g * Luminance.g;
-            ColourA.b = ColourC.b * Luminance.b;
+            ColorA.r = ColorC.r * Luminance.r;
+            ColorA.g = ColorC.g * Luminance.g;
+            ColorA.b = ColorC.b * Luminance.b;
 
-            ColourB.r = ColourD.r * Luminance.r;
-            ColourB.g = ColourD.g * Luminance.g;
-            ColourB.b = ColourD.b * Luminance.b;
+            ColorB.r = ColorD.r * Luminance.r;
+            ColorB.g = ColorD.g * Luminance.g;
+            ColorB.b = ColorD.b * Luminance.b;
 
 
-            var step = DoSomethingWithPalette(uSteps, wColourA, wColourB, ColourA, ColourB);
+            var step = DoSomethingWithPalette(uSteps, wColorA, wColorB, ColorA, ColorB);
 
-            // Calculating colour direction apparently
-            RGBColour Dir = new RGBColour()
+            // Calculating color direction apparently
+            RGBColor Dir = new RGBColor()
             {
                 r = step[1].r - step[0].r,
                 g = step[1].g - step[0].g,
                 b = step[1].b - step[0].b
             };
-            float fscale = (wColourA != wColourB) ? ((uSteps - 1) / (Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b)) : 0.0f;
+            float fscale = (wColorA != wColorB) ? ((uSteps - 1) / (Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b)) : 0.0f;
             Dir.r *= fscale;
             Dir.g *= fscale;
             Dir.b *= fscale;
 
-            // Encoding colours apparently
-            uint dw = DoOtherColourFixErrorCorrection(sourceTexel, uSteps, alphaRef, step, Dir);
+            // Encoding colors apparently
+            uint dw = DoOtherColorFixErrorCorrection(sourceTexel, uSteps, alphaRef, step, Dir);
 
-            uint Min = (uSteps == 3) == (wColourA <= wColourB) ? wColourA : wColourB;
-            uint Max = (uSteps == 3) == (wColourA <= wColourB) ? wColourB : wColourA;
+            uint Min = (uSteps == 3) == (wColorA <= wColorB) ? wColorA : wColorB;
+            uint Max = (uSteps == 3) == (wColorA <= wColorB) ? wColorB : wColorA;
 
-            var colour1 = BitConverter.GetBytes(Min);
-            var colour2 = BitConverter.GetBytes(Max);
+            var color1 = BitConverter.GetBytes(Min);
+            var color2 = BitConverter.GetBytes(Max);
 
-            destination[destPosition] = colour1[0];
-            destination[destPosition + 1] = colour1[1];
+            destination[destPosition] = color1[0];
+            destination[destPosition + 1] = color1[1];
 
-            destination[destPosition + 2] = colour2[0];
-            destination[destPosition + 3] = colour2[1];
+            destination[destPosition + 2] = color2[0];
+            destination[destPosition + 3] = color2[1];
 
             var indicies = BitConverter.GetBytes(dw);
             destination[destPosition + 4] = indicies[0];
@@ -1120,10 +1120,9 @@ namespace REFileKit.DDS
             destination[destPosition + 6] = indicies[2];
             destination[destPosition + 7] = indicies[3];
         }
-        #endregion RGB DXT
 
         
-        public static void Compress8BitBlock(byte[] source, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, int channel, bool isSigned, ImageFormats.ImageEngineFormatDetails formatDetails)
+        public static void Compress8BitBlock(byte[] source, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, int channel, bool isSigned, DDSFormatDetails formatDetails)
         {
             // KFreon: Get min and max
             byte min = 255;
@@ -1137,12 +1136,12 @@ namespace REFileKit.DDS
             {
                 for (int j= 0; j < 4; j++)
                 {
-                    byte colour = formatDetails.ReadByte(source, count);
-                    sourceTexel[sourceTexelInd++] = colour; // Cache source
-                    if (colour > max)
-                        max = colour;
-                    else if (colour < min)
-                        min = colour;
+                    byte color = formatDetails.ReadByte(source, count);
+                    sourceTexel[sourceTexelInd++] = color; // Cache source
+                    if (color > max)
+                        max = color;
+                    else if (color < min)
+                        min = color;
 
                     count += 4 * formatDetails.ComponentSize; // skip to next entry in channel
                 }
@@ -1150,7 +1149,7 @@ namespace REFileKit.DDS
             }
 
             // Build Palette
-            byte[] Colours = Build8BitPalette(min, max, isSigned);
+            byte[] Colors = Build8BitPalette(min, max, isSigned);
 
             // Compress Pixels
             ulong line = 0;
@@ -1160,8 +1159,8 @@ namespace REFileKit.DDS
                 for (int j = 0; j < 4; j++)
                 {
                     int ind = (i << 2) + j;
-                    byte colour = sourceTexel[sourceTexelInd++];
-                    int index = GetClosestValue(Colours, colour);
+                    byte color = sourceTexel[sourceTexelInd++];
+                    int index = GetClosestValue(Colors, color);
                     line |= (ulong)index << (ind * 3);
                 }
             }
@@ -1192,49 +1191,46 @@ namespace REFileKit.DDS
             }
             return minIndex;
         }
-        #endregion Block Compression
-
-        #region Block Decompression
 
         internal static void Decompress8BitBlock(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool isSigned)
         {
-            // KFreon: Read min and max colours (not necessarily in that order)
+            // KFreon: Read min and max colors (not necessarily in that order)
             byte min = source[sourceStart];
             byte max = source[sourceStart + 1];
 
-            byte[] Colours = Build8BitPalette(min, max, isSigned);
+            byte[] Colors = Build8BitPalette(min, max, isSigned);
 
             // KFreon: Decompress pixels
             ulong bitmask = (ulong)source[sourceStart + 2] << 0 | (ulong)source[sourceStart + 3] << 8 | (ulong)source[sourceStart + 4] << 16 |   // KFreon: Read all 6 compressed bytes into single.
                 (ulong)source[sourceStart + 5] << 24 | (ulong)source[sourceStart + 6] << 32 | (ulong)source[sourceStart + 7] << 40;
 
 
-            // KFreon: Bitshift and mask compressed data to get 3 bit indicies, and retrieve indexed colour of pixel.
+            // KFreon: Bitshift and mask compressed data to get 3 bit indicies, and retrieve indexed color of pixel.
             for (int i = 0; i < 4; i++)
             {
                 for (int j = 0; j < 4; j++)
                 {
                     int index = i * 4 + j;
                     int destPos = decompressedStart + j * 4 + (i * decompressedLineLength);
-                    destination[destPos] = Colours[bitmask >> (index * 3) & 0x7];
+                    destination[destPos] = Colors[bitmask >> (index * 3) & 0x7];
                 }
             }
         }
 
         internal static void DecompressRGBBlock(byte[] source, int sourcePosition, byte[] destination, int destinationStart, int destinationLineLength, bool isDXT1, bool isPremultiplied)
         {
-            ushort colour0;
-            ushort colour1;
-            int[] Colours = null;
+            ushort color0;
+            ushort color1;
+            int[] Colors = null;
 
 
-            // Build colour palette
+            // Build color palette
             try
             {
-                // Read min max colours
-                colour0 = (ushort)BitConverter.ToInt16(source, sourcePosition);
-                colour1 = (ushort)BitConverter.ToInt16(source, sourcePosition + 2);
-                Colours = BuildRGBPalette(colour0, colour1, isDXT1);
+                // Read min max colors
+                color0 = (ushort)BitConverter.ToInt16(source, sourcePosition);
+                color1 = (ushort)BitConverter.ToInt16(source, sourcePosition + 2);
+                Colors = BuildRGBPalette(color0, color1, isDXT1);
             }
             catch (EndOfStreamException e)
             {
@@ -1246,37 +1242,36 @@ namespace REFileKit.DDS
                 Debug.WriteLine(e.ToString());
             }
 
-            // Use palette to decompress pixel colours
+            // Use palette to decompress pixel colors
             for (int i = 0; i < 4; i++)
             {
-                byte bitmask = source[(sourcePosition + 4) + i];  // sourcePos + 4 is to skip the colours at the start of the texel.
+                if ((sourcePosition + 4) + i >= source.Length) break;
+                byte bitmask = source[(sourcePosition + 4) + i];  // sourcePos + 4 is to skip the colors at the start of the texel.
                 for (int j = 0; j < 4; j++)
                 {
                     int destPos = destinationStart + j * 4 + (i * destinationLineLength);
-                    UnpackDXTColour(Colours[bitmask >> (2 * j) & 0x03], destination, destPos, isPremultiplied);
+                    UnpackDXTColor(Colors[bitmask >> (2 * j) & 0x03], destination, destPos, isPremultiplied);
 
                     if (isDXT1)
                         destination[destPos + 3] = 255;
                 }
             }
         }
-        #endregion
 
-        #region Palette/Colour
         /// <summary>
-        /// Reads a packed DXT colour into RGB
+        /// Reads a packed DXT color into RGB
         /// </summary>
-        /// <param name="colour">Colour to convert to RGB</param>
+        /// <param name="color">Color to convert to RGB</param>
         /// <param name="destination">Decompressed array.</param>
         /// <param name="position">Position in destination to write RGB at.</param>
         /// <param name="isPremultiplied">True = RGB interpreted as being premultiplied with A channel.</param>
         /// <returns>RGB bytes</returns>
-        private static void UnpackDXTColour(int colour, byte[] destination, int position, bool isPremultiplied)
+        private static void UnpackDXTColor(int color, byte[] destination, int position, bool isPremultiplied)
         {
             // Read RGB 5:6:5 data, expand to 8 bit.
-            destination[position + 2] = (byte)((colour & 0xF800) >> 8);  // Red
-            destination[position + 1] = (byte)((colour & 0x7E0) >> 3);  // Green
-            destination[position] = (byte)((colour & 0x1F) << 3);      // Blue
+            destination[position + 2] = (byte)((color & 0xF800) >> 8);  // Red
+            destination[position + 1] = (byte)((color & 0x7E0) >> 3);  // Green
+            destination[position] = (byte)((color & 0x1F) << 3);      // Blue
 
             if (isPremultiplied)
             {
@@ -1288,30 +1283,30 @@ namespace REFileKit.DDS
         }
 
         /// <summary>
-        /// Reads a packed DXT colour into RGB
+        /// Reads a packed DXT color into RGB
         /// </summary>
-        /// <param name="colour">Colour to convert to RGB</param>
-        /// <param name="blue">Blue value of colour.</param>
-        /// <param name="red">Red value of colour.</param>
-        /// <param name="green">Green value of colour.</param>
-        private static void ReadDXTColour(int colour, ref byte red, ref byte blue, ref byte green)
+        /// <param name="color">Color to convert to RGB</param>
+        /// <param name="blue">Blue value of color.</param>
+        /// <param name="red">Red value of color.</param>
+        /// <param name="green">Green value of color.</param>
+        private static void ReadDXTColor(int color, ref byte red, ref byte blue, ref byte green)
         {
             // Read RGB 5:6:5 data
             // Expand to 8 bit data
-            red = (byte)((colour & 0xF800) >> 8);
-            blue = (byte)((colour & 0x7E0) >> 3);
-            green = (byte)((colour & 0x1F) << 3);
+            red = (byte)((color & 0xF800) >> 8);
+            blue = (byte)((color & 0x7E0) >> 3);
+            green = (byte)((color & 0x1F) << 3);
         }
 
 
         /// <summary>
-        /// Creates a packed DXT colour from RGB.
+        /// Creates a packed DXT color from RGB.
         /// </summary>
         /// <param name="r">Red byte.</param>
         /// <param name="g">Green byte.</param>
         /// <param name="b">Blue byte.</param>
-        /// <returns>DXT Colour</returns>
-        private static int BuildDXTColour(byte r, byte g, byte b)
+        /// <returns>DXT Color</returns>
+        private static int BuildDXTColor(byte r, byte g, byte b)
         {
             // Compress to 5:6:5
             byte r1 = (byte)(r >> 3);
@@ -1325,96 +1320,95 @@ namespace REFileKit.DDS
         /// <summary>
         /// Builds palette for 8 bit channel.
         /// </summary>
-        /// <param name="min">First main colour (often actually minimum)</param>
-        /// <param name="max">Second main colour (often actually maximum)</param>
+        /// <param name="min">First main color (often actually minimum)</param>
+        /// <param name="max">Second main color (often actually maximum)</param>
         /// <param name="isSigned">true = sets signed alpha range (-254 -- 255), false = 0 -- 255</param>
-        /// <returns>8 byte colour palette.</returns>
+        /// <returns>8 byte color palette.</returns>
         internal static byte[] Build8BitPalette(byte min, byte max, bool isSigned)
         {
-            byte[] Colours = new byte[8];
-            Colours[0] = min;
-            Colours[1] = max;
+            byte[] Colors = new byte[8];
+            Colors[0] = min;
+            Colors[1] = max;
 
             // KFreon: Choose which type of interpolation is required
             if (min > max)
             {
-                // KFreon: Interpolate other colours
-                Colours[2] = (byte)((6d * min + 1d * max) / 7d);  // NO idea what the +3 is...not in the Microsoft spec, but seems to be everywhere else.
-                Colours[3] = (byte)((5d * min + 2d * max) / 7d);
-                Colours[4] = (byte)((4d * min + 3d * max) / 7d);
-                Colours[5] = (byte)((3d * min + 4d * max) / 7d);
-                Colours[6] = (byte)((2d * min + 5d * max) / 7d);
-                Colours[7] = (byte)((1d * min + 6d * max) / 7d);
+                // KFreon: Interpolate other colors
+                Colors[2] = (byte)((6d * min + 1d * max) / 7d);  // NO idea what the +3 is...not in the Microsoft spec, but seems to be everywhere else.
+                Colors[3] = (byte)((5d * min + 2d * max) / 7d);
+                Colors[4] = (byte)((4d * min + 3d * max) / 7d);
+                Colors[5] = (byte)((3d * min + 4d * max) / 7d);
+                Colors[6] = (byte)((2d * min + 5d * max) / 7d);
+                Colors[7] = (byte)((1d * min + 6d * max) / 7d);
             }
             else
             {
-                // KFreon: Interpolate other colours and add Opacity or something...
-                Colours[2] = (byte)((4d * min + 1d * max) / 5d);
-                Colours[3] = (byte)((3d * min + 2d * max) / 5d);
-                Colours[4] = (byte)((2d * min + 3d * max) / 5d);
-                Colours[5] = (byte)((1d * min + 4d * max) / 5d);
-                Colours[6] = (byte)(isSigned ? -254 : 0);  // KFreon: snorm and unorm have different alpha ranges
-                Colours[7] = 255;
+                // KFreon: Interpolate other colors and add Opacity or something...
+                Colors[2] = (byte)((4d * min + 1d * max) / 5d);
+                Colors[3] = (byte)((3d * min + 2d * max) / 5d);
+                Colors[4] = (byte)((2d * min + 3d * max) / 5d);
+                Colors[5] = (byte)((1d * min + 4d * max) / 5d);
+                Colors[6] = (byte)(isSigned ? -254 : 0);  // KFreon: snorm and unorm have different alpha ranges
+                Colors[7] = 255;
             }
 
-            return Colours;
+            return Colors;
         }
 
 
 
         /// <summary>
-        /// Builds an RGB palette from the min and max colours of a texel.
+        /// Builds an RGB palette from the min and max colors of a texel.
         /// </summary>
-        /// <param name="Colour0">First colour, usually the min.</param>
-        /// <param name="Colour1">Second colour, usually the max.</param>
+        /// <param name="Color0">First color, usually the min.</param>
+        /// <param name="Color1">Second color, usually the max.</param>
         /// <param name="isDXT1">True = for DXT1 texels. Changes how the internals are calculated.</param>
         /// <returns>Texel palette.</returns>
-        public static int[] BuildRGBPalette(int Colour0, int Colour1, bool isDXT1)
+        public static int[] BuildRGBPalette(int Color0, int Color1, bool isDXT1)
         {
-            int[] Colours = new int[4];
+            int[] Colors = new int[4];
 
-            Colours[0] = Colour0;
-            Colours[1] = Colour1;
+            Colors[0] = Color0;
+            Colors[1] = Color1;
 
-            byte Colour0_R = 0;
-            byte Colour0_G = 0;
-            byte Colour0_B = 0;
+            byte Color0_R = 0;
+            byte Color0_G = 0;
+            byte Color0_B = 0;
 
-            byte Colour1_R = 0;
-            byte Colour1_G = 0;
-            byte Colour1_B = 0;
+            byte Color1_R = 0;
+            byte Color1_G = 0;
+            byte Color1_B = 0;
 
-            ReadDXTColour(Colour0, ref Colour0_R, ref Colour0_G, ref Colour0_B);
-            ReadDXTColour(Colour1, ref Colour1_R, ref Colour1_G, ref Colour1_B);
+            ReadDXTColor(Color0, ref Color0_R, ref Color0_G, ref Color0_B);
+            ReadDXTColor(Color1, ref Color1_R, ref Color1_G, ref Color1_B);
 
 
 
-            // Interpolate other 2 colours
-            if (Colour0 > Colour1)
+            // Interpolate other 2 colors
+            if (Color0 > Color1)
             {
-                var r1 = (byte)(TwoThirds * Colour0_R + OneThird * Colour1_R);
-                var g1 = (byte)(TwoThirds * Colour0_G + OneThird * Colour1_G);
-                var b1 = (byte)(TwoThirds * Colour0_B + OneThird * Colour1_B);
+                var r1 = (byte)(TwoThirds * Color0_R + OneThird * Color1_R);
+                var g1 = (byte)(TwoThirds * Color0_G + OneThird * Color1_G);
+                var b1 = (byte)(TwoThirds * Color0_B + OneThird * Color1_B);
 
-                var r2 = (byte)(OneThird * Colour0_R + TwoThirds * Colour1_R);
-                var g2 = (byte)(OneThird * Colour0_G + TwoThirds * Colour1_G);
-                var b2 = (byte)(OneThird * Colour0_B + TwoThirds * Colour1_B);
+                var r2 = (byte)(OneThird * Color0_R + TwoThirds * Color1_R);
+                var g2 = (byte)(OneThird * Color0_G + TwoThirds * Color1_G);
+                var b2 = (byte)(OneThird * Color0_B + TwoThirds * Color1_B);
 
-                Colours[2] = BuildDXTColour(r1, g1, b1);
-                Colours[3] = BuildDXTColour(r2, g2, b2);
+                Colors[2] = BuildDXTColor(r1, g1, b1);
+                Colors[3] = BuildDXTColor(r2, g2, b2);
             }
             else
             {
                 // KFreon: Only for dxt1
-                var r = (byte)(0.5 * Colour0_R + 0.5 * Colour1_R);
-                var g = (byte)(0.5 * Colour0_G + 0.5 * Colour1_G);
-                var b = (byte)(0.5 * Colour0_B + 0.5 * Colour1_B);
+                var r = (byte)(0.5 * Color0_R + 0.5 * Color1_R);
+                var g = (byte)(0.5 * Color0_G + 0.5 * Color1_G);
+                var b = (byte)(0.5 * Color0_B + 0.5 * Color1_B);
 
-                Colours[2] = BuildDXTColour(r, g, b);
-                Colours[3] = 0;
+                Colors[2] = BuildDXTColor(r, g, b);
+                Colors[3] = 0;
             }
-            return Colours;
+            return Colors;
         }
-        #endregion Palette/Colour
     }
 }

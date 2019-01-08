@@ -1,5 +1,4 @@
-﻿using REFileKit.Headers;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -7,15 +6,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
-using Helper;
+using static ShenmueDKSharp.Files.Images._DDS.DDSFormats;
 
-namespace REFileKit.DDS
+namespace ShenmueDKSharp.Files.Images._DDS
 {
     internal static class DDS_Decoders
     {
         // TODO: Virtual/physical size. Less than 4x4 texels
 
-        #region Compressed Readers
         internal static void DecompressBC1Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool isPremultiplied)
         {
             DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart, destination, decompressedStart, decompressedLineLength, true, isPremultiplied);
@@ -102,19 +100,19 @@ namespace REFileKit.DDS
         // BC6
         internal static void DecompressBC6Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
-            var colours = BC6.DecompressBC6(source, sourceStart, false);
-            SetColoursFromDX10(colours, destination, decompressedStart, decompressedLineLength);
+            var colors = BC6.DecompressBC6(source, sourceStart, false);
+            SetColorsFromDX10(colors, destination, decompressedStart, decompressedLineLength);
         }
 
 
         // BC7
         internal static void DecompressBC7Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
-            var colours = BC7.DecompressBC7(source, sourceStart);
-            SetColoursFromDX10(colours, destination, decompressedStart, decompressedLineLength);
+            var colors = BC7.DecompressBC7(source, sourceStart);
+            SetColorsFromDX10(colors, destination, decompressedStart, decompressedLineLength);
         }
 
-        static void SetColoursFromDX10(DX10_Helpers.LDRColour[] block, byte[] destination, int decompressedStart, int decompressedLineLength)
+        static void SetColorsFromDX10(DX10_Helpers.LDRColor[] block, byte[] destination, int decompressedStart, int decompressedLineLength)
         {
             for (int i = 0; i < 4; i++)
             {
@@ -125,12 +123,12 @@ namespace REFileKit.DDS
                     int GPos = decompressedStart + (i * decompressedLineLength) + (j * 4) + 1;
                     int RPos = decompressedStart + (i * decompressedLineLength) + (j * 4) + 2;
                     int APos = decompressedStart + (i * decompressedLineLength) + (j * 4) + 3;
-                    var colour = block[(i * 4) + j];
+                    var color = block[(i * 4) + j];
 
-                    destination[RPos] = (byte)colour.R;
-                    destination[GPos] = (byte)colour.G;
-                    destination[BPos] = (byte)colour.B;
-                    destination[APos] = (byte)colour.A;
+                    destination[RPos] = (byte)color.R;
+                    destination[GPos] = (byte)color.G;
+                    destination[BPos] = (byte)color.B;
+                    destination[APos] = (byte)color.A;
                 }
             }
         }
@@ -148,10 +146,8 @@ namespace REFileKit.DDS
         {
             return start + (lineLength * (pixelIndex / 4)) + (pixelIndex % 4) * 4;
         }
-        #endregion Compressed Readers
 
-        #region Uncompressed Readers
-        internal static void ReadUncompressed(byte[] source, int sourceStart, byte[] destination, int pixelCount, DDS_Header.DDS_PIXELFORMAT ddspf, ImageFormats.ImageEngineFormatDetails formatDetails)
+        internal static void ReadUncompressed(byte[] source, int sourceStart, byte[] destination, int pixelCount, DDS_Header.DDS_PIXELFORMAT ddspf, DDSFormatDetails formatDetails)
         {
             bool requiresSignedAdjustment = ((ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED);
             int sourceIncrement = ddspf.dwRGBBitCount / 8;  // /8 for bits to bytes conversion
@@ -338,6 +334,6 @@ namespace REFileKit.DDS
                 }
             }
         }
-        #endregion Uncompressed Readers
+
     }
 }

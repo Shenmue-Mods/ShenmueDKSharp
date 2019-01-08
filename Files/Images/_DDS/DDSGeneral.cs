@@ -1,5 +1,4 @@
-﻿using REFileKit.Headers;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -10,23 +9,73 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Helper;
+using static ShenmueDKSharp.Files.Images._DDS.DDSFormats;
 
-namespace REFileKit.DDS
+namespace ShenmueDKSharp.Files.Images._DDS
 {
     /// <summary>
     /// Provides general functions specific to DDS format
     /// </summary>
     public static class DDSGeneral
     {
+
+        public static bool EnableThreading { get; set; } = false;
+        public static int ThreadCount { get; set; } = 4;
+
+        /// <summary>
+        /// Determines how alpha is handled.
+        /// </summary>
+        public enum AlphaSettings
+        {
+            /// <summary>
+            /// Keeps any existing alpha.
+            /// </summary>
+            KeepAlpha,
+
+            /// <summary>
+            /// Premultiplies RBG and Alpha channels. Alpha remains.
+            /// </summary>
+            Premultiply,
+
+            /// <summary>
+            /// Removes alpha channel.
+            /// </summary>
+            RemoveAlphaChannel,
+        }
+
+        /// <summary>
+        /// Determines how Mipmaps are handled.
+        /// </summary>
+        public enum MipHandling
+        {
+            /// <summary>
+            /// If mips are present, they are used, otherwise regenerated.
+            /// </summary>
+            Default,
+
+            /// <summary>
+            /// Keeps existing mips if existing. Doesn't generate new ones either way.
+            /// </summary>
+            KeepExisting,
+
+            /// <summary>
+            /// Removes old mips and generates new ones.
+            /// </summary>
+            GenerateNew,
+
+            /// <summary>
+            /// Removes all but the top mip. Used for single mip formats.
+            /// </summary>
+            KeepTopOnly
+        }
+
         /// <summary>
         /// Value at which alpha is included in DXT1 conversions. i.e. pixels lower than this threshold are made 100% transparent, and pixels higher are made 100% opaque.
         /// </summary>
         public static double DXT1AlphaThreshold = 0.2;
 
 
-        #region Loading
-        private static MipMap ReadUncompressedMipMap(MemoryStream stream, int mipOffset, int mipWidth, int mipHeight, DDS_Header.DDS_PIXELFORMAT ddspf, ImageFormats.ImageEngineFormatDetails formatDetails)
+        private static MipMap ReadUncompressedMipMap(MemoryStream stream, int mipOffset, int mipWidth, int mipHeight, DDS_Header.DDS_PIXELFORMAT ddspf, DDSFormatDetails formatDetails)
         {
             byte[] data = stream.GetBuffer();
             byte[] mipmap = new byte[mipHeight * mipWidth * 4 * formatDetails.ComponentSize];
@@ -35,10 +84,10 @@ namespace REFileKit.DDS
             if (mipHeight >= 4 && mipWidth >= 4)
                 DDS_Decoders.ReadUncompressed(data, mipOffset, mipmap, mipWidth * mipHeight, ddspf, formatDetails);
 
-            return new MipMap(mipmap, mipWidth, mipHeight, formatDetails);
+            return new MipMap(mipmap, mipWidth, mipHeight);
         }
 
-        private static MipMap ReadCompressedMipMap(MemoryStream compressed, int mipWidth, int mipHeight, int mipOffset, ImageFormats.ImageEngineFormatDetails formatDetails, Action<byte[], int, byte[], int, int, bool> DecompressBlock)
+        private static MipMap ReadCompressedMipMap(MemoryStream compressed, int mipWidth, int mipHeight, int mipOffset, DDSFormatDetails formatDetails, Action<byte[], int, byte[], int, int, bool> DecompressBlock)
         {
             // Gets stream as data. Note that this array isn't necessarily the correct size. Likely to have garbage at the end.
             // Don't want to use ToArray as that creates a new array. Don't want that.
@@ -50,6 +99,11 @@ namespace REFileKit.DDS
 
             int texelCount = (mipWidth * mipHeight) / 16;
             int numTexelsInRow = mipWidth / 4;
+
+            if (numTexelsInRow < 1)
+            {
+                numTexelsInRow = 1;
+            }
 
             if (texelCount != 0)
             {
@@ -73,40 +127,29 @@ namespace REFileKit.DDS
                 });
 
                 // Actually perform decompression using threading, no threading, or GPU.
-                if (ImageEngine.EnableThreading)
-                    Parallel.For(0, texelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (texelIndex, loopstate) =>
+                if (EnableThreading)
+                    Parallel.For(0, texelCount, new ParallelOptions { MaxDegreeOfParallelism = ThreadCount }, (texelIndex, loopstate) =>
                     {
-                        if (ImageEngine.IsCancellationRequested)
-                            loopstate.Stop();
-
                         action(texelIndex);
                     });
                 else
                     for (int texelIndex = 0; texelIndex < texelCount; texelIndex++)
                     {
-                        if (ImageEngine.IsCancellationRequested)
-                            break;
-
                         action(texelIndex);
                     }
             }
-            // No else here cos the lack of texels means it's below texel dimensions (4x4). So the resulting block is set to 0. Not ideal, but who sees 2x2 mipmaps?
-
-            if (ImageEngine.IsCancellationRequested)
-                return null;
-
-            return new MipMap(decompressedData, mipWidth, mipHeight, formatDetails);
+            return new MipMap(decompressedData, mipWidth, mipHeight);
         }
 
         
 
-        internal static List<MipMap> LoadDDS(MemoryStream compressed, DDS_Header header, int desiredMaxDimension, ImageFormats.ImageEngineFormatDetails formatDetails)
+        internal static List<MipMap> LoadDDS(MemoryStream compressed, DDS_Header header, int desiredMaxDimension, DDSFormatDetails formatDetails)
         {
             MipMap[] MipMaps = null;
 
             int mipWidth = header.Width;
             int mipHeight = header.Height;
-            ImageEngineFormat format = header.Format;
+            DDSFormat format = header.Format;
 
             int estimatedMips = header.dwMipMapCount;
             int mipOffset = formatDetails.HeaderSize;
@@ -171,15 +214,11 @@ namespace REFileKit.DDS
             {
                 for (int m = 0; m < estimatedMips; m++)
                 {
-                    if (ImageEngine.IsCancellationRequested)
-                        break;
-
-
                     // KFreon: If mip is too small, skip out. This happens most often with non-square textures. I think it's because the last mipmap is square instead of the same aspect.
                     // Don't do the mip size check here (<4) since we still need to have a MipMap object for those lower than this for an accurate count.
                     if (mipWidth <= 0 || mipHeight <= 0)  // Needed cos it doesn't throw when reading past the end for some reason.
                         break;
-                    
+
                     MipMap mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, mipOffset, formatDetails, DecompressBCBlock);
                     MipMaps[m] = mipmap;
                     mipOffset += (int)(mipWidth * mipHeight * (blockSize / 16d)); // Also put the division in brackets cos if the mip dimensions are high enough, the multiplications can exceed int.MaxValue)
@@ -215,20 +254,14 @@ namespace REFileKit.DDS
                     MipMaps[mipIndex] = mipmap;
                 });
 
-                if (ImageEngine.EnableThreading)
-                    Parallel.For(startMip, orig_estimatedMips,  new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (mip, loopState) =>
+                if (EnableThreading)
+                    Parallel.For(startMip, orig_estimatedMips,  new ParallelOptions { MaxDegreeOfParallelism = ThreadCount }, (mip, loopState) =>
                     {
-                        if (ImageEngine.IsCancellationRequested)
-                            loopState.Stop();
-
                         action(mip);
                     });
                 else
                     for (int i = startMip; i < orig_estimatedMips; i++)
                     {
-                        if (ImageEngine.IsCancellationRequested)
-                            break;
-
                         action(i);
                     }
             }
@@ -238,9 +271,7 @@ namespace REFileKit.DDS
                 throw new InvalidOperationException($"No mipmaps loaded. Estimated mips: {estimatedMips}, mip dimensions: {mipWidth}x{mipHeight}");
             return mips;
         }
-        #endregion Loading
 
-        #region Saving
         /// <summary>
         /// Determines whether an image size is suitable for DXT compression.
         /// </summary>
@@ -252,10 +283,13 @@ namespace REFileKit.DDS
             return width % 4 == 0 && height % 4 == 0;
         }
 
-        internal static byte[] Save(List<MipMap> mipMaps, ImageFormats.ImageEngineFormatDetails destFormatDetails, AlphaSettings alphaSetting)
+        internal static byte[] Save(List<MipMap> mipMaps, DDSFormatDetails destFormatDetails, AlphaSettings alphaSetting, MipHandling mipChoice)
         {
+            if ((destFormatDetails.IsMippable && mipChoice == MipHandling.GenerateNew) || (destFormatDetails.IsMippable && mipMaps.Count == 1 && mipChoice == MipHandling.Default))
+                BuildMipMaps(mipMaps);
+
             // Set compressor for Block Compressed textures
-            Action<byte[], int, int, byte[], int, AlphaSettings, ImageFormats.ImageEngineFormatDetails> compressor = destFormatDetails.BlockEncoder;
+            Action<byte[], int, int, byte[], int, AlphaSettings, DDSFormatDetails> compressor = destFormatDetails.BlockEncoder;
 
             bool needCheckSize = destFormatDetails.IsBlockCompressed;
 
@@ -283,9 +317,6 @@ namespace REFileKit.DDS
                 int mipOffset = headerLength;
                 foreach (MipMap mipmap in mipMaps)
                 {
-                    if (ImageEngine.IsCancellationRequested)
-                        break;
-
                     var temp = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor, alphaSetting);
                     if (temp != -1)  // When dimensions too low.
                         mipOffset = temp;
@@ -310,36 +341,29 @@ namespace REFileKit.DDS
                     WriteUncompressedMipMap(destination, offset, mipMaps[mipIndex], destFormatDetails, header.ddspf);
                 });
 
-                if (ImageEngine.EnableThreading)
-                    Parallel.For(0, mipMaps.Count, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (mip, loopState) =>
+                if (EnableThreading)
+                    Parallel.For(0, mipMaps.Count, new ParallelOptions { MaxDegreeOfParallelism = ThreadCount }, (mip, loopState) =>
                     {
-                        if (ImageEngine.IsCancellationRequested)
-                            loopState.Stop();
-
                         action(mip);
                     });
                 else
                     for (int i = 0; i < mipMaps.Count; i++)
                     {
-                        if (ImageEngine.IsCancellationRequested)
-                            break;
-
                         action(i);
                     }
             }
-
-            return ImageEngine.IsCancellationRequested ? null : destination;
+            return destination;
         }
 
 
-        static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int, AlphaSettings, ImageFormats.ImageEngineFormatDetails> compressor, 
+        static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int, AlphaSettings, DDSFormatDetails> compressor, 
             AlphaSettings alphaSetting)  
         {
             if (mipmap.Width < 4 || mipmap.Height < 4)
                 return -1;
 
             int destinationTexelCount = mipmap.Width * mipmap.Height / 16;
-            int sourceLineLength = mipmap.Width * 4 * mipmap.LoadedFormatDetails.ComponentSize;
+            int sourceLineLength = mipmap.Width * 4;
             int numTexelsInLine = mipmap.Width / 4;
 
             var mipWriter = new Action<int>(texelIndex =>
@@ -347,38 +371,30 @@ namespace REFileKit.DDS
                 // Since this is the top corner of the first texel in a line, skip 4 pixel rows (texel = 4x4 pixels) and the number of rows down the bitmap we are already.
                 int sourceLineOffset = sourceLineLength * 4 * (texelIndex / numTexelsInLine);  // Length in bytes x 3 lines x texel line index (how many texel sized lines down the image are we). Index / width will truncate, so for the first texel line, it'll be < 0. For the second texel line, it'll be < 1 and > 0.
 
-                int sourceTopLeftCorner = ((texelIndex % numTexelsInLine) * 16) * mipmap.LoadedFormatDetails.ComponentSize + sourceLineOffset; // *16 since its 4 pixels with 4 channels each. Index % numTexels will effectively reset each line.
-                compressor(mipmap.Pixels, sourceTopLeftCorner, sourceLineLength, destination, mipOffset + texelIndex * blockSize, alphaSetting, mipmap.LoadedFormatDetails);
+                int sourceTopLeftCorner = ((texelIndex % numTexelsInLine) * 16) + sourceLineOffset; // *16 since its 4 pixels with 4 channels each. Index % numTexels will effectively reset each line.
+                compressor(mipmap.Pixels, sourceTopLeftCorner, sourceLineLength, destination, mipOffset + texelIndex * blockSize, alphaSetting, new DDSFormatDetails(DDSFormat.DDS_ARGB_8));
             });
 
             // Choose an acceleration method.
-            if (ImageEngine.EnableThreading)
-                Parallel.For(0, destinationTexelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (mip, loopState) =>
+            if (EnableThreading)
+                Parallel.For(0, destinationTexelCount, new ParallelOptions { MaxDegreeOfParallelism = ThreadCount }, (mip, loopState) =>
                 {
-                    if (ImageEngine.IsCancellationRequested)
-                        loopState.Stop();
-
                     mipWriter(mip);
                 });
             else
                 for (int i = 0; i < destinationTexelCount; i++)
                 {
-                    if (ImageEngine.IsCancellationRequested)
-                        break;
-
                     mipWriter(i);
                 }
 
             return mipOffset + destinationTexelCount * blockSize;
         }
 
-        static void WriteUncompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, ImageFormats.ImageEngineFormatDetails destFormatDetails, DDS_Header.DDS_PIXELFORMAT ddspf)
+        static void WriteUncompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, DDSFormatDetails destFormatDetails, DDS_Header.DDS_PIXELFORMAT ddspf)
         {
-            DDS_Encoders.WriteUncompressed(mipmap.Pixels, destination, mipOffset, ddspf, mipmap.LoadedFormatDetails, destFormatDetails);
+            DDS_Encoders.WriteUncompressed(mipmap.Pixels, destination, mipOffset, ddspf, new DDSFormatDetails(DDSFormat.DDS_ARGB_8), destFormatDetails);
         }
-        #endregion Saving
 
-        #region Mipmap Management
         /// <summary>
         /// Ensures all Mipmaps are generated in MipMaps.
         /// </summary>
@@ -399,29 +415,69 @@ namespace REFileKit.DDS
             // KFreon: Half dimensions until one == 1.
             MipMap[] newmips = new MipMap[estimatedMips];
 
-            // TODO: Component size - pixels
-            //var baseBMP = Helper.WPF.Images.CreateWriteableBitmap(currentMip.Pixels, currentMip.Width, currentMip.Height);
-            //baseBMP.Freeze();
-
             Action<int> action = new Action<int>(item =>
             {
                 int index = item;
                 MipMap newmip;
                 var scale = 1d / (2 << (index - 1));  // Shifting is 2^index - Math.Pow seems extraordinarly slow.
-                //newmip = ImageEngine.Resize(baseBMP, scale, scale, currentMip.Width, currentMip.Height, currentMip.LoadedFormatDetails);
-                newmip = ImageEngine.Resize(currentMip, scale, scale);
+                newmip = Resize(currentMip, scale, scale);
                 newmips[index - 1] = newmip;
             });
 
             // Start at 1 to skip top mip
-            if (ImageEngine.EnableThreading)
-                Parallel.For(1, estimatedMips + 1, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, action);
+            if (EnableThreading)
+                Parallel.For(1, estimatedMips + 1, new ParallelOptions { MaxDegreeOfParallelism = ThreadCount }, action);
             else
                 for (int item = 1; item < estimatedMips + 1; item++)
                     action(item);
 
             MipMaps.AddRange(newmips);
             return MipMaps.Count;
+        }
+
+        public static MipMap Resize(MipMap mipMap, double xScale, double yScale)
+        {
+            int width = (int)(mipMap.Width * xScale);
+            int height = (int)(mipMap.Height * yScale);
+            byte[] buffer = new byte[width * height * 4];
+            
+            int kernelWidth = mipMap.Width / width;
+            int kernelHeight = mipMap.Height / height;
+            int kernelSize = kernelWidth * kernelHeight;
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    int destIndex = y * width + x;
+                    
+                    int newB = 0;
+                    int newG = 0;
+                    int newR = 0;
+                    int newA = 0;
+                    for (int k = 0; k < kernelHeight; k++)
+                    {
+                        for (int j = 0; j < kernelWidth; j++)
+                        {
+                            int srcIndex = ((y + k) * mipMap.Width + (x + j)) * 4;
+                            newB += mipMap.Pixels[srcIndex];
+                            newG += mipMap.Pixels[srcIndex + 1];
+                            newR += mipMap.Pixels[srcIndex + 2];
+                            newA += mipMap.Pixels[srcIndex + 3];
+                        }
+                    }
+                    newB = newB / kernelSize;
+                    newG = newG / kernelSize;
+                    newR = newR / kernelSize;
+                    newA = newA / kernelSize;
+
+                    buffer[destIndex] = (byte)newB; //B
+                    buffer[destIndex + 1] = (byte)newG; //G
+                    buffer[destIndex + 2] = (byte)newR; //R
+                    buffer[destIndex + 3] = (byte)newA; //A
+                }
+            }
+            return new MipMap(buffer, width, height);
         }
 
         /// <summary>
@@ -449,7 +505,7 @@ namespace REFileKit.DDS
         /// <param name="destFormatDetails">Destination format details.</param>
         /// <param name="mipOffset">Offset of desired mipmap in image.</param>
         /// <returns>True if mip in image.</returns>
-        public static bool EnsureMipInImage(long streamLength, int mainWidth, int mainHeight, int desiredMipDimension, ImageFormats.ImageEngineFormatDetails destFormatDetails, out int mipOffset)
+        public static bool EnsureMipInImage(long streamLength, int mainWidth, int mainHeight, int desiredMipDimension, DDSFormatDetails destFormatDetails, out int mipOffset)
         {
             if (mainWidth <= desiredMipDimension && mainHeight <= desiredMipDimension)
             {
@@ -465,7 +521,7 @@ namespace REFileKit.DDS
             int requiredOffset = GetMipOffset(mipIndex, destFormatDetails, mainHeight, mainWidth);  
 
             // KFreon: Something wrong with the count here by 1 i.e. the estimate is 1 more than it should be 
-            if (destFormatDetails.Format == ImageEngineFormat.DDS_ARGB_8)  // TODO: Might not just be 8 bit, still don't know why it's wrong.
+            if (destFormatDetails.Format == DDSFormat.DDS_ARGB_8)  // TODO: Might not just be 8 bit, still don't know why it's wrong.
                 requiredOffset -= 2;
 
             mipOffset = requiredOffset;
@@ -478,13 +534,13 @@ namespace REFileKit.DDS
             return true;
         }
 
-        internal static int GetMipOffset(double mipIndex, ImageFormats.ImageEngineFormatDetails destFormatDetails, int baseWidth, int baseHeight)
+        internal static int GetMipOffset(double mipIndex, DDSFormatDetails destFormatDetails, int baseWidth, int baseHeight)
         {
             // -1 because if we want the offset of the mip, it's the sum of all sizes before it NOT including itself.
             return GetCompressedSizeUpToIndex(mipIndex - 1, destFormatDetails, baseWidth, baseHeight);  
         }
 
-        internal static int GetCompressedSizeUpToIndex(double mipIndex, ImageFormats.ImageEngineFormatDetails destFormatDetails, int baseWidth, int baseHeight)
+        internal static int GetCompressedSizeUpToIndex(double mipIndex, DDSFormatDetails destFormatDetails, int baseWidth, int baseHeight)
         {
             /*
                 Mipmapping halves both dimensions per mip down. Dimensions are then divided by 4 if block compressed as a texel is 4x4 pixels.
@@ -530,10 +586,9 @@ namespace REFileKit.DDS
             return (int)totalSize;
         }
 
-        internal static int GetCompressedSizeOfImage(int mipCount, ImageFormats.ImageEngineFormatDetails destFormatDetails, int baseWidth, int baseHeight)
+        internal static int GetCompressedSizeOfImage(int mipCount, DDSFormatDetails destFormatDetails, int baseWidth, int baseHeight)
         {
             return GetCompressedSizeUpToIndex(mipCount, destFormatDetails, baseWidth, baseHeight);
         }
-        #endregion Mipmap Management
     }
 }

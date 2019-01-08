@@ -1,9 +1,10 @@
-﻿using Pfim;
+﻿using ShenmueDKSharp.Files.Images._DDS;
 using ShenmueDKSharp.Graphics;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using static ShenmueDKSharp.Files.Images._DDS.DDSFormats;
 
 namespace ShenmueDKSharp.Files.Images
 {
@@ -40,49 +41,48 @@ namespace ShenmueDKSharp.Files.Images
 
         public int Size { get; set; }
 
-        private byte[] m_buffer;
+        public DDSGeneral.AlphaSettings AlphaSettings { get; set; }
+        public DDSGeneral.MipHandling MipHandling { get; set; }
+        public DDSFormatDetails FormatDetails { get; set; }
+
+        public DDS() { }
+        public DDS(string filename)
+        {
+            Read(filename);
+        }
+        public DDS(Stream stream)
+        {
+            Read(stream);
+        }
+        public DDS(BinaryReader reader)
+        {
+            Read(reader);
+        }
+        public DDS(BaseImage image)
+        {
+            Width = image.Width;
+            Height = image.Height;
+            foreach (MipMap mipmap in image.MipMaps)
+            {
+                MipMaps.Add(new MipMap(mipmap));
+            }
+        }
 
         protected override void _Read(BinaryReader reader)
         {
             long baseOffset = reader.BaseStream.Position;
 
-            Dds image = Dds.Create(reader.BaseStream, new PfimConfig());
-
-            Size = image.Data.Length;
-
-            Width = image.Width;
-            Height = image.Height;
-
-            byte[] pixels = image.Data;
-            Pixels = new Color4[image.Width * image.Height];
-            for (int i = 0; i < image.Width * image.Height; i++)
-            {
-                int index = i * image.BytesPerPixel;
-                if (image.BytesPerPixel > 3)
-                {
-                    if (pixels[index + 3] < 0.8)
-                    {
-                        HasTransparency = true;
-                    }
-                    Pixels[i] = new Color4(pixels[index + 2], pixels[index + 1], pixels[index], pixels[index + 3]);
-                }
-                else
-                {
-                    HasTransparency = false;
-                    Pixels[i] = new Color4(pixels[index + 2], pixels[index + 1], pixels[index], 255);
-                }
-            }
-
-            if (EnableBuffering)
-            {
-                reader.BaseStream.Seek(baseOffset, SeekOrigin.Begin);
-                m_buffer = reader.ReadBytes(image.Data.Length);
-            }
+            DDS_Header header = new DDS_Header(reader.BaseStream);
+            FormatDetails = new DDSFormatDetails(header.Format, header.DX10_DXGI_AdditionalHeader.dxgiFormat);
+            MipMaps = DDSGeneral.LoadDDS((MemoryStream)reader.BaseStream, header, 0, FormatDetails);
+            Width = header.Width;
+            Height = header.Height;
         }
 
         protected override void _Write(BinaryWriter writer)
         {
-            writer.Write(m_buffer);
+            byte[] ddsData = DDSGeneral.Save(MipMaps, FormatDetails, AlphaSettings, MipHandling);
+            writer.Write(ddsData);
         }
     }
 }
