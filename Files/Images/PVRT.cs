@@ -332,7 +332,6 @@ namespace ShenmueDKSharp.Files.Images
             long baseOffset = writer.BaseStream.Position;
 
             Bitmap bmp = CreateBitmap();
-            bmp.Save("H:\\before.png");
             bmp.RotateFlip(RotateFlipType.RotateNoneFlipY);
             if (DataFormat == PvrDataFormat.DDS || DataFormat == PvrDataFormat.DDS_2)
             {
@@ -385,17 +384,6 @@ namespace ShenmueDKSharp.Files.Images
                     if (DataCodec.VQ)
                     {
                         decodedData = BitmapToRawVQ(bmp, DataCodec.PaletteEntries, out m_texturePalette);
-
-                        Bitmap palleteBMP = new Bitmap(32, 32);
-                        for (int y = 0; y < 32; y++)
-                        {
-                            for (int x = 0; x < 32; x++)
-                            {
-                                byte[] pixel = m_texturePalette[y * 32 + x];
-                                palleteBMP.SetPixel(x, y, System.Drawing.Color.FromArgb(255, pixel[2], pixel[1], pixel[0]));
-                            }
-                        }
-                        palleteBMP.Save("H:\\palette.png");
                     }
                     else
                     {
@@ -539,11 +527,6 @@ namespace ShenmueDKSharp.Files.Images
                 else
                 {
                     writer.Write(output.GetBuffer());
-                }
-                using (FileStream str = new FileStream("H:\\after.pvr", FileMode.Create))
-                {
-                    byte[] buf = output.GetBuffer();
-                    str.Write(buf, 0, buf.Length);
                 }
             }
         }
