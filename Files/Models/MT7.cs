@@ -18,6 +18,7 @@ namespace ShenmueDKSharp.Files.Models
     /// </summary>
     public class MT7 : BaseModel
     {
+        public static bool SearchTexturesOneDirUp = false;
         public static bool EnableBuffering = true;
         public override bool BufferingEnabled => EnableBuffering;
 
@@ -74,7 +75,10 @@ namespace ShenmueDKSharp.Files.Models
         {
             Read(filename);
         }
-
+        public MT7(Stream stream)
+        {
+            Read(stream);
+        }
         public MT7(BinaryReader reader)
         {
             Read(reader);
@@ -145,10 +149,12 @@ namespace ShenmueDKSharp.Files.Models
                 }
             }
             
-            //Crawling for textures up one dictionary (TODO: Make this directory changeable)
-            FileStream fileStream = (FileStream)reader.BaseStream;
-            string dir = Path.GetDirectoryName(Path.GetDirectoryName(fileStream.Name));
-            //TextureDatabase.SearchDirectory(dir);
+            if (SearchTexturesOneDirUp)
+            {
+                FileStream fileStream = (FileStream)reader.BaseStream;
+                string dir = Path.GetDirectoryName(Path.GetDirectoryName(fileStream.Name));
+                TextureDatabase.SearchDirectory(dir);
+            }
 
             foreach (TextureEntry entry in TextureEntries)
             {
@@ -156,6 +162,11 @@ namespace ShenmueDKSharp.Files.Models
 
                 UInt64 idName = BitConverter.ToUInt64(entry.Data, 0);
                 TEXN texture = TextureDatabase.FindTexture(idName);
+                if (texture == null)
+                {
+                    Console.WriteLine("Couldn't find texture: {0}", idName);
+                    continue;
+                }
                 entry.Texture = new Texture();
                 entry.Texture.ID = texture.TextureID;
                 entry.Texture.NameData = texture.NameData;

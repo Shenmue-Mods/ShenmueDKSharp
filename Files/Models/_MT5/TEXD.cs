@@ -79,9 +79,12 @@ namespace ShenmueDKSharp.Files.Models._MT5
                         reader.BaseStream.Seek(-8, SeekOrigin.Current);
                         UInt64 idName = reader.ReadUInt64();
 
-                        FileStream fileStream = (FileStream)reader.BaseStream;
-                        string dir = Path.GetDirectoryName(Path.GetDirectoryName(fileStream.Name));
-                        //TextureDatabase.SearchDirectory(dir);
+                        if (MT5.SearchTexturesOneDirUp)
+                        {
+                            FileStream fileStream = (FileStream)reader.BaseStream;
+                            string dir = Path.GetDirectoryName(Path.GetDirectoryName(fileStream.Name));
+                            TextureDatabase.SearchDirectory(dir);
+                        }
 
                         TEXN texture = TextureDatabase.FindTexture(idName);
                         if (texture != null)

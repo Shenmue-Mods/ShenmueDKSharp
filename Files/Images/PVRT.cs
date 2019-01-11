@@ -20,7 +20,7 @@ namespace ShenmueDKSharp.Files.Images
         private static uint m_gbix = 0x58494247;
         private static uint m_pvrt = 0x54525650;
 
-        public static bool EnableBuffering = true;
+        public static bool EnableBuffering = false;
         public override bool BufferingEnabled => EnableBuffering;
 
         public readonly static List<string> Extensions = new List<string>()

@@ -103,7 +103,7 @@ namespace ShenmueDKSharp.Files.Models
         /// Returns all the child/sibling nodes relative to this node.
         /// </summary>
         /// <returns></returns>
-        public List<ModelNode> GetAllNodes()
+        public List<ModelNode> GetAllNodes(bool includeSibling = true)
         {
             List<ModelNode> result = new List<ModelNode>();
             result.Add(this);
@@ -111,7 +111,7 @@ namespace ShenmueDKSharp.Files.Models
             {
                 result.AddRange(Child.GetAllNodes());
             }
-            if (Sibling != null)
+            if (Sibling != null && includeSibling)
             {
                 result.AddRange(Sibling.GetAllNodes());
             }
@@ -199,6 +199,11 @@ namespace ShenmueDKSharp.Files.Models
             get { return m_shiftJis.GetString(NameData); }
         }
         public Color4 TintColor { get; set; }
+
+        public override string ToString()
+        {
+            return Name;
+        }
     }
 
     public class MeshFace

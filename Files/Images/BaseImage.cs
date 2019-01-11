@@ -51,6 +51,40 @@ namespace ShenmueDKSharp.Files.Images
             return MipMaps[mipmap].GetBitmap();
         }
 
+        /// <summary>
+        /// Gets the pixels as an raw BGRA32 byte array.
+        /// </summary>
+        public byte[] GetPixelsRaw(int mipmap = 0)
+        {
+            if (mipmap >= MipMaps.Count || mipmap < 0)
+            {
+                throw new IndexOutOfRangeException("Mipmap index out of range!");
+            }
+            MipMap mm = MipMaps[mipmap];
+            return mm.Pixels;
+        }
+
+        /// <summary>
+        /// Gets the pixels as an Color4 array.
+        /// </summary>
+        public Color4[] GetPixels(int mipmap = 0)
+        {
+            if (mipmap >= MipMaps.Count || mipmap < 0)
+            {
+                throw new IndexOutOfRangeException("Mipmap index out of range!");
+            }
+            MipMap mm = MipMaps[mipmap];
+            Color4[] result = new Color4[mm.Width * mm.Height];
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i].B_ = mm.Pixels[i * 4];
+                result[i].G_ = mm.Pixels[i * 4 + 1];
+                result[i].R_ = mm.Pixels[i * 4 + 2];
+                result[i].A_ = mm.Pixels[i * 4 + 3];
+            }
+            return result;
+        }
+
     }
 
     public class MipMap
