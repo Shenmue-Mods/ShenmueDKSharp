@@ -17,7 +17,8 @@ namespace ShenmueDKSharp.Files.Containers
     {
         private Stream m_tacStream;
         public TAD TAD;
-
+        
+        public TAC() { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TAC"/> class.
@@ -100,8 +101,12 @@ namespace ShenmueDKSharp.Files.Containers
         /// <summary>
         /// Packs the given entries to the given TAC file based on the TAD file this instance has.
         /// </summary>
-        public void Pack(string tacFilepath, List<TADEntry> entries)
+        public void Pack(string tacFilepath, List<TADEntry> entries = null)
         {
+            if (entries == null)
+            {
+                entries = TAD.Entries;
+            }
             using (FileStream stream = File.Create(tacFilepath))
             {
                 TAD.FileCount = 0;
@@ -116,8 +121,8 @@ namespace ShenmueDKSharp.Files.Containers
                     byte[] buffer;
                     using (FileStream entryStream = File.Open(entry.FilePath, FileMode.Open))
                     {
-                        buffer = new byte[stream.Length];
-                        stream.Read(buffer, 0, buffer.Length);
+                        buffer = new byte[entryStream.Length];
+                        entryStream.Read(buffer, 0, buffer.Length);
 
                         entry.FileOffset = (uint)stream.Position;
                         entry.FileSize = (uint)buffer.Length;

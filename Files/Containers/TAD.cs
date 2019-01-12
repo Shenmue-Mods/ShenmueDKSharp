@@ -192,7 +192,7 @@ namespace ShenmueDKSharp.Files.Containers
         public string FilePath { get; set; }
 
         /// <summary>
-        /// Filename based on raymonf's wulinshu hash database.
+        /// Filename used to create the hashes or write the filename from a hash database.
         /// </summary>
         public string FileName { get; set; }
 
@@ -268,6 +268,18 @@ namespace ShenmueDKSharp.Files.Containers
                 }
             }
             return result;
+        }
+
+        public void CalculateFilenameHashes()
+        {
+            SecondHash = MurmurHash2.GetFilenameHashPlain(FileName);
+            string fullFilename = MurmurHash2.GetFullFilename(FileName, SecondHash);
+            FirstHash = BitConverter.ToUInt32(MurmurHash2.GetFilenameHash(fullFilename), 0);
+        }
+
+        public override string ToString()
+        {
+            return FilePath;
         }
     }
 }
