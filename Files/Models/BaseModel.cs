@@ -1,5 +1,6 @@
 ﻿using ShenmueDKSharp.Files.Images;
 using ShenmueDKSharp.Graphics;
+using ShenmueDKSharp.Structs;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -192,17 +193,12 @@ namespace ShenmueDKSharp.Files.Models
         private readonly static Encoding m_shiftJis = Encoding.GetEncoding("shift_jis");
 
         public BaseImage Image { get; set; }
-        public uint ID { get; set; }
-        public byte[] NameData { get; set; }
-        public string Name
-        {
-            get { return m_shiftJis.GetString(NameData); }
-        }
+        public TextureID TextureID { get; set; }
         public Color4 TintColor { get; set; }
 
         public override string ToString()
         {
-            return Name;
+            return TextureID.Name;
         }
     }
 

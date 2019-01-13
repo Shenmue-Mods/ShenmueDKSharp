@@ -1,4 +1,5 @@
 ﻿using ShenmueDKSharp.Files.Images;
+using ShenmueDKSharp.Structs;
 using ShenmueDKSharp.Utils;
 using System;
 using System.Collections.Generic;
@@ -50,8 +51,11 @@ namespace ShenmueDKSharp.Files.Models._MT7
 
             for (uint i = 0; i < EntryCount; i++)
             {
-                uint offset = (EntryCount - i - 1) * 4 + i * 8;
-                Entries.Add(new TXT7Entry(reader, offset));
+                Entries.Add(new TXT7Entry(reader));
+            }
+            foreach(TXT7Entry entry in Entries)
+            {
+                entry.ReadTextureID(reader);
             }
 
             foreach (TXT7Entry entry in Entries)
@@ -59,18 +63,17 @@ namespace ShenmueDKSharp.Files.Models._MT7
                 reader.BaseStream.Seek(Offset + entry.Offset, SeekOrigin.Begin);
                 Texture tex = new Texture();
                 tex.Image = new PVRT(reader);
-                tex.ID = entry.ID;
-                tex.NameData = entry.NameData;
+                tex.TextureID = new TextureID(entry.TextureID);
                 Textures.Add(tex);
             }
         }
 
-        public Texture GetTexture(uint ID, byte[] nameData)
+        public Texture GetTexture(TextureID textureID)
         {
             for (int i = 0; i < Entries.Count; i++)
             {
                 TXT7Entry entry = Entries[i];
-                if (Helper.CompareArray(entry.NameData, nameData) && entry.ID == ID)
+                if (entry.TextureID == textureID)
                 {
                     return Textures[i];
                 }
@@ -80,27 +83,32 @@ namespace ShenmueDKSharp.Files.Models._MT7
 
         public class TXT7Entry
         {
-            private readonly static Encoding m_shiftJis = Encoding.GetEncoding("shift_jis");
-
             public uint Offset;
+            public TextureID TextureID;
 
-            public uint ID;
-            public byte[] NameData;
-
-            public string Name
+            public TXT7Entry(BinaryReader reader)
             {
-                get { return m_shiftJis.GetString(NameData); }
+                ReadOffset(reader);
             }
 
-            public TXT7Entry(BinaryReader reader, uint offset)
+            public void ReadOffset(BinaryReader reader)
             {
                 Offset = reader.ReadUInt32();
+            }
 
-                long position = reader.BaseStream.Position;
-                reader.BaseStream.Seek(offset, SeekOrigin.Current);
-                ID = reader.ReadUInt32();
-                NameData = reader.ReadBytes(4);
-                reader.BaseStream.Seek(position, SeekOrigin.Begin);
+            public void ReadTextureID(BinaryReader reader)
+            {
+                TextureID = new TextureID(reader);
+            }
+
+            public void WriteOffset(BinaryWriter writer)
+            {
+                writer.Write(Offset);
+            }
+
+            public void WriteTextureID(BinaryWriter writer)
+            {
+                TextureID.Write(writer);
             }
         }
     }

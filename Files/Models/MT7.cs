@@ -1,6 +1,7 @@
 ﻿using ShenmueDKSharp.Files.Images;
 using ShenmueDKSharp.Files.Misc;
 using ShenmueDKSharp.Files.Models._MT7;
+using ShenmueDKSharp.Structs;
 using ShenmueDKSharp.Utils;
 using System;
 using System.Collections.Generic;
@@ -58,6 +59,13 @@ namespace ShenmueDKSharp.Files.Models
             return false;
         }
 
+        /// <summary>
+        /// True for embedding textures when writing MT7
+        /// </summary>
+        public bool EmbeddedTextures { get; set; } = false;
+
+        public uint Offset;
+
         public uint Identifier;
         public uint Size;
         public uint FirstNodeOffset;
@@ -86,8 +94,7 @@ namespace ShenmueDKSharp.Files.Models
 
         protected override void _Read(BinaryReader reader)
         {
-            Buffer = reader.ReadBytes((int)reader.BaseStream.Length);
-            reader.BaseStream.Seek(0, SeekOrigin.Begin);
+            Offset = (uint)reader.BaseStream.Position;
 
             Identifier = reader.ReadUInt32();
             if (!IsValid(Identifier)) return;
@@ -99,10 +106,12 @@ namespace ShenmueDKSharp.Files.Models
             //Read texture entries if there are any
             for (uint i = 0; i < TextureCount; i++)
             {
-                uint offset = (TextureCount - i - 1) * 16 + i * 8;
-                TextureEntries.Add(new TextureEntry(reader, offset));
+                TextureEntries.Add(new TextureEntry(reader));
             }
-            reader.BaseStream.Seek(TextureCount * 8, SeekOrigin.Current);
+            foreach(TextureEntry entry in TextureEntries)
+            {
+                entry.ReadTextureID(reader);
+            }
 
             //If we are not at the first node yet, we still have an node offset table to read
             if (reader.BaseStream.Position != FirstNodeOffset)
@@ -115,7 +124,7 @@ namespace ShenmueDKSharp.Files.Models
             }
 
             //Read first node and as an result create the whole node tree structure
-            reader.BaseStream.Seek(FirstNodeOffset, SeekOrigin.Begin);
+            reader.BaseStream.Seek(Offset + FirstNodeOffset, SeekOrigin.Begin);
             RootNode = new MT7Node(reader, null);
 
 
@@ -145,7 +154,7 @@ namespace ShenmueDKSharp.Files.Models
             {
                 foreach (TextureEntry entry in TextureEntries)
                 {
-                    entry.Texture = TXT7.GetTexture(entry.ID, entry.NameData);
+                    entry.Texture = TXT7.GetTexture(entry.TextureID);
                 }
             }
             
@@ -160,16 +169,14 @@ namespace ShenmueDKSharp.Files.Models
             {
                 if (entry.Texture != null) continue;
 
-                UInt64 idName = BitConverter.ToUInt64(entry.Data, 0);
-                TEXN texture = TextureDatabase.FindTexture(idName);
+                TEXN texture = TextureDatabase.FindTexture(entry.TextureID.Data);
                 if (texture == null)
                 {
-                    Console.WriteLine("Couldn't find texture: {0}", idName);
+                    Console.WriteLine("Couldn't find texture: {0}", entry.TextureID.Name);
                     continue;
                 }
                 entry.Texture = new Texture();
-                entry.Texture.ID = texture.TextureID;
-                entry.Texture.NameData = texture.NameData;
+                entry.Texture.TextureID = new TextureID(texture.TextureID);
                 entry.Texture.Image = texture.Texture;
             }
 
@@ -185,9 +192,36 @@ namespace ShenmueDKSharp.Files.Models
 
         protected override void _Write(BinaryWriter writer)
         {
-            throw new NotImplementedException();
+            Offset = (uint)writer.BaseStream.Position;
             writer.Write(Identifier);
-            writer.BaseStream.Seek(4, SeekOrigin.Current); //Skip size and write at end
+            writer.BaseStream.Seek(8, SeekOrigin.Current); //Skip size and first node offset
+
+            TextureCount = (uint)TextureEntries.Count;
+            writer.Write(TextureCount);
+            foreach(TextureEntry entry in TextureEntries)
+            {
+                entry.WriteMetadata(writer);
+            }
+            foreach (TextureEntry entry in TextureEntries)
+            {
+                entry.WriteTextureID(writer);
+            }
+            writer.Write(1);
+            FirstNodeOffset = (uint)(writer.BaseStream.Position - Offset + 4);
+            writer.Write(FirstNodeOffset);
+
+            //Write Nodes
+
+            Size = (uint)(writer.BaseStream.Position - Offset);
+
+            //Write FACE (TODO: Needs full FACE implementation)
+            //Write CLSG (TODO: Needs full CLSG implementation)
+
+            //Write TXT7
+
+            writer.BaseStream.Seek(Offset + 4, SeekOrigin.Begin);
+            writer.Write(Size);
+            writer.Write(FirstNodeOffset);
         }
     }
 
@@ -203,6 +237,8 @@ namespace ShenmueDKSharp.Files.Models
         public XB01 XB01 { get; set; }
 
         public object SubNode { get; set; }
+
+        public MT7Node() { }
 
         public MT7Node(BinaryReader reader, MT7Node parent)
         {
@@ -252,11 +288,11 @@ namespace ShenmueDKSharp.Files.Models
             }
             else if (MDOX.IsValid(subNodeIdentifier))
             {
-                new NotImplementedException("Never seen this please report.");
+                new NotImplementedException("Never seen this, please report.");
             }
             else if (MDLX.IsValid(subNodeIdentifier))
             {
-                new NotImplementedException("Never seen this please report.");
+                new NotImplementedException("Never seen this, please report.");
             }
 
             //Read XB01 mesh data
@@ -287,6 +323,18 @@ namespace ShenmueDKSharp.Files.Models
             reader.BaseStream.Seek(offset, SeekOrigin.Begin);
         }
 
+        public void WriteNode(BinaryWriter writer)
+        {
+            Offset = (uint)writer.BaseStream.Position;
+        }
+
+        public void WriteXB01(BinaryWriter writer)
+        {
+            XB01Offset = (uint)writer.BaseStream.Position;
+
+            //Convert BaseNode mesh data to XB01
+        }
+
         public override string ToString()
         {
             return String.Format("[{0}] MT7 Node: {1}", Offset, ID);
@@ -305,32 +353,41 @@ namespace ShenmueDKSharp.Files.Models
         public uint Unknown1;
         public uint Unknown2;
         public uint Index;
-        public byte[] NameData;
-        public uint ID;
-        public byte[] Data;
-
-        public string Name
-        {
-            get { return m_shiftJis.GetString(NameData); }
-        }
+        public TextureID TextureID;
 
         public Texture Texture { get; set; }
 
-        public TextureEntry(BinaryReader reader, uint offset)
+        public TextureEntry(BinaryReader reader)
+        {
+            ReadMetadata(reader);
+        }
+
+        public void ReadMetadata(BinaryReader reader)
         {
             Width = reader.ReadUInt16();
             Height = reader.ReadUInt16();
             Unknown1 = reader.ReadUInt32();
             Unknown2 = reader.ReadUInt32();
             Index = reader.ReadUInt32();
+        }
 
-            long position = reader.BaseStream.Position;
-            reader.BaseStream.Seek(offset, SeekOrigin.Current);
-            ID = reader.ReadUInt32();
-            NameData = reader.ReadBytes(4);
-            reader.BaseStream.Seek(-8, SeekOrigin.Current);
-            Data = reader.ReadBytes(8);
-            reader.BaseStream.Seek(position, SeekOrigin.Begin);
+        public void ReadTextureID(BinaryReader reader)
+        {
+            TextureID = new TextureID(reader);
+        }
+
+        public void WriteMetadata(BinaryWriter writer)
+        {
+            writer.Write(Width);
+            writer.Write(Height);
+            writer.Write(Unknown1);
+            writer.Write(Unknown2);
+            writer.Write(Index);
+        }
+
+        public void WriteTextureID(BinaryWriter writer)
+        {
+            TextureID.Write(writer);
         }
     }
 

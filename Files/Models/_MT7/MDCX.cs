@@ -49,6 +49,17 @@ namespace ShenmueDKSharp.Files.Models._MT7
             }
         }
 
+        public void Write(BinaryWriter writer)
+        {
+            writer.Write(Token);
+            Matrix.Write(writer);
+            writer.Write(EntryCount);
+            foreach(NodeMDEntry entry in Entries)
+            {
+                entry.Write(writer);
+            }
+        }
+
         public class NodeMDEntry
         {
             public uint Offset1;
@@ -58,6 +69,12 @@ namespace ShenmueDKSharp.Files.Models._MT7
             {
                 Offset1 = reader.ReadUInt32();
                 Offset2 = reader.ReadUInt32();
+            }
+
+            public void Write(BinaryWriter writer)
+            {
+                writer.Write(Offset1);
+                writer.Write(Offset2);
             }
         }
 
@@ -104,6 +121,29 @@ namespace ShenmueDKSharp.Files.Models._MT7
                 Matrix_3_1 = reader.ReadSingle();
                 Matrix_3_2 = reader.ReadSingle();
                 Matrix_3_3 = reader.ReadSingle();
+            }
+
+            public void Write(BinaryWriter writer)
+            {
+                writer.Write(Matrix_0_0);
+                writer.Write(Matrix_0_1);
+                writer.Write(Matrix_0_2);
+                writer.Write(Matrix_0_3);
+
+                writer.Write(Matrix_1_0);
+                writer.Write(Matrix_1_1);
+                writer.Write(Matrix_1_2);
+                writer.Write(Matrix_1_3);
+
+                writer.Write(Matrix_2_0);
+                writer.Write(Matrix_2_1);
+                writer.Write(Matrix_2_2);
+                writer.Write(Matrix_2_3);
+
+                writer.Write(Matrix_3_0);
+                writer.Write(Matrix_3_1);
+                writer.Write(Matrix_3_2);
+                writer.Write(Matrix_3_3);
             }
 
             public Matrix4 ToMatrix4()

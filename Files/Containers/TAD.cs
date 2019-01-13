@@ -270,11 +270,19 @@ namespace ShenmueDKSharp.Files.Containers
             return result;
         }
 
-        public void CalculateFilenameHashes()
+        public void CalculateFilenameHashes(bool singleHash = false)
         {
-            SecondHash = MurmurHash2.GetFilenameHashPlain(FileName);
-            string fullFilename = MurmurHash2.GetFullFilename(FileName, SecondHash);
-            FirstHash = BitConverter.ToUInt32(MurmurHash2.GetFilenameHash(fullFilename), 0);
+            if (singleHash)
+            {
+                FirstHash = BitConverter.ToUInt32(MurmurHash2.GetFilenameHash(FileName, false), 0);
+                SecondHash = 0;
+            }
+            else
+            {
+                SecondHash = MurmurHash2.GetFilenameHashPlain(FileName);
+                string fullFilename = MurmurHash2.GetFullFilename(FileName, SecondHash);
+                FirstHash = BitConverter.ToUInt32(MurmurHash2.GetFilenameHash(fullFilename), 0);
+            }
         }
 
         public override string ToString()

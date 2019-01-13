@@ -180,7 +180,7 @@ namespace ShenmueDKSharp.Files.Images
                 DDSFormatDetails format = new DDSFormatDetails(header.Format, header.DX10_DXGI_AdditionalHeader.dxgiFormat);
                 reader.BaseStream.Seek(ddsOffset, SeekOrigin.Begin);
 
-                byte[] ddsBuffer = reader.ReadBytes(header.dwPitchOrLinearSize + header.dwSize);
+                byte[] ddsBuffer = reader.ReadBytes(header.dwPitchOrLinearSize + header.dwSize + 128);
                 
                 MemoryStream memoryStream = new MemoryStream(ddsBuffer, 0, ddsBuffer.Length, true, true);
                 MipMaps = DDSGeneral.LoadDDS(memoryStream, header, 0, format);

@@ -1,4 +1,5 @@
 ﻿using ShenmueDKSharp.Files.Images;
+using ShenmueDKSharp.Structs;
 using ShenmueDKSharp.Utils;
 using System;
 using System.Collections.Generic;
@@ -61,18 +62,7 @@ namespace ShenmueDKSharp.Files.Misc
         /// Unique texture ID with name.
         /// Used for identification of textures.
         /// </summary>
-        public UInt64 ID_Name { get; set; }
-
-        public uint TextureID { get; set; }
-        public byte[] NameData { get; set; }
-
-        public string Name
-        {
-            get
-            {
-                return m_shiftJis.GetString(NameData);
-            }
-        }
+        public TextureID TextureID { get; set; }
 
         public PVRT Texture { get; set; }
 
@@ -98,31 +88,22 @@ namespace ShenmueDKSharp.Files.Misc
             Identifier = reader.ReadUInt32();
             EntrySize = reader.ReadUInt32();
 
-            ID_Name = reader.ReadUInt64();
-            reader.BaseStream.Seek(-8, SeekOrigin.Current);
-            TextureID = reader.ReadUInt32();
-            NameData = reader.ReadBytes(4);
-
-            FileName = String.Format("{0}.{1}.TEXN", Helper.ByteArrayToString(BitConverter.GetBytes(ID_Name)), Name.Replace("\0", "_"));
-
+            TextureID = new TextureID(reader);
+            FileName = String.Format("{0}.{1}.TEXN", Helper.ByteArrayToString(BitConverter.GetBytes(TextureID.Data)), TextureID.Name.Replace("\0", "_"));
             Texture = new PVRT(reader);
-            Texture.FileName = String.Format("{0}.{1}.PVR", Helper.ByteArrayToString(BitConverter.GetBytes(ID_Name)), Name.Replace("\0", "_"));
+            Texture.FileName = String.Format("{0}.{1}.PVR", Helper.ByteArrayToString(BitConverter.GetBytes(TextureID.Data)), TextureID.Name.Replace("\0", "_"));
 
             reader.BaseStream.Seek(Offset + EntrySize, SeekOrigin.Begin);
         }
 
         protected override void _Write(BinaryWriter writer)
         {
+            //TODO: Calculate entry size correctly
             EntrySize = (uint)Texture.DataSize + HeaderSize;
-
             writer.Write(Identifier);
             writer.Write(EntrySize);
-
-            writer.Write(TextureID);
-            writer.Write(NameData);
-
-            //TODO: Write buffer until we can convert all texture formats back and forth.
-            Texture.WriteBuffer(writer); 
+            TextureID.Write(writer);
+            Texture.Write(writer); 
         }
 
     }

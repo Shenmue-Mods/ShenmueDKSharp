@@ -55,7 +55,7 @@ namespace ShenmueDKSharp.Utils
         {
             foreach (TEXN texture in m_textures)
             {
-                if (texture.ID_Name == idName)
+                if (texture.TextureID.Data == idName)
                 {
                     return texture;
                 }
@@ -72,7 +72,7 @@ namespace ShenmueDKSharp.Utils
             //Check for duplicate
             foreach(TEXN tex in m_textures)
             {
-                if (tex.ID_Name == texture.ID_Name)
+                if (tex.TextureID == texture.TextureID)
                 {
                     return;
                 }

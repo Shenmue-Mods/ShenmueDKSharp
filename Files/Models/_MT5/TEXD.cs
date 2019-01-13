@@ -1,5 +1,6 @@
 ﻿using ShenmueDKSharp.Files.Images;
 using ShenmueDKSharp.Files.Misc;
+using ShenmueDKSharp.Structs;
 using ShenmueDKSharp.Utils;
 using System;
 using System.Collections.Generic;
@@ -63,8 +64,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
                 if (NodeIdentifier == 0x4E584554) //TEXN
                 {
                     Texture tex = new Texture();
-                    tex.ID = reader.ReadUInt32();
-                    tex.NameData = reader.ReadBytes(4);
+                    tex.TextureID = new TextureID(reader);
                     tex.Image = new PVRT(reader);
                     Textures.Add(tex);
                 }
@@ -73,8 +73,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
                     for (i = 0; i < ((NodeSize - 8) / 8); i++)
                     {
                         Texture tex = new Texture();
-                        tex.ID = reader.ReadUInt32();
-                        tex.NameData = reader.ReadBytes(4);
+                        tex.TextureID = new TextureID(reader);
 
                         reader.BaseStream.Seek(-8, SeekOrigin.Current);
                         UInt64 idName = reader.ReadUInt64();
