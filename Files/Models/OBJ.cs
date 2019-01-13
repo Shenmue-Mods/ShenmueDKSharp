@@ -74,10 +74,10 @@ namespace ShenmueDKSharp.Files.Models
             {
                 Matrix4 transformMatrix = node.GetTransformMatrix();
 
+                writer.WriteASCII(String.Format("o obj_{0}\n", objNum));
+
                 foreach (MeshFace face in node.Faces)
                 {
-                    writer.WriteASCII(String.Format("o obj_{0}\n", objNum));
-
                     //TODO: assign textures to groups
                     uint textureIndex = face.TextureIndex;
                     Texture texture = face.Material.Texture;
@@ -114,7 +114,7 @@ namespace ShenmueDKSharp.Files.Models
                     }
 
                     writer.WriteASCII(String.Format("usemtl mat_{0}\n", textureIndex));
-                    writer.WriteASCII("s 1\n");
+                    //writer.WriteASCII("s 1\n");
                     if (face.Type == MeshFace.PrimitiveType.Triangles)
                     {
                         for (int i = 1; i < face.VertexIndices.Length + 1; i += 3)
