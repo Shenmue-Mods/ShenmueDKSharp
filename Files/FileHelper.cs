@@ -46,6 +46,33 @@ namespace ShenmueDKSharp.Files
             return null;
         }
 
+        public static string GetExtensionFromBuffer(byte[] buffer)
+        {
+            //Archives
+            if (AFS.IsValid(buffer)) return "AFS";
+            if (GZ.IsValid(buffer)) return "GZ";
+            if (IDX.IsValid(buffer)) return "IDX";
+            if (IPAC.IsValid(buffer)) return "IPAC";
+            if (PKF.IsValid(buffer)) return "PKF";
+            if (PKS.IsValid(buffer)) return "PKS";
+            //if (SPR.IsValid(buffer)) return typeof(SPR); //same as TEXN skip and base identification on extension
+            if (TAD.IsValid(buffer)) return "TAD";
+
+            //Textures/Images
+            if (TEXN.IsValid(buffer)) return "TEXN";
+            if (PVRT.IsValid(buffer)) return "PVRT";
+            if (DDS.IsValid(buffer)) return "DDS";
+
+            //Models
+            if (MT5.IsValid(buffer)) return "MT5";
+            if (MT7.IsValid(buffer)) return "MT7";
+
+            //Subtitles
+            if (SUB.IsValid(buffer)) return "SUB";
+
+            return "UNKNOWN";
+        }
+
         /// <summary>
         /// Trys to find the fitting file type for the given file with the file signature.
         /// </summary>
@@ -55,7 +82,7 @@ namespace ShenmueDKSharp.Files
             stream.Read(buffer, 0, buffer.Length);
 
             //Archives
-            if (AFS.IsValid(buffer)) return typeof(GZ);
+            if (AFS.IsValid(buffer)) return typeof(AFS);
             if (GZ.IsValid(buffer)) return typeof(GZ);
             if (IDX.IsValid(buffer)) return typeof(IDX);
             if (IPAC.IsValid(buffer)) return typeof(IPAC);

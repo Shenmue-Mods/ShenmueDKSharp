@@ -309,6 +309,7 @@ namespace ShenmueDKSharp.Files.Containers
         public void ReadData(BinaryReader reader)
         {
             Buffer = reader.ReadBytes((int)FileSize);
+            Filename = Filename + "." + FileHelper.GetExtensionFromBuffer(Buffer);
         }
 
         public void ReadFilename(BinaryReader reader)

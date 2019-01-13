@@ -59,7 +59,7 @@ namespace ShenmueDKSharp.Files.Models._OBJ
                 writer.WriteASCII("d 1.000000\n");
                 writer.WriteASCII("illum 1\n");
 
-                string textureName = String.Format("tex_{0}.bmp", i);
+                string textureName = String.Format("tex_{0}.png", i);
                 if (String.IsNullOrEmpty(FilePath))
                 {
                     //TODO: Make this somehow better
@@ -91,7 +91,7 @@ namespace ShenmueDKSharp.Files.Models._OBJ
                 {
                     using (FileStream fs = new FileStream(texturePath, FileMode.Create, FileAccess.ReadWrite))
                     {
-                        bmp.Save(memory, ImageFormat.Bmp);
+                        bmp.Save(memory, ImageFormat.Png);
                         byte[] bytes = memory.ToArray();
                         fs.Write(bytes, 0, bytes.Length);
                     }
