@@ -49,11 +49,15 @@ namespace ShenmueDKSharp.Files.Models._OBJ
                 Texture texture = Model.Textures[i];
 
                 writer.WriteASCII(String.Format("newmtl mat_{0}\n", i));
-                writer.WriteASCII("Ka 1.000 1.000 1.000\n");
-                writer.WriteASCII("Kd 1.000 1.000 1.000\n");
-                writer.WriteASCII("Ks 0.000 0.000 0.000\n");
-                writer.WriteASCII("d 1.0\n");
-                writer.WriteASCII("illum 2\n");
+
+                writer.WriteASCII("Ns 0.000000\n");
+                writer.WriteASCII("Ka 1.000000 1.000000 1.000000\n");
+                writer.WriteASCII("Kd 0.800000 0.800000 0.800000\n");
+                writer.WriteASCII("Ks 0.200000 0.200000 0.200000\n");
+                writer.WriteASCII("Ke 0.0 0.0 0.0\n");
+                writer.WriteASCII("Ni 1.450000\n");
+                writer.WriteASCII("d 1.000000\n");
+                writer.WriteASCII("illum 1\n");
 
                 string textureName = String.Format("tex_{0}.bmp", i);
                 if (String.IsNullOrEmpty(FilePath))

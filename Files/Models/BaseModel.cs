@@ -236,6 +236,40 @@ namespace ShenmueDKSharp.Files.Models
         public List<Color4> Colors = new List<Color4>();
 
 
+        public static Vertex[] GetVertexArrayFaces(List<MeshFace> faces, List<Vertex> vertices)
+        {
+            Vertex[] result = vertices.ToArray();
+            foreach (MeshFace face in faces)
+            {
+                for (int i = 0; i < face.VertexIndices.Length; i++)
+                {
+                    ushort index = face.VertexIndices[i];
+                    if (index >= vertices.Count)
+                    {
+                        continue;
+                    }
+                    result[index] = vertices[face.VertexIndices[i]].Copy();
+
+                    if (face.UVs.Count > 0)
+                    {
+                        result[index].U = face.UVs[i].X;
+                        result[index].V = face.UVs[i].Y;
+                        result[index].Format = Vertex.VertexFormat.VertexNormalUV;
+                    }
+
+                    if (face.Colors.Count > 0)
+                    {
+                        result[index].R = face.Colors[i].R;
+                        result[index].G = face.Colors[i].G;
+                        result[index].B = face.Colors[i].B;
+                        result[index].A = face.Colors[i].A;
+                        result[index].Format = Vertex.VertexFormat.VertexNormalUVColor;
+                    }
+                }
+            }
+            return result;
+        }
+
         /// <summary>
         /// Returns the resolved vertex indices as vertices.
         /// </summary>
@@ -243,6 +277,41 @@ namespace ShenmueDKSharp.Files.Models
         public Vertex[] GetVertexArray(ModelNode node)
         {
             return GetVertexArray(node.Vertices);
+        }
+
+        /// <summary>
+        /// Returns a vertices array that keeps the face vertex indices intact.
+        /// </summary>
+        public Vertex[] GetFullVertexArray(List<Vertex> vertices)
+        {
+            Vertex[] result = new Vertex[vertices.Count];
+            for (int i = 0; i < VertexIndices.Length; i++)
+            {
+                ushort index = VertexIndices[i];
+                if (index >= vertices.Count)
+                {
+                    result[index] = null;
+                    continue;
+                }
+                result[index] = vertices[VertexIndices[i]].Copy();
+
+                if (UVs.Count > 0)
+                {
+                    result[index].U = UVs[i].X;
+                    result[index].V = UVs[i].Y;
+                    result[index].Format = Vertex.VertexFormat.VertexNormalUV;
+                }
+
+                if (Colors.Count > 0)
+                {
+                    result[index].R = Colors[i].R;
+                    result[index].G = Colors[i].G;
+                    result[index].B = Colors[i].B;
+                    result[index].A = Colors[i].A;
+                    result[index].Format = Vertex.VertexFormat.VertexNormalUVColor;
+                }
+            }
+            return result;
         }
 
         /// <summary>

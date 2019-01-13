@@ -72,7 +72,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
 
             Offset = (uint)reader.BaseStream.Position;
 
-            Console.WriteLine("MeshOffset: {0}", Offset);
+            //Console.WriteLine("MeshOffset: {0}", Offset);
 
             PolyType = reader.ReadUInt32();
             VerticesOffset = reader.ReadUInt32();

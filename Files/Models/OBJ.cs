@@ -43,6 +43,7 @@ namespace ShenmueDKSharp.Files.Models
         protected override void _Write(BinaryWriter writer)
         {
             int totalVertices = 0;
+            int totalUVs = 0;
             int objNum = 0;
 
             MTL mtl = new MTL(this);
@@ -74,29 +75,28 @@ namespace ShenmueDKSharp.Files.Models
             {
                 Matrix4 transformMatrix = node.GetTransformMatrix();
 
+                bool faceUV = false;
+                if (node.Faces.Count == 0) continue;
+                Vertex[] vertices = MeshFace.GetVertexArrayFaces(node.Faces, node.Vertices);
+                if (vertices.Length == 0) continue;
+
                 writer.WriteASCII(String.Format("o obj_{0}\n", objNum));
 
-                foreach (MeshFace face in node.Faces)
+                for (int i = 0; i < vertices.Length; i++)
                 {
-                    //TODO: assign textures to groups
-                    uint textureIndex = face.TextureIndex;
-                    Texture texture = face.Material.Texture;
+                    vertices[i].Position = Vector3.TransformPosition(vertices[i].Position, transformMatrix);
+                }
 
-                    Vertex[] vertices = face.GetVertexArray(node);
-
+                if (vertices[0].HasVertex())
+                {
                     for (int i = 0; i < vertices.Length; i++)
                     {
-                        vertices[i].Position = Vector3.TransformPosition(vertices[i].Position, transformMatrix);
+                        writer.WriteASCII(String.Format(cultureInfo, "v {0:F6} {1:F6} {2:F6}\n", vertices[i].PosX, vertices[i].PosY, vertices[i].PosZ));
                     }
+                }
 
-                    if (vertices[0].HasVertex())
-                    {
-                        for (int i = 0; i < vertices.Length; i++)
-                        {
-                            writer.WriteASCII(String.Format(cultureInfo, "v {0:F6} {1:F6} {2:F6}\n", vertices[i].PosX, vertices[i].PosY, vertices[i].PosZ));
-                        }
-                    }
-
+                if (node.Faces[0].UVs.Count == 0)
+                {
                     if (vertices[0].HasUV())
                     {
                         for (int i = 0; i < vertices.Length; i++)
@@ -104,45 +104,120 @@ namespace ShenmueDKSharp.Files.Models
                             writer.WriteASCII(String.Format(cultureInfo, "vt {0:F6} {1:F6}\n", vertices[i].U, vertices[i].V));
                         }
                     }
-
-                    if (vertices[0].HasNormal())
+                }
+                else
+                {
+                    faceUV = true;
+                    foreach (MeshFace face in node.Faces)
                     {
-                        for (int i = 0; i < vertices.Length; i++)
+                        foreach (Vector2 uv in face.UVs)
                         {
-                            writer.WriteASCII(String.Format(cultureInfo, "vn {0:F6} {1:F6} {2:F6}\n", vertices[i].NormX, vertices[i].NormY, vertices[i].NormZ));
+                            writer.WriteASCII(String.Format(cultureInfo, "vt {0:F6} {1:F6}\n", uv.X, uv.Y));
                         }
                     }
+                }
+
+                if (vertices[0].HasNormal())
+                {
+                    for (int i = 0; i < vertices.Length; i++)
+                    {
+                        writer.WriteASCII(String.Format(cultureInfo, "vn {0:F6} {1:F6} {2:F6}\n", vertices[i].NormX, vertices[i].NormY, vertices[i].NormZ));
+                    }
+                }
+
+                foreach (MeshFace face in node.Faces)
+                {
+                    uint textureIndex = face.TextureIndex;
+                    Texture texture = face.Material.Texture;
 
                     writer.WriteASCII(String.Format("usemtl mat_{0}\n", textureIndex));
-                    //writer.WriteASCII("s 1\n");
-                    if (face.Type == MeshFace.PrimitiveType.Triangles)
+                    writer.WriteASCII("s 1\n");
+
+                    if (faceUV)
                     {
-                        for (int i = 1; i < face.VertexIndices.Length + 1; i += 3)
+                        if (face.Type == MeshFace.PrimitiveType.TriangleStrip)
                         {
-                            int index = i + totalVertices;
-                            writer.WriteASCII(String.Format(GetVertexFormatString(vertices[i]), index, index + 1, index + 2));
+
+                            for (int i = 0; i < face.VertexIndices.Length - 2; i++)
+                            {
+                                int index1 = face.VertexIndices[i] + totalVertices + 1;
+                                int index2 = face.VertexIndices[i + 1] + totalVertices + 1;
+                                int index3 = face.VertexIndices[i + 2] + totalVertices + 1;
+
+                                int uv1 = i + 1 + totalUVs;
+                                int uv2 = i + 2 + totalUVs;
+                                int uv3 = i + 3 + totalUVs;
+
+                                if ((i & 1) == 1)
+                                {
+                                    writer.WriteASCII(String.Format(GetVertexFormatStringUV(vertices[face.VertexIndices[i]]), index1, index2, index3, uv1, uv2, uv3));
+                                }
+                                else
+                                {
+                                    writer.WriteASCII(String.Format(GetVertexFormatStringUV(vertices[face.VertexIndices[i]]), index1, index3, index2, uv1, uv3, uv2));
+                                }
+                            }
+                        }
+                        totalUVs += face.UVs.Count;
+                    }
+                    else
+                    {
+                        if (face.Type == MeshFace.PrimitiveType.Triangles)
+                        {
+                            for (int i = 0; i < face.VertexIndices.Length - 2; i += 3)
+                            {
+                                int index1 = face.VertexIndices[i] + totalVertices + 1;
+                                int index2 = face.VertexIndices[i + 1] + totalVertices + 1;
+                                int index3 = face.VertexIndices[i + 2] + totalVertices + 1;
+                                writer.WriteASCII(String.Format(GetVertexFormatString(vertices[face.VertexIndices[i]]), index1, index2, index3));
+                            }
+                        }
+                        else if (face.Type == MeshFace.PrimitiveType.TriangleStrip)
+                        {
+                            for (int i = 0; i < face.VertexIndices.Length - 2; i++)
+                            {
+                                int index1 = face.VertexIndices[i] + totalVertices + 1;
+                                int index2 = face.VertexIndices[i + 1] + totalVertices + 1;
+                                int index3 = face.VertexIndices[i + 2] + totalVertices + 1;
+                                if ((i & 1) == 1)
+                                {
+                                    writer.WriteASCII(String.Format(GetVertexFormatString(vertices[face.VertexIndices[i]]), index1, index2, index3));
+                                }
+                                else
+                                {
+                                    writer.WriteASCII(String.Format(GetVertexFormatString(vertices[face.VertexIndices[i]]), index1, index3, index2));
+                                }
+                            }
                         }
                     }
-                    else if (face.Type == MeshFace.PrimitiveType.TriangleStrip)
-                    {
-                        for (int i = 1; i < face.VertexIndices.Length - 1; i++)
-                        {
-                            int index = i + totalVertices;
-                            if ((i & 1) == 1)
-                            {
-                                writer.WriteASCII(String.Format(GetVertexFormatString(vertices[i]), index, index + 1, index + 2));
-                            }
-                            else
-                            {
-                                writer.WriteASCII(String.Format(GetVertexFormatString(vertices[i]), index, index + 2, index + 1));
-                            }
-                        }
-                    }
-                    objNum++;
-                    totalVertices += vertices.Length;
                 }
+                objNum++;
+                totalVertices += vertices.Length;
             }
             writer.WriteASCII(String.Format("# Total Verts: {0}\n", totalVertices));
+        }
+
+        private string GetVertexFormatStringUV(Vertex vertex)
+        {
+            if (vertex.HasVertex())
+            {
+                if (vertex.HasNormal())
+                {
+                    if (vertex.HasUV())
+                    {
+                        return "f {0}/{3}/{0} {1}/{4}/{1} {2}/{5}/{2}\n";
+                    }
+                    else
+                    {
+                        return "f {0}//{3} {1}//{4} {2}//{5}\n";
+                    }
+                }
+                else
+                {
+                    return "f {0} {1} {2}\n";
+                }
+            }
+            return "";
         }
 
         private string GetVertexFormatString(Vertex vertex)
