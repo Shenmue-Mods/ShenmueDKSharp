@@ -19,6 +19,8 @@ namespace ShenmueDKSharp.Files.Misc
         public static bool EnableBuffering = false;
         public override bool BufferingEnabled => EnableBuffering;
 
+        public static bool WriteTextureBuffer = true;
+
         public readonly static List<string> Extensions = new List<string>()
         {
             "TEXN"
@@ -103,7 +105,15 @@ namespace ShenmueDKSharp.Files.Misc
             writer.Write(Identifier);
             writer.Write(EntrySize);
             TextureID.Write(writer);
-            Texture.Write(writer); 
+
+            if(WriteTextureBuffer)
+            {
+                Texture.WriteBuffer(writer);
+            }
+            else
+            {
+                Texture.Write(writer);
+            }
         }
 
     }
