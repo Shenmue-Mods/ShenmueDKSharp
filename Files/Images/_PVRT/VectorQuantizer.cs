@@ -111,6 +111,7 @@ namespace ShenmueDKSharp.Files.Images._PVRT
                             blocks[blockIndex].Pixels[subVectorIndex].X = b;
                             blocks[blockIndex].Pixels[subVectorIndex].Y = g;
                             blocks[blockIndex].Pixels[subVectorIndex].Z = r;
+                            blocks[blockIndex].Pixels[subVectorIndex].W = a;
                         }
                     }
                 }
@@ -334,19 +335,20 @@ namespace ShenmueDKSharp.Files.Images._PVRT
         public int BlockWidth;
         public int BlockHeight;
         public int Group;
-        public System.Numerics.Vector3[] Pixels;
+        public System.Numerics.Vector4[] Pixels;
 
         public VQBlock(VQBlock block)
         {
             BlockWidth = block.BlockWidth;
             BlockHeight = block.BlockHeight;
             Group = block.Group;
-            Pixels = new System.Numerics.Vector3[BlockWidth * BlockHeight];
+            Pixels = new System.Numerics.Vector4[BlockWidth * BlockHeight];
             for(int i = 0; i < Pixels.Length; i++)
             {
                 Pixels[i].X = block.Pixels[i].X;
                 Pixels[i].Y = block.Pixels[i].Y;
                 Pixels[i].Z = block.Pixels[i].Z;
+                Pixels[i].W = block.Pixels[i].W;
             }
         }
 
@@ -355,14 +357,14 @@ namespace ShenmueDKSharp.Files.Images._PVRT
             BlockWidth = blockWidth;
             BlockHeight = blockHeight;
             Group = 0;
-            Pixels = new System.Numerics.Vector3[blockWidth * blockHeight];
+            Pixels = new System.Numerics.Vector4[blockWidth * blockHeight];
         }
 
         public void Zero()
         {
             for (int i = 0; i < Pixels.Length; i++)
             {
-                Pixels[i] = System.Numerics.Vector3.Zero;
+                Pixels[i] = System.Numerics.Vector4.Zero;
             }
         }
 
@@ -385,10 +387,10 @@ namespace ShenmueDKSharp.Files.Images._PVRT
         public double EuclidianDistance2x2(ref VQBlock block)
         {
             double total = 0.0;
-            total += System.Numerics.Vector3.DistanceSquared(Pixels[0], block.Pixels[0]);
-            total += System.Numerics.Vector3.DistanceSquared(Pixels[1], block.Pixels[1]);
-            total += System.Numerics.Vector3.DistanceSquared(Pixels[2], block.Pixels[2]);
-            total += System.Numerics.Vector3.DistanceSquared(Pixels[3], block.Pixels[3]);
+            total += System.Numerics.Vector4.DistanceSquared(Pixels[0], block.Pixels[0]);
+            total += System.Numerics.Vector4.DistanceSquared(Pixels[1], block.Pixels[1]);
+            total += System.Numerics.Vector4.DistanceSquared(Pixels[2], block.Pixels[2]);
+            total += System.Numerics.Vector4.DistanceSquared(Pixels[3], block.Pixels[3]);
             return total;
         }
 
@@ -397,7 +399,7 @@ namespace ShenmueDKSharp.Files.Images._PVRT
             double total = 0.0f;
             for(int i = 0; i < Pixels.Length; i++)
             {
-                total += System.Numerics.Vector3.DistanceSquared(Pixels[i], block.Pixels[i]);
+                total += System.Numerics.Vector4.DistanceSquared(Pixels[i], block.Pixels[i]);
             }
             return total;
         }
@@ -431,7 +433,7 @@ namespace ShenmueDKSharp.Files.Images._PVRT
                     array[destinationIndex * 4] = (byte)Pixels[sourceIndex].X;
                     array[destinationIndex * 4 + 1] = (byte)Pixels[sourceIndex].Y;
                     array[destinationIndex * 4 + 2] = (byte)Pixels[sourceIndex].Z;
-                    array[destinationIndex * 4 + 3] = 255;
+                    array[destinationIndex * 4 + 3] = (byte)Pixels[sourceIndex].W;
                     sourceIndex++;
                 }
             }
@@ -446,7 +448,7 @@ namespace ShenmueDKSharp.Files.Images._PVRT
                 array[i * 4] = (byte)Pixels[i].X;
                 array[i * 4 + 1] = (byte)Pixels[i].Y;
                 array[i * 4 + 2] = (byte)Pixels[i].Z;
-                array[i * 4 + 3] = 255;
+                array[i * 4 + 3] = (byte)Pixels[i].W;
             }
             return array;
         }
@@ -463,6 +465,7 @@ namespace ShenmueDKSharp.Files.Images._PVRT
                 Pixels[i].X = array[index * 4];
                 Pixels[i].Y = array[index * 4 + 1];
                 Pixels[i].Z = array[index * 4 + 2];
+                Pixels[i].W = array[index * 4 + 3];
             }
         }
     }
