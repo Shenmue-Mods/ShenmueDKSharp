@@ -228,7 +228,6 @@ namespace ShenmueDKSharp.Files.Models
     public class MT7Node : ModelNode
     {
         public uint Offset;
-        public uint ID;
 
         public uint XB01Offset;
         public uint ChildOffset;
@@ -301,12 +300,7 @@ namespace ShenmueDKSharp.Files.Models
             {
                 HasMesh = true;
                 reader.BaseStream.Seek(XB01Offset, SeekOrigin.Begin);
-                XB01 = new XB01(reader);
-                Faces = XB01.Faces;
-                Vertices = XB01.Vertices;
-                Center = XB01.MeshCenter;
-                Radius = XB01.MeshDiameter;
-                VertexCount = (uint)XB01.Vertices.Count;
+                XB01 = new XB01(reader, this);
             }
 
             //Construct node tree recursively

@@ -34,13 +34,12 @@ namespace ShenmueDKSharp.Files.Models._MT7
             return false;
         }
 
+        private MT7Node m_node;
+
         public uint Offset;
 
         public uint Identifier;
         public uint Unknown;
-
-        public Vector3 MeshCenter;
-        public float MeshDiameter;
 
         public uint FirstEntryOffset;
         public uint Size;
@@ -51,44 +50,67 @@ namespace ShenmueDKSharp.Files.Models._MT7
         public uint verticesSize;
         public ushort vertSize;
 
-        public List<MeshFace> Faces = new List<MeshFace>();
         public List<XB01Group> Groups = new List<XB01Group>();
-        public List<Vertex> Vertices = new List<Vertex>();
 
-        public float[] GetVertices()
+        public XB01(BinaryReader reader, MT7Node node)
         {
-            List<float> vertices = new List<float>();
-            foreach (MeshFace face in Faces)
-            {
-                vertices.AddRange(face.GetFloatArray(Vertices));
-            }
-            return vertices.ToArray();
-        }
+            m_node = node;
 
-        public XB01(BinaryReader reader)
-        {
             Offset = (uint)reader.BaseStream.Position;
             Identifier = reader.ReadUInt32();
             Unknown = reader.ReadUInt32();
 
-            MeshCenter = new Vector3()
+            m_node.Center = new Vector3()
             {
                 X = reader.ReadSingle(),
                 Y = reader.ReadSingle(),
                 Z = reader.ReadSingle()
             };
-            MeshDiameter = reader.ReadSingle();
+            m_node.Radius = reader.ReadSingle();
 
             FirstEntryOffset = reader.ReadUInt32();
             Size = reader.ReadUInt32();
             uint offsetVertices = Size * 4 + (uint)reader.BaseStream.Position - 4;
 
+            //Read vertices first
+            reader.BaseStream.Seek(offsetVertices, SeekOrigin.Begin);
+            vertUnknown1 = reader.ReadUInt32();
+            vertUnknown2 = reader.ReadUInt32();
+            vertSize = reader.ReadUInt16();
+            vertUnknown3 = reader.ReadUInt16();
+            verticesSize = reader.ReadUInt32();
+
+            VertexFormat vertexFormat = Vertex.GetFormat(vertSize);
+            for (uint i = 0; i < verticesSize; i += vertSize)
+            {
+                Vector3 pos = new Vector3();
+                pos.X = reader.ReadSingle();
+                pos.Y = reader.ReadSingle();
+                pos.Z = reader.ReadSingle();
+                m_node.VertexPositions.Add(pos);
+
+                if (vertSize > 12)
+                {
+                    Vector3 norm = new Vector3();
+                    norm.X = reader.ReadSingle();
+                    norm.Y = reader.ReadSingle();
+                    norm.Z = reader.ReadSingle();
+                    m_node.VertexNormals.Add(norm);
+
+                    if (vertSize > 24)
+                    {
+                        Vector2 uv = new Vector2();
+                        uv.X = reader.ReadSingle();
+                        uv.Y = reader.ReadSingle();
+                        m_node.VertexUVs.Add(uv);
+                    }
+                }
+            }
+
+            //Read faces
             reader.BaseStream.Seek(Offset + (FirstEntryOffset + 6) * 4, SeekOrigin.Begin);
-
-
             XB01Group group = new XB01Group(reader);
             Groups.Add(group);
-
             XB01_Tex currentTexture = null;
             XB01_TexAttr currentTexAttr = null;
             while (reader.BaseStream.Position < offsetVertices - 8)
@@ -138,13 +160,23 @@ namespace ShenmueDKSharp.Files.Models._MT7
                         MeshFace face = new MeshFace
                         {
                             TextureIndex = currentTexture.Textures[0],
-                            VertexIndices = strip.VertIndices.ToArray(),
                             Type = PrimitiveType.Triangles,
                             Wrap = currentTexAttr.Wrap,
                             Transparent = currentTexAttr.Transparent,
                             Unlit = currentTexAttr.Unlit
                         };
-                        Faces.Add(face);
+
+                        face.PositionIndices.AddRange(strip.VertIndices);
+                        if (vertSize > 12)
+                        {
+                            face.NormalIndices.AddRange(strip.VertIndices);
+                            if (vertSize > 24)
+                            {
+                                face.UVIndices.AddRange(strip.VertIndices);
+                            }
+                        }
+
+                        m_node.Faces.Add(face);
                         group.Entries.Add(strip);
                         break;
                     default:
@@ -154,34 +186,7 @@ namespace ShenmueDKSharp.Files.Models._MT7
                 }
             }
 
-            reader.BaseStream.Seek(offsetVertices, SeekOrigin.Begin);
-            vertUnknown1 = reader.ReadUInt32();
-            vertUnknown2 = reader.ReadUInt32();
-            vertSize = reader.ReadUInt16();
-            vertUnknown3 = reader.ReadUInt16();
-            verticesSize = reader.ReadUInt32();
-
-            VertexFormat vertexFormat = Vertex.GetFormat(vertSize);
-            for (uint i = 0; i < verticesSize; i += vertSize)
-            {
-                Vertex vert = new Vertex(vertexFormat);
-                vert.PosX = reader.ReadSingle();
-                vert.PosY = reader.ReadSingle();
-                vert.PosZ = reader.ReadSingle();
-
-                if (vertSize > 12)
-                {
-                    vert.NormX = reader.ReadSingle();
-                    vert.NormY = reader.ReadSingle();
-                    vert.NormZ = reader.ReadSingle();
-                    if (vertSize > 24)
-                    {
-                        vert.U = reader.ReadSingle();
-                        vert.V = reader.ReadSingle();
-                    }
-                }
-                Vertices.Add(vert);
-            }
+            
         }
 
         public class XB01Group
@@ -441,25 +446,6 @@ namespace ShenmueDKSharp.Files.Models._MT7
 
                 reader.BaseStream.Seek(position + Size * 4, SeekOrigin.Begin);
                 //Print();
-            }
-
-            public float[] GetVertices(XB01 xb01)
-            {
-                List<float> vertices = new List<float>();
-                foreach (uint index in VertIndices)
-                {
-                    if (index >= xb01.Vertices.Count) continue;
-                    Vertex vert = xb01.Vertices[(int)index];
-                    vertices.Add(vert.PosX);
-                    vertices.Add(vert.PosY);
-                    vertices.Add(vert.PosZ);
-                    vertices.Add(vert.NormX);
-                    vertices.Add(vert.NormY);
-                    vertices.Add(vert.NormZ);
-                    vertices.Add(vert.U);
-                    vertices.Add(vert.V);
-                }
-                return vertices.ToArray();
             }
         }
 

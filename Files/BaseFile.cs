@@ -85,10 +85,10 @@ namespace ShenmueDKSharp.Files
         {
             long baseOffset = reader.BaseStream.Position;
             _Read(reader);
-            long size = reader.BaseStream.Position - baseOffset;
 
-            if (BufferingEnabled)
+            if (reader.BaseStream.CanSeek && BufferingEnabled)
             {
+                long size = reader.BaseStream.Position - baseOffset;
                 reader.BaseStream.Seek(baseOffset, SeekOrigin.Begin);
                 Buffer = reader.ReadBytes((int)size);
             }

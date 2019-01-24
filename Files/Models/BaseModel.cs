@@ -51,23 +51,36 @@ namespace ShenmueDKSharp.Files.Models
     {
         public bool HasMesh = false;
 
-        public Vector3 Position;
+        public Vector3 Position = Vector3.Zero;
         /// <summary>
         /// Rotation in degrees
         /// </summary>
-        public Vector3 Rotation;
-        public Vector3 Scale;
+        public Vector3 Rotation = Vector3.Zero;
+        public Vector3 Scale = Vector3.One;
 
-        public ModelNode Child;
-        public ModelNode Sibling;
-        public ModelNode Parent;
+        public ModelNode Child = null;
+        public ModelNode Sibling = null;
+        public ModelNode Parent = null;
         public List<ModelNode> Children = new List<ModelNode>();
 
-        public Vector3 Center;
-        public float Radius;
+        public uint ID;
 
-        public uint VertexCount = 0;
-        public List<Vertex> Vertices = new List<Vertex>();
+        public Vector3 Center = Vector3.Zero;
+        public float Radius = 0.0f;
+
+        public int VertexCount
+        {
+            get
+            {
+                return VertexPositions.Count;
+            }
+        }
+
+        public List<Vector3> VertexPositions = new List<Vector3>();
+        public List<Vector3> VertexNormals = new List<Vector3>();
+        public List<Vector2> VertexUVs = new List<Vector2>();
+        public List<Color4> VertexColors = new List<Color4>();
+
         public List<MeshFace> Faces = new List<MeshFace>();
 
         /// <summary>
@@ -193,8 +206,8 @@ namespace ShenmueDKSharp.Files.Models
         private readonly static Encoding m_shiftJis = Encoding.GetEncoding("shift_jis");
 
         public BaseImage Image { get; set; }
-        public TextureID TextureID { get; set; }
-        public Color4 TintColor { get; set; }
+        public TextureID TextureID { get; set; } = new TextureID();
+        public Color4 TintColor { get; set; } = Color4.White;
 
         public override string ToString()
         {
@@ -223,12 +236,16 @@ namespace ShenmueDKSharp.Files.Models
         public bool Unlit { get; set; } = false;
         public bool Transparent { get; set; } = false;
         public bool MirrorUVs { get; set; } = false;
-        public WrapMode Wrap { get; set; } = WrapMode.Clamp;
+        public WrapMode Wrap { get; set; } = WrapMode.MirroredRepeat;
         public uint TextureIndex { get; set; } = 0;
         public Color4 StripColor { get; set; } = Color4.White;
         public Material Material { get; set; } = new Material();
         public PrimitiveType Type { get; set; }
-        public ushort[] VertexIndices { get; set; }
+
+        public List<ushort> PositionIndices { get; set; } = new List<ushort>();
+        public List<ushort> NormalIndices { get; set; } = new List<ushort>();
+        public List<ushort> UVIndices { get; set; } = new List<ushort>();
+        public List<ushort> ColorIndices { get; set; } = new List<ushort>();
 
 
         //MT5 stuff
@@ -236,116 +253,47 @@ namespace ShenmueDKSharp.Files.Models
         public List<Color4> Colors = new List<Color4>();
 
 
-        public static Vertex[] GetVertexArrayFaces(List<MeshFace> faces, List<Vertex> vertices)
-        {
-            Vertex[] result = vertices.ToArray();
-            foreach (MeshFace face in faces)
-            {
-                for (int i = 0; i < face.VertexIndices.Length; i++)
-                {
-                    ushort index = face.VertexIndices[i];
-                    if (index >= vertices.Count)
-                    {
-                        continue;
-                    }
-                    result[index] = vertices[face.VertexIndices[i]].Copy();
-
-                    if (face.UVs.Count > 0)
-                    {
-                        result[index].U = face.UVs[i].X;
-                        result[index].V = face.UVs[i].Y;
-                        result[index].Format = Vertex.VertexFormat.VertexNormalUV;
-                    }
-
-                    if (face.Colors.Count > 0)
-                    {
-                        result[index].R = face.Colors[i].R;
-                        result[index].G = face.Colors[i].G;
-                        result[index].B = face.Colors[i].B;
-                        result[index].A = face.Colors[i].A;
-                        result[index].Format = Vertex.VertexFormat.VertexNormalUVColor;
-                    }
-                }
-            }
-            return result;
-        }
-
         /// <summary>
         /// Returns the resolved vertex indices as vertices.
         /// </summary>
         /// <param name="node">The node that holds the vertices.</param>
         public Vertex[] GetVertexArray(ModelNode node)
         {
-            return GetVertexArray(node.Vertices);
-        }
+            int vertexCount = PositionIndices.Count;
+            Vertex[] result = new Vertex[vertexCount];
 
-        /// <summary>
-        /// Returns a vertices array that keeps the face vertex indices intact.
-        /// </summary>
-        public Vertex[] GetFullVertexArray(List<Vertex> vertices)
-        {
-            Vertex[] result = new Vertex[vertices.Count];
-            for (int i = 0; i < VertexIndices.Length; i++)
+            bool hasNormal = NormalIndices.Count != 0;
+            bool hasUV = UVIndices.Count != 0;
+            bool hasColor = ColorIndices.Count != 0;
+
+            for (int i = 0; i < vertexCount; i++)
             {
-                ushort index = VertexIndices[i];
-                if (index >= vertices.Count)
-                {
-                    result[index] = null;
-                    continue;
-                }
-                result[index] = vertices[VertexIndices[i]].Copy();
+                int posIndex = PositionIndices[i];
+                int normIndex = hasNormal ? NormalIndices[i] : -1;
+                int uvIndex = hasUV ? UVIndices[i] : -1;
+                int colorIndex = hasColor ? ColorIndices[i] : -1;
+                Vector3 pos = new Vector3();
+                Vector3 norm = new Vector3();
+                Vector2 uv = new Vector2();
+                Color4 color = new Color4();
 
-                if (UVs.Count > 0)
+                if (posIndex < node.VertexPositions.Count && posIndex >= 0)
                 {
-                    result[index].U = UVs[i].X;
-                    result[index].V = UVs[i].Y;
-                    result[index].Format = Vertex.VertexFormat.VertexNormalUV;
+                    pos = node.VertexPositions[posIndex];
                 }
-
-                if (Colors.Count > 0)
+                if (posIndex < node.VertexPositions.Count && normIndex >= 0)
                 {
-                    result[index].R = Colors[i].R;
-                    result[index].G = Colors[i].G;
-                    result[index].B = Colors[i].B;
-                    result[index].A = Colors[i].A;
-                    result[index].Format = Vertex.VertexFormat.VertexNormalUVColor;
+                    norm = node.VertexNormals[normIndex];
                 }
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// Returns the resolved vertex indices as vertices.
-        /// </summary>
-        /// <param name="vertices">Vertex list that holds the vertices.</param>
-        public Vertex[] GetVertexArray(List<Vertex> vertices)
-        {
-            Vertex[] result = new Vertex[VertexIndices.Length];
-            for (int i = 0; i < VertexIndices.Length; i++)
-            {
-                ushort index = VertexIndices[i];
-                if (index >= vertices.Count)
+                if (uvIndex < node.VertexUVs.Count && uvIndex >= 0)
                 {
-                    result[i] = null;
-                    continue;
+                    uv = node.VertexUVs[uvIndex];
                 }
-                result[i] = vertices[VertexIndices[i]].Copy();
-
-                if (UVs.Count > 0)
+                if (colorIndex < node.VertexColors.Count && colorIndex >= 0)
                 {
-                    result[i].U = UVs[i].X;
-                    result[i].V = UVs[i].Y;
-                    result[i].Format = Vertex.VertexFormat.VertexNormalUV;
+                    color = node.VertexColors[colorIndex];
                 }
-
-                if (Colors.Count > 0)
-                {
-                    result[i].R = Colors[i].R;
-                    result[i].G = Colors[i].G;
-                    result[i].B = Colors[i].B;
-                    result[i].A = Colors[i].A;
-                    result[i].Format = Vertex.VertexFormat.VertexNormalUVColor;
-                }
+                result[i] = new Vertex(pos, norm, color, uv);
             }
             return result;
         }
@@ -357,7 +305,7 @@ namespace ShenmueDKSharp.Files.Models
         /// <returns></returns>
         public float[] GetFloatArray(ModelNode node, Vertex.VertexFormat format = Vertex.VertexFormat.Undefined)
         {
-            return GetFloatArray(node.Vertices, format);
+            return GetFloatArray(GetVertexArray(node).ToList(), format);
         }
 
         /// <summary>
@@ -367,9 +315,8 @@ namespace ShenmueDKSharp.Files.Models
         /// <returns></returns>
         public float[] GetFloatArray(List<Vertex> vertices, Vertex.VertexFormat format = Vertex.VertexFormat.Undefined)
         {
-            Vertex[] verts = GetVertexArray(vertices);
             List<float> result = new List<float>();
-            foreach(Vertex vert in verts)
+            foreach(Vertex vert in vertices)
             {
                 if (vert == null) continue;
                 result.AddRange(vert.GetData(format));
@@ -379,7 +326,7 @@ namespace ShenmueDKSharp.Files.Models
 
         public override string ToString()
         {
-            return String.Format("Vertex Count: {0}", VertexIndices.Length);
+            return String.Format("Vertex Count: {0}", PositionIndices.Count);
         }
     }
 
@@ -419,7 +366,7 @@ namespace ShenmueDKSharp.Files.Models
         /// <summary>
         /// Vertex color
         /// </summary>
-        public Vector4 Color = new Vector4();
+        public Color4 Color = new Color4();
         /// <summary>
         /// Vertex texture coordinates (UV)
         /// </summary>
@@ -477,26 +424,26 @@ namespace ShenmueDKSharp.Files.Models
 
         public float R
         {
-            get { return Color.X; }
-            set { Color.X = value; }
+            get { return Color.R; }
+            set { Color.R = value; }
         }
 
         public float G
         {
-            get { return Color.Y; }
-            set { Color.Y = value; }
+            get { return Color.G; }
+            set { Color.G = value; }
         }
 
         public float B
         {
-            get { return Color.Z; }
-            set { Color.Z = value; }
+            get { return Color.B; }
+            set { Color.B = value; }
         }
 
         public float A
         {
-            get { return Color.W; }
-            set { Color.W = value; }
+            get { return Color.A; }
+            set { Color.A = value; }
         }
 
 
@@ -512,12 +459,11 @@ namespace ShenmueDKSharp.Files.Models
             set { TexCoord.Y = value; }
         }
 
-
         public Vertex(Vertex vertex)
         {
             Position = new Vector3(vertex.Position);
             Normal = new Vector3(vertex.Normal);
-            Color = new Vector4(vertex.Color);
+            Color = new Color4(vertex.Color);
             TexCoord = new Vector2(vertex.TexCoord.X, vertex.TexCoord.Y);
             Format = vertex.Format;
         }
@@ -572,7 +518,7 @@ namespace ShenmueDKSharp.Files.Models
             TexCoord = new Vector2(u, v);
         }
 
-        public Vertex(Vector3 pos, Vector3 norm, Vector4 color)
+        public Vertex(Vector3 pos, Vector3 norm, Color4 color)
         {
             Format = VertexFormat.VertexNormalColor;
             Position = pos;
@@ -587,10 +533,10 @@ namespace ShenmueDKSharp.Files.Models
             Format = VertexFormat.VertexNormalColor;
             Position = new Vector3(posX, posY, posZ);
             Normal = new Vector3(normX, normY, normZ);
-            Color = new Vector4(colR, colG, colB, colA);
+            Color = new Color4(colR, colG, colB, colA);
         }
 
-        public Vertex(Vector3 pos, Vector3 norm, Vector4 color, Vector2 uv)
+        public Vertex(Vector3 pos, Vector3 norm, Color4 color, Vector2 uv)
         {
             Format = VertexFormat.VertexNormalUVColor;
             Position = pos;
@@ -607,7 +553,7 @@ namespace ShenmueDKSharp.Files.Models
             Format = VertexFormat.VertexNormalUVColor;
             Position = new Vector3(posX, posY, posZ);
             Normal = new Vector3(normX, normY, normZ);
-            Color = new Vector4(colR, colG, colB, colA);
+            Color = new Color4(colR, colG, colB, colA);
             TexCoord = new Vector2(u, v);
         }
 
@@ -643,10 +589,10 @@ namespace ShenmueDKSharp.Files.Models
             }
             if (((DataFlags)format & DataFlags.Color) != 0)
             {
-                result[index++] = Color.X;
-                result[index++] = Color.Y;
-                result[index++] = Color.Z;
-                result[index++] = Color.W;
+                result[index++] = Color.R;
+                result[index++] = Color.G;
+                result[index++] = Color.B;
+                result[index++] = Color.A;
             }
             return result;
         }

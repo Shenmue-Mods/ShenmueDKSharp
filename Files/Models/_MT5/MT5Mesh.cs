@@ -23,11 +23,6 @@ namespace ShenmueDKSharp.Files.Models._MT5
         public uint VerticesOffset;
         public int VertexCount;
         public uint FacesOffset;
-        public Vector3 MeshCenter;
-        public float MeshDiameter;
-
-        public List<Vertex> Vertices = new List<Vertex>();
-        public List<MeshFace> Faces = new List<MeshFace>();
 
         /// <summary>
         /// All types based on sm1 asm
@@ -79,13 +74,13 @@ namespace ShenmueDKSharp.Files.Models._MT5
             VertexCount = reader.ReadInt32();
             FacesOffset = reader.ReadUInt32();
 
-            MeshCenter = new Vector3()
+            m_node.Center = new Vector3()
             {
                 X = reader.ReadSingle(),
                 Y = reader.ReadSingle(),
                 Z = reader.ReadSingle()
             };
-            MeshDiameter = reader.ReadSingle();
+            m_node.Radius = reader.ReadSingle();
 
             //Read strips/faces
             reader.BaseStream.Seek(FacesOffset, SeekOrigin.Begin);
@@ -94,7 +89,11 @@ namespace ShenmueDKSharp.Files.Models._MT5
             uint textureIndex = 0;
             Color4 stripColor = Color4.White;
             bool uvFlag = false;
+
             uint unknown_0B00 = 0; //polytype? uv mirror? (used when reading strip)
+
+            int uvIndex = 0;
+            int colorIndex = 0;
 
             //read strip functions
             while (reader.BaseStream.Position < reader.BaseStream.Length - 4)
@@ -202,6 +201,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
                             face.Type = MeshFace.PrimitiveType.TriangleStrip;
                             face.TextureIndex = textureIndex;
                             face.StripColor = stripColor;
+                            face.Wrap = MeshFace.WrapMode.Repeat; //TODO: find wrap mode
 
                             short stripLength = reader.ReadInt16();
                             if (stripLength < 0)
@@ -209,7 +209,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
                                 stripLength = Math.Abs(stripLength);
                             }
 
-                            face.VertexIndices = new ushort[stripLength];
+                            face.PositionIndices = new List<ushort>();
+                            face.NormalIndices = new List<ushort>();
                             for (int j = 0; j < stripLength; j++)
                             {
                                 short vertIndex = reader.ReadInt16();
@@ -222,13 +223,12 @@ namespace ShenmueDKSharp.Files.Models._MT5
                                     else
                                     {
                                         //Offset parent vertex indices by own vertex count so we use the appended parents vertices
-                                        vertIndex = (short)(VertexCount + vertIndex + m_parentNode.MeshData.VertexCount);
+                                        vertIndex = (short)(VertexCount + vertIndex + m_parentNode.VertexCount);
                                     }
                                 }
-                                face.VertexIndices[j] = (ushort)vertIndex;
+                                face.PositionIndices.Add((ushort)vertIndex);
+                                face.NormalIndices.Add((ushort)vertIndex);
 
-                                float u = -1.0f;
-                                float v = -1.0f;
                                 if (hasUV)
                                 {
                                     short texU = reader.ReadInt16();
@@ -236,29 +236,28 @@ namespace ShenmueDKSharp.Files.Models._MT5
 
                                     //UV/N normal-resolution 0 - 255
                                     //UVH high-resolution 0 - 1023
-                                    u = texU / 1024.0f;
-                                    v = texV / 1024.0f;
+                                    float u = texU / 1024.0f;
+                                    float v = texV / 1024.0f;
+
+                                    m_node.VertexUVs.Add(new Vector2(u, v));
+                                    face.UVIndices.Add((ushort)uvIndex);
+                                    uvIndex++;
                                 }
 
-                                byte b = 255;
-                                byte g = 255;
-                                byte r = 255;
-                                byte a = 255;
                                 if (hasColor)
                                 {
                                     //BGRA (8888) 32BPP
-                                    b = reader.ReadByte();
-                                    g = reader.ReadByte();
-                                    r = reader.ReadByte();
-                                    a = reader.ReadByte();
-                                    //Console.WriteLine("R:{0} G:{1} B:{2} A:{3}", r, g, b, a);
-                                }
+                                    byte b = reader.ReadByte();
+                                    byte g = reader.ReadByte();
+                                    byte r = reader.ReadByte();
+                                    byte a = reader.ReadByte();
 
-                                //always add uv's and color like d3t did
-                                face.UVs.Add(new Vector2(u, v));
-                                face.Colors.Add(new Color4(r, g, b, a));
+                                    m_node.VertexColors.Add(new Color4(r, g, b, a));
+                                    face.ColorIndices.Add((ushort)colorIndex);
+                                    colorIndex++;
+                                }
                             }
-                            Faces.Add(face);
+                            m_node.Faces.Add(face);
                         }
                         continue;
 
@@ -278,13 +277,13 @@ namespace ShenmueDKSharp.Files.Models._MT5
                 pos.X = reader.ReadSingle();
                 pos.Y = reader.ReadSingle();
                 pos.Z = reader.ReadSingle();
+                m_node.VertexPositions.Add(pos);
 
                 Vector3 norm;
                 norm.X = reader.ReadSingle();
                 norm.Y = reader.ReadSingle();
                 norm.Z = reader.ReadSingle();
-
-                Vertices.Add(new Vertex(pos, norm));
+                m_node.VertexNormals.Add(norm);
             }
 
             if (m_parentNode != null && m_parentNode.MeshData != null)
@@ -294,14 +293,14 @@ namespace ShenmueDKSharp.Files.Models._MT5
 
                 //Apply the inverted transform matrix of the node on vertices so they get canceled out by the final transform.
                 Matrix4 matrix = m_node.GetTransformMatrixSelf().Inverted();
-                foreach (Vertex vert in m_parentNode.MeshData.Vertices)
+                for (int i = 0; i < m_parentNode.VertexCount; i++)
                 {
-                    Vertex v = new Vertex(vert);
-
-                    v.Position = Vector3.TransformPosition(v.Position, matrix);
-                    v.Normal = Vector3.TransformPosition(v.Normal, matrix);
-
-                    Vertices.Add(v);
+                    Vector3 pos = new Vector3(m_parentNode.VertexPositions[i]);
+                    Vector3 norm = new Vector3(m_parentNode.VertexNormals[i]);
+                    pos = Vector3.TransformPosition(pos, matrix);
+                    norm = Vector3.TransformPosition(norm, matrix);
+                    m_node.VertexPositions.Add(pos);
+                    m_node.VertexNormals.Add(norm);
                 }
             }
         }

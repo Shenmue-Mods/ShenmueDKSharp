@@ -20,5 +20,18 @@ namespace System.IO
             }
             return line;
         }
+
+        public static string ReadToEnd(this BinaryReader reader)
+        {
+            if (reader == null)
+                throw new ArgumentNullException(nameof(reader));
+
+            string line = "";
+            using (StreamReader streamReader = new StreamReader(reader.BaseStream))
+            {
+                line = streamReader.ReadToEnd();
+            }
+            return line;
+        }
     }
 }

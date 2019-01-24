@@ -17,6 +17,8 @@ namespace ShenmueDKSharp.Files.Models
         public static bool EnableBuffering = false;
         public override bool BufferingEnabled => EnableBuffering;
 
+        private static CultureInfo m_cultureInfo = CultureInfo.InvariantCulture;
+
         public OBJ(BaseModel model)
         {
             model.CopyTo(this);
@@ -37,16 +39,165 @@ namespace ShenmueDKSharp.Files.Models
 
         protected override void _Read(BinaryReader reader)
         {
-            throw new NotImplementedException();
+            List<Vector3> vertices = new List<Vector3>();
+            List<Vector3> normals = new List<Vector3>();
+            List<Vector2> uvs = new List<Vector2>();
+
+            Dictionary<int, Vertex> nodeVertices = new Dictionary<int, Vertex>();
+
+            MeshFace currentFace = null;
+
+            int currentTextureIndex = -1;
+
+            MTL mtl = null;
+            Textures.Clear();
+            RootNode = new ModelNode();
+            RootNode.HasMesh = true;
+
+            bool hasUV = false;
+            bool hasNormals = false;
+            bool faceTextureChanged = false;
+
+            string[] lines = reader.ReadToEnd().Split('\n');
+            foreach(string line in lines)
+            {
+                if (line.StartsWith("#") || String.IsNullOrEmpty(line))
+                {
+                    continue;
+                }
+                else if (line.StartsWith("mtllib "))
+                {
+                    string[] values = line.Split(' ');
+                    if (values.Length != 2) continue;
+
+                    string mtlPath = "";
+                    string dir = Path.GetDirectoryName(FilePath);
+                    mtlPath = String.Format("{0}\\{1}", Path.GetDirectoryName(FilePath), values[1]);
+
+                    mtl = new MTL(mtlPath);
+                    Textures = mtl.Textures;
+                }
+                else if (line.StartsWith("v "))
+                {
+                    string[] values = line.Split(' ');
+                    if (values.Length != 4) continue;
+                    Vector3 vertex = new Vector3();
+                    vertex.X = float.Parse(values[1], m_cultureInfo);
+                    vertex.Y = float.Parse(values[2], m_cultureInfo);
+                    vertex.Z = float.Parse(values[3], m_cultureInfo);
+                    RootNode.VertexPositions.Add(vertex);
+                }
+                else if (line.StartsWith("vt "))
+                {
+                    string[] values = line.Split(' ');
+                    if (values.Length != 3) continue;
+                    Vector2 uv = new Vector2();
+                    uv.X = float.Parse(values[1], m_cultureInfo);
+                    uv.Y = float.Parse(values[2], m_cultureInfo);
+                    RootNode.VertexUVs.Add(uv);
+                }
+                else if (line.StartsWith("vn "))
+                {
+                    string[] values = line.Split(' ');
+                    if (values.Length != 4) continue;
+                    Vector3 normal = new Vector3();
+                    normal.X = float.Parse(values[1], m_cultureInfo);
+                    normal.Y = float.Parse(values[2], m_cultureInfo);
+                    normal.Z = float.Parse(values[3], m_cultureInfo);
+                    RootNode.VertexNormals.Add(normal);
+                }
+                else if (line.StartsWith("f "))
+                {
+                    if (currentFace == null) continue;
+
+                    if (line.Contains("//"))
+                    {
+                        string[] stringSeparators = new string[] { "//" };
+
+                        string[] values = line.Split(' ');
+                        if (values.Length != 4) continue;
+
+                        string[] vert1Values = values[1].Split(stringSeparators, StringSplitOptions.None);
+                        string[] vert2Values = values[2].Split(stringSeparators, StringSplitOptions.None);
+                        string[] vert3Values = values[3].Split(stringSeparators, StringSplitOptions.None);
+
+                        currentFace.PositionIndices.Add((ushort)(int.Parse(vert1Values[0]) - 1));
+                        currentFace.NormalIndices.Add((ushort)(int.Parse(vert1Values[1]) - 1));
+                        currentFace.PositionIndices.Add((ushort)(int.Parse(vert2Values[0]) - 1));
+                        currentFace.NormalIndices.Add((ushort)(int.Parse(vert2Values[1]) - 1));
+                        currentFace.PositionIndices.Add((ushort)(int.Parse(vert3Values[0]) - 1));
+                        currentFace.NormalIndices.Add((ushort)(int.Parse(vert3Values[1]) - 1));
+                    }
+                    else if(line.Contains("/"))
+                    {
+                        string[] stringSeparators = new string[] { "/" };
+
+                        string[] values = line.Split(' ');
+                        if (values.Length != 4) continue;
+
+                        string[] vert1Values = values[1].Split(stringSeparators, StringSplitOptions.None);
+                        string[] vert2Values = values[2].Split(stringSeparators, StringSplitOptions.None);
+                        string[] vert3Values = values[3].Split(stringSeparators, StringSplitOptions.None);
+
+                        currentFace.PositionIndices.Add((ushort)(int.Parse(vert1Values[0]) - 1));
+                        currentFace.UVIndices.Add((ushort)(int.Parse(vert1Values[1]) - 1));
+                        currentFace.NormalIndices.Add((ushort)(int.Parse(vert1Values[2]) - 1));
+
+                        currentFace.PositionIndices.Add((ushort)(int.Parse(vert2Values[0]) - 1));
+                        currentFace.UVIndices.Add((ushort)(int.Parse(vert2Values[1]) - 1));
+                        currentFace.NormalIndices.Add((ushort)(int.Parse(vert2Values[2]) - 1));
+
+                        currentFace.PositionIndices.Add((ushort)(int.Parse(vert3Values[0]) - 1));
+                        currentFace.UVIndices.Add((ushort)(int.Parse(vert3Values[1]) - 1));
+                        currentFace.NormalIndices.Add((ushort)(int.Parse(vert3Values[2]) - 1));
+                    }
+                    else
+                    {
+                        string[] values = line.Split(' ');
+                        if (values.Length != 4) continue;
+
+                        currentFace.PositionIndices.Add((ushort)(int.Parse(values[0]) - 1));
+                        currentFace.PositionIndices.Add((ushort)(int.Parse(values[1]) - 1));
+                        currentFace.PositionIndices.Add((ushort)(int.Parse(values[2]) - 1));
+                    }
+                }
+                else if (line.StartsWith("usemtl "))
+                {
+                    string[] values = line.Split(' ');
+                    if (values.Length != 2) continue;
+
+                    if (faceTextureChanged)
+                    {
+                        RootNode.Faces.Add(currentFace);
+                    }
+                    currentFace = new MeshFace();
+                    currentTextureIndex = mtl.GetMaterialTextureIndex(values[1]);
+                    currentFace.TextureIndex = (uint)currentTextureIndex;
+                    faceTextureChanged = true;
+                }
+                else if (line.StartsWith("o "))
+                {
+                    if (currentFace != null)
+                    {
+                        RootNode.Faces.Add(currentFace);
+                    }
+                    currentFace = new MeshFace();
+                    faceTextureChanged = false;
+                }
+            }
+            RootNode.Faces.Add(currentFace);
+            RootNode.ResolveFaceTextures(Textures);
         }
 
         protected override void _Write(BinaryWriter writer)
         {
-            int totalVertices = 0;
-            int totalUVs = 0;
             int objNum = 0;
 
-            MTL mtl = new MTL(this);
+            int totalPositions = 0;
+            int totalNormals = 0;
+            int totalUVs = 0;
+
+            MTL mtl = new MTL(Textures);
             if (String.IsNullOrEmpty(FilePath))
             {
                 //TODO: Make this somehow better
@@ -65,63 +216,53 @@ namespace ShenmueDKSharp.Files.Models
             }
             mtl.Write(mtlPath);
 
-            CultureInfo cultureInfo = new CultureInfo("en-GB");
-
             writer.WriteASCII("# OBJ Generated by ShenmueDKSharp\n");
 
             writer.WriteASCII(String.Format("mtllib {0}\n", Path.GetFileName(mtlPath)));
+
+            StringBuilder sbVertices = new StringBuilder();
+            StringBuilder sbNormals = new StringBuilder();
+            StringBuilder sbUVs = new StringBuilder();
+
+            StringBuilder sbMeshes = new StringBuilder();
 
             foreach (ModelNode node in RootNode.GetAllNodes())
             {
                 Matrix4 transformMatrix = node.GetTransformMatrix();
 
-                bool faceUV = false;
                 if (node.Faces.Count == 0) continue;
-                Vertex[] vertices = MeshFace.GetVertexArrayFaces(node.Faces, node.Vertices);
-                if (vertices.Length == 0) continue;
 
-                writer.WriteASCII(String.Format("o obj_{0}\n", objNum));
+                Vector3[] positions = node.VertexPositions.ToArray();
+                Vector3[] normals = node.VertexNormals.ToArray();
+                Vector2[] uvs = node.VertexUVs.ToArray();
+                if (positions.Length == 0) continue;
 
-                for (int i = 0; i < vertices.Length; i++)
+                sbMeshes.Append(String.Format("o obj_{0}\n", objNum));
+
+                for (int i = 0; i < positions.Length; i++)
                 {
-                    vertices[i].Position = Vector3.TransformPosition(vertices[i].Position, transformMatrix);
+                    positions[i] = Vector3.TransformPosition(positions[i], transformMatrix);
                 }
 
-                if (vertices[0].HasVertex())
+                for (int i = 0; i < positions.Length; i++)
                 {
-                    for (int i = 0; i < vertices.Length; i++)
+                    sbVertices.Append(String.Format(m_cultureInfo, "v {0:F6} {1:F6} {2:F6}\n", positions[i].X, positions[i].Y, positions[i].Z));
+                }
+
+                if (uvs.Length > 0)
+                {
+                    for (int i = 0; i < uvs.Length; i++)
                     {
-                        writer.WriteASCII(String.Format(cultureInfo, "v {0:F6} {1:F6} {2:F6}\n", vertices[i].PosX, vertices[i].PosY, vertices[i].PosZ));
+                        sbUVs.Append(String.Format(m_cultureInfo, "vt {0:F6} {1:F6}\n", uvs[i].X, uvs[i].Y));
                     }
                 }
 
-                if (node.Faces[0].UVs.Count == 0)
+                if (normals.Length > 0)
                 {
-                    if (vertices[0].HasUV())
+                    for (int i = 0; i < normals.Length; i++)
                     {
-                        for (int i = 0; i < vertices.Length; i++)
-                        {
-                            writer.WriteASCII(String.Format(cultureInfo, "vt {0:F6} {1:F6}\n", vertices[i].U, vertices[i].V));
-                        }
-                    }
-                }
-                else
-                {
-                    faceUV = true;
-                    foreach (MeshFace face in node.Faces)
-                    {
-                        foreach (Vector2 uv in face.UVs)
-                        {
-                            writer.WriteASCII(String.Format(cultureInfo, "vt {0:F6} {1:F6}\n", uv.X, uv.Y));
-                        }
-                    }
-                }
-
-                if (vertices[0].HasNormal())
-                {
-                    for (int i = 0; i < vertices.Length; i++)
-                    {
-                        writer.WriteASCII(String.Format(cultureInfo, "vn {0:F6} {1:F6} {2:F6}\n", vertices[i].NormX, vertices[i].NormY, vertices[i].NormZ));
+                        //normals[i] = Vector3.TransformPosition(normals[i], transformMatrix);
+                        sbNormals.Append(String.Format(m_cultureInfo, "vn {0:F6} {1:F6} {2:F6}\n", normals[i].X, normals[i].Y, normals[i].Z));
                     }
                 }
 
@@ -130,117 +271,135 @@ namespace ShenmueDKSharp.Files.Models
                     uint textureIndex = face.TextureIndex;
                     Texture texture = face.Material.Texture;
 
-                    writer.WriteASCII(String.Format("usemtl mat_{0}\n", textureIndex));
-                    writer.WriteASCII("s 1\n");
+                    sbMeshes.Append(String.Format("usemtl mat_{0}\n", textureIndex));
+                    sbMeshes.Append("s 1\n");
 
-                    if (faceUV)
+                    bool hasUV = face.UVIndices.Count > 0;
+                    bool hasNormal = face.NormalIndices.Count > 0;
+
+                    if (face.Type == MeshFace.PrimitiveType.Triangles)
                     {
-                        if (face.Type == MeshFace.PrimitiveType.TriangleStrip)
+                        for (int i = 0; i < face.PositionIndices.Count - 2; i += 3)
                         {
-
-                            for (int i = 0; i < face.VertexIndices.Length - 2; i++)
+                            int posIndex1 = face.PositionIndices[i] + totalPositions + 1;
+                            int posIndex2 = face.PositionIndices[i + 1] + totalPositions + 1;
+                            int posIndex3 = face.PositionIndices[i + 2] + totalPositions + 1;
+                            if (hasNormal)
                             {
-                                int index1 = face.VertexIndices[i] + totalVertices + 1;
-                                int index2 = face.VertexIndices[i + 1] + totalVertices + 1;
-                                int index3 = face.VertexIndices[i + 2] + totalVertices + 1;
-
-                                int uv1 = i + 1 + totalUVs;
-                                int uv2 = i + 2 + totalUVs;
-                                int uv3 = i + 3 + totalUVs;
-
-                                if ((i & 1) == 1)
+                                int normIndex1 = face.NormalIndices[i] + totalNormals + 1;
+                                int normIndex2 = face.NormalIndices[i + 1] + totalNormals + 1;
+                                int normIndex3 = face.NormalIndices[i + 2] + totalNormals + 1;
+                                if (hasUV)
                                 {
-                                    writer.WriteASCII(String.Format(GetVertexFormatStringUV(vertices[face.VertexIndices[i]]), index1, index2, index3, uv1, uv2, uv3));
+                                    int uvIndex1 = face.UVIndices[i] + totalUVs + 1;
+                                    int uvIndex2 = face.UVIndices[i + 1] + totalUVs + 1;
+                                    int uvIndex3 = face.UVIndices[i + 2] + totalUVs + 1;
+                                    sbMeshes.Append(String.Format(GetVertexFormatString(hasUV, hasNormal), posIndex1, posIndex2, posIndex3,
+                                                                                                           uvIndex1, uvIndex2, uvIndex3,
+                                                                                                           normIndex1, normIndex2, normIndex3));
                                 }
                                 else
                                 {
-                                    writer.WriteASCII(String.Format(GetVertexFormatStringUV(vertices[face.VertexIndices[i]]), index1, index3, index2, uv1, uv3, uv2));
+                                    sbMeshes.Append(String.Format(GetVertexFormatString(hasUV, hasNormal), posIndex1, posIndex2, posIndex3,
+                                                                                                           normIndex1, normIndex2, normIndex3));
                                 }
                             }
+                            else
+                            {
+                                sbMeshes.Append(String.Format(GetVertexFormatString(hasUV, hasNormal), posIndex1, posIndex2, posIndex3));
+                            }
                         }
-                        totalUVs += face.UVs.Count;
                     }
-                    else
+                    else if (face.Type == MeshFace.PrimitiveType.TriangleStrip)
                     {
-                        if (face.Type == MeshFace.PrimitiveType.Triangles)
+                        for (int i = 0; i < face.PositionIndices.Count - 2; i++)
                         {
-                            for (int i = 0; i < face.VertexIndices.Length - 2; i += 3)
+                            int posIndex1 = face.PositionIndices[i] + totalPositions + 1;
+                            int posIndex2 = face.PositionIndices[i + 1] + totalPositions + 1;
+                            int posIndex3 = face.PositionIndices[i + 2] + totalPositions + 1;
+                            if (hasNormal)
                             {
-                                int index1 = face.VertexIndices[i] + totalVertices + 1;
-                                int index2 = face.VertexIndices[i + 1] + totalVertices + 1;
-                                int index3 = face.VertexIndices[i + 2] + totalVertices + 1;
-                                writer.WriteASCII(String.Format(GetVertexFormatString(vertices[face.VertexIndices[i]]), index1, index2, index3));
-                            }
-                        }
-                        else if (face.Type == MeshFace.PrimitiveType.TriangleStrip)
-                        {
-                            for (int i = 0; i < face.VertexIndices.Length - 2; i++)
-                            {
-                                int index1 = face.VertexIndices[i] + totalVertices + 1;
-                                int index2 = face.VertexIndices[i + 1] + totalVertices + 1;
-                                int index3 = face.VertexIndices[i + 2] + totalVertices + 1;
-                                if ((i & 1) == 1)
+                                int normIndex1 = face.NormalIndices[i] + totalNormals + 1;
+                                int normIndex2 = face.NormalIndices[i + 1] + totalNormals + 1;
+                                int normIndex3 = face.NormalIndices[i + 2] + totalNormals + 1;
+                                if (hasUV)
                                 {
-                                    writer.WriteASCII(String.Format(GetVertexFormatString(vertices[face.VertexIndices[i]]), index1, index2, index3));
+                                    int uvIndex1 = face.UVIndices[i] + totalUVs + 1;
+                                    int uvIndex2 = face.UVIndices[i + 1] + totalUVs + 1;
+                                    int uvIndex3 = face.UVIndices[i + 2] + totalUVs + 1;
+                                    if ((i & 1) == 1)
+                                    {
+                                        sbMeshes.Append(String.Format(GetVertexFormatString(hasUV, hasNormal), posIndex1, posIndex2, posIndex3,
+                                                                                                            uvIndex1, uvIndex2, uvIndex3,
+                                                                                                            normIndex1, normIndex2, normIndex3));
+                                    }
+                                    else
+                                    {
+                                        sbMeshes.Append(String.Format(GetVertexFormatString(hasUV, hasNormal), posIndex1, posIndex3, posIndex2,
+                                                                                                            uvIndex1, uvIndex3, uvIndex2,
+                                                                                                            normIndex1, normIndex3, normIndex2));
+                                    }
                                 }
                                 else
                                 {
-                                    writer.WriteASCII(String.Format(GetVertexFormatString(vertices[face.VertexIndices[i]]), index1, index3, index2));
+                                    if ((i & 1) == 1)
+                                    {
+                                        sbMeshes.Append(String.Format(GetVertexFormatString(hasUV, hasNormal), posIndex1, posIndex2, posIndex3,
+                                                                                                           normIndex1, normIndex2, normIndex3));
+                                    }
+                                    else
+                                    {
+                                        sbMeshes.Append(String.Format(GetVertexFormatString(hasUV, hasNormal), posIndex1, posIndex3, posIndex2,
+                                                                                                           normIndex1, normIndex3, normIndex2));
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if ((i & 1) == 1)
+                                {
+                                    sbMeshes.Append(String.Format(GetVertexFormatString(hasUV, hasNormal), posIndex1, posIndex2, posIndex3));
+                                }
+                                else
+                                {
+                                    sbMeshes.Append(String.Format(GetVertexFormatString(hasUV, hasNormal), posIndex1, posIndex3, posIndex2));
                                 }
                             }
                         }
                     }
                 }
                 objNum++;
-                totalVertices += vertices.Length;
+                totalPositions += positions.Length;
+                totalNormals += normals.Length;
+                totalUVs += uvs.Length;
             }
-            writer.WriteASCII(String.Format("# Total Verts: {0}\n", totalVertices));
+
+            writer.WriteASCII(sbVertices.ToString());
+            writer.WriteASCII(sbUVs.ToString());
+            writer.WriteASCII(sbNormals.ToString());
+            writer.WriteASCII(sbMeshes.ToString());
+            writer.WriteASCII(String.Format("# Total Positions: {0}\n", totalPositions));
+            writer.WriteASCII(String.Format("# Total Normals: {0}\n", totalNormals));
+            writer.WriteASCII(String.Format("# Total UVs: {0}\n", totalUVs));
         }
 
-        private string GetVertexFormatStringUV(Vertex vertex)
+        private string GetVertexFormatString(bool hasUV, bool hasNormal)
         {
-            if (vertex.HasVertex())
+            if (hasNormal)
             {
-                if (vertex.HasNormal())
+                if (hasUV)
                 {
-                    if (vertex.HasUV())
-                    {
-                        return "f {0}/{3}/{0} {1}/{4}/{1} {2}/{5}/{2}\n";
-                    }
-                    else
-                    {
-                        return "f {0}//{3} {1}//{4} {2}//{5}\n";
-                    }
+                    return "f {0}/{3}/{6} {1}/{4}/{7} {2}/{5}/{8}\n";
                 }
                 else
                 {
-                    return "f {0} {1} {2}\n";
+                    return "f {0}//{3} {1}//{4} {2}//{5}\n";
                 }
             }
-            return "";
-        }
-
-        private string GetVertexFormatString(Vertex vertex)
-        {
-            if (vertex.HasVertex())
+            else
             {
-                if (vertex.HasNormal())
-                {
-                    if (vertex.HasUV())
-                    {
-                        return "f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}\n";
-                    }
-                    else
-                    {
-                        return "f {0}//{0} {1}//{1} {2}//{2}\n";
-                    }
-                }
-                else
-                {
-                    return "f {0} {1} {2}\n";
-                }
+                return "f {0} {1} {2}\n";
             }
-            return "";
         }
     }
 }

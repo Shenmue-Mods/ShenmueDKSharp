@@ -97,7 +97,6 @@ namespace ShenmueDKSharp.Files.Models
     public class MT5Node : ModelNode
     {
         public uint Offset;
-        public uint ID;
 
         public uint MeshOffset;
         public uint ChildOffset;
@@ -146,11 +145,6 @@ namespace ShenmueDKSharp.Files.Models
                 HasMesh = true;
                 reader.BaseStream.Seek(MeshOffset, SeekOrigin.Begin);
                 MeshData = new MT5Mesh(reader, this);
-                Faces = MeshData.Faces;
-                Vertices = MeshData.Vertices;
-                Center = MeshData.MeshCenter;
-                Radius = MeshData.MeshDiameter;
-                VertexCount = (uint)MeshData.VertexCount;
             }
 
             //Construct node tree recursively

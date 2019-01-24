@@ -111,6 +111,8 @@ namespace ShenmueDKSharp.Files
         /// </summary>
         public static Type GetFileTypeFromExtension(string extension)
         {
+            extension = extension.ToUpper();
+
             //Archives
             if (CompareExtension(AFS.Extensions, extension)) return typeof(AFS);
             if (CompareExtension(GZ.Extensions, extension)) return typeof(GZ);
@@ -125,6 +127,9 @@ namespace ShenmueDKSharp.Files
             if (CompareExtension(DDS.Extensions, extension)) return typeof(DDS);
             if (CompareExtension(TEXN.Extensions, extension)) return typeof(TEXN);
             if (CompareExtension(PVRT.Extensions, extension)) return typeof(PVRT);
+            if (CompareExtension(PNG.Extensions, extension)) return typeof(PNG);
+            if (CompareExtension(JPEG.Extensions, extension)) return typeof(JPEG);
+            if (CompareExtension(BMP.Extensions, extension)) return typeof(BMP);
 
             //Models
             if (CompareExtension(MT7.Extensions, extension)) return typeof(MT7);

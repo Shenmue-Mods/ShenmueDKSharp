@@ -64,6 +64,14 @@ namespace ShenmueDKSharp.Graphics
 
         #region Constructors
 
+        public Color4(Color4 color)
+        {
+            R = color.R;
+            G = color.G;
+            B = color.B;
+            A = color.A;
+        }
+
         /// <summary>
         /// Constructs a new Color4 structure from the specified components.
         /// </summary>

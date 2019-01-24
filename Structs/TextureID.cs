@@ -11,7 +11,7 @@ namespace ShenmueDKSharp.Structs
     {
         private readonly static Encoding m_shiftJis = Encoding.GetEncoding("shift_jis");
 
-        public UInt64 Data { get; set; }
+        public UInt64 Data { get; set; } = 4920561122670497614;
 
         public string Name
         {
