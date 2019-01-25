@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static ShenmueDKSharp.Files.Models._MT5.MT5Mesh;
 
 namespace ShenmueDKSharp.Files.Models._MT5
 {
@@ -14,8 +15,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
     /// </summary>
     public class MT5Mesh
     {
-        private MT5Node m_node;
-        private MT5Node m_parentNode;
+        public MT5Node Node;
+        public MT5Node ParentNode;
 
         uint Offset;
 
@@ -23,6 +24,12 @@ namespace ShenmueDKSharp.Files.Models._MT5
         public uint VerticesOffset;
         public int VertexCount;
         public uint FacesOffset;
+
+        //Reading and writing helper variables
+        public List<MT5StripEntry> StripEntries = new List<MT5StripEntry>();
+        public uint CurrentTextureIndex;
+        public uint CurrentUVIndex;
+        public uint CurrentColorIndex;
 
         /// <summary>
         /// All types based on sm1 asm
@@ -60,10 +67,20 @@ namespace ShenmueDKSharp.Files.Models._MT5
             End = 0x8000
         }
 
+        public MT5Mesh(ModelNode node)
+        {
+            //TODO: MT5 mesh generation....
+        }
+
         public MT5Mesh(BinaryReader reader, MT5Node node)
         {
-            m_node = node;
-            m_parentNode = (MT5Node)node.Parent;
+            Read(reader, node);
+        }
+
+        public void Read(BinaryReader reader, MT5Node node)
+        {
+            Node = node;
+            ParentNode = (MT5Node)node.Parent;
 
             Offset = (uint)reader.BaseStream.Position;
 
@@ -74,90 +91,69 @@ namespace ShenmueDKSharp.Files.Models._MT5
             VertexCount = reader.ReadInt32();
             FacesOffset = reader.ReadUInt32();
 
-            m_node.Center = new Vector3()
+            Node.Center = new Vector3()
             {
                 X = reader.ReadSingle(),
                 Y = reader.ReadSingle(),
                 Z = reader.ReadSingle()
             };
-            m_node.Radius = reader.ReadSingle();
+            Node.Radius = reader.ReadSingle();
 
             //Read strips/faces
             reader.BaseStream.Seek(FacesOffset, SeekOrigin.Begin);
-
-            //initialize states
-            uint textureIndex = 0;
-            Color4 stripColor = Color4.White;
-            bool uvFlag = false;
-
-            uint unknown_0B00 = 0; //polytype? uv mirror? (used when reading strip)
-
-            int uvIndex = 0;
-            int colorIndex = 0;
 
             //read strip functions
             while (reader.BaseStream.Position < reader.BaseStream.Length - 4)
             {
                 ushort stripType = reader.ReadUInt16();
-                if ((MT5MeshEntryType)stripType == MT5MeshEntryType.End) break;
-                
-                //Console.WriteLine("StripType: {0}", (MT5MeshEntryType)stripType);
+                if ((MT5MeshEntryType)stripType == MT5MeshEntryType.End)
+                {
+                    MT5_End stripEnd = new MT5_End();
+                    StripEntries.Add(stripEnd);
+                    break;
+                }
 
                 switch ((MT5MeshEntryType)stripType)
                 {
                     case MT5MeshEntryType.Zero:
+                        MT5_Zero stripZero = new MT5_Zero();
+                        StripEntries.Add(stripZero);
                         continue;
-                    
+
                     //ignored by d3t
                     case MT5MeshEntryType.Unknown_0E00:
                     case MT5MeshEntryType.Unknown_0F00:
-                        reader.BaseStream.Seek(10, SeekOrigin.Current);
+                        MT5_0E00_0F00 strip_0E00_0F00 = new MT5_0E00_0F00((MT5MeshEntryType)stripType);
+                        strip_0E00_0F00.Read(reader);
+                        StripEntries.Add(strip_0E00_0F00);
                         continue;
 
                     //ignored by d3t
                     case MT5MeshEntryType.Unknown_8000:
                     case MT5MeshEntryType.Unknown_A000:
-                        reader.BaseStream.Seek(2, SeekOrigin.Current);
+                        MT5_8000_A000 strip_8000_A000 = new MT5_8000_A000((MT5MeshEntryType)stripType);
+                        strip_8000_A000.Read(reader);
+                        StripEntries.Add(strip_8000_A000);
                         continue;
-                    
+
                     case MT5MeshEntryType.Unknown_0B00:
-                        unknown_0B00 = reader.ReadUInt16();
-                        //Console.WriteLine("0B00: {0:X}", unknown_0B00);
+                        MT5_0B00 strip_0B00 = new MT5_0B00();
+                        strip_0B00.Read(reader);
+                        StripEntries.Add(strip_0B00);
                         continue;
 
                     case MT5MeshEntryType.StripAttrib_0200:
                     case MT5MeshEntryType.StripAtrrib_0300:
-                        uint size = reader.ReadUInt16();
-                        long offset = reader.BaseStream.Position;
-
-                        //Debug output whole attribute bytes
-                        byte[] bytes = reader.ReadBytes((int)size);
-                        StringBuilder hex = new StringBuilder(bytes.Length * 2);
-                        foreach (byte a in bytes)
-                        {
-                            hex.AppendFormat("{0:X2}", a);
-                        }
-                        //Console.WriteLine(hex.ToString());
-                        reader.BaseStream.Seek(offset, SeekOrigin.Begin);
-
-                        //first byte controls uv somehow
-                        uint unknown = reader.ReadUInt32();
-                        uvFlag = (unknown & 1) == 1; //TODO: use this flag
-
-                        //skip unknown stuff
-                        reader.BaseStream.Seek(3, SeekOrigin.Current);
-
-                        //strip color
-                        byte stripB = reader.ReadByte();
-                        byte stripG = reader.ReadByte();
-                        byte stripR = reader.ReadByte();
-                        stripColor = new Color4(stripR, stripG, stripB, 255);
-
-                        reader.BaseStream.Seek(offset + size, SeekOrigin.Begin);
+                        MT5StripAttributes stripAttributes = new MT5StripAttributes((MT5MeshEntryType)stripType);
+                        stripAttributes.Read(reader);
+                        StripEntries.Add(stripAttributes);
                         continue;
 
                     case MT5MeshEntryType.Texture:
-                        textureIndex = reader.ReadUInt16();
+                        MT5StripTexture stripTexture = new MT5StripTexture();
+                        stripTexture.Read(reader);
+                        CurrentTextureIndex = stripTexture.TextureIndex;
+                        StripEntries.Add(stripTexture);
                         continue;
 
                     //Face strips
@@ -171,94 +167,9 @@ namespace ShenmueDKSharp.Files.Models._MT5
                     case MT5MeshEntryType.Strip_1A00:
                     case MT5MeshEntryType.Strip_1B00:
                     case MT5MeshEntryType.Strip_1C00:
-
-                        bool hasUV = false;
-                        bool hasColor = false;
-                        if ((MT5MeshEntryType)stripType == MT5MeshEntryType.Strip_1200 ||
-                            (MT5MeshEntryType)stripType == MT5MeshEntryType.Strip_1A00)
-                        {
-                            hasColor = true;
-                        }
-                        if ((MT5MeshEntryType)stripType == MT5MeshEntryType.Strip_1100 ||
-                            (MT5MeshEntryType)stripType == MT5MeshEntryType.Strip_1900)
-                        {
-                            hasUV = true;
-                        }
-                        if ((MT5MeshEntryType)stripType == MT5MeshEntryType.Strip_1400 ||
-                            (MT5MeshEntryType)stripType == MT5MeshEntryType.Strip_1C00)
-                        {
-                            hasUV = true;
-                            hasColor = true;
-                        }
-
-                        reader.BaseStream.Seek(2, SeekOrigin.Current); //d3t skips this short value
-                        ushort stripCount = reader.ReadUInt16();
-                        if (stripCount == 0) continue;
-            
-                        for (int i = 0; i < stripCount; i++)
-                        {
-                            MeshFace face = new MeshFace();
-                            face.Type = MeshFace.PrimitiveType.TriangleStrip;
-                            face.TextureIndex = textureIndex;
-                            face.StripColor = stripColor;
-                            face.Wrap = MeshFace.WrapMode.Repeat; //TODO: find wrap mode
-
-                            short stripLength = reader.ReadInt16();
-                            if (stripLength < 0)
-                            {
-                                stripLength = Math.Abs(stripLength);
-                            }
-
-                            face.PositionIndices = new List<ushort>();
-                            face.NormalIndices = new List<ushort>();
-                            for (int j = 0; j < stripLength; j++)
-                            {
-                                short vertIndex = reader.ReadInt16();
-                                while (vertIndex < 0)
-                                {
-                                    if (m_parentNode == null || m_parentNode.MeshData == null)
-                                    {
-                                        vertIndex = (short)(vertIndex + VertexCount);
-                                    }
-                                    else
-                                    {
-                                        //Offset parent vertex indices by own vertex count so we use the appended parents vertices
-                                        vertIndex = (short)(VertexCount + vertIndex + m_parentNode.VertexCount);
-                                    }
-                                }
-                                face.PositionIndices.Add((ushort)vertIndex);
-                                face.NormalIndices.Add((ushort)vertIndex);
-
-                                if (hasUV)
-                                {
-                                    short texU = reader.ReadInt16();
-                                    short texV = reader.ReadInt16();
-
-                                    //UV/N normal-resolution 0 - 255
-                                    //UVH high-resolution 0 - 1023
-                                    float u = texU / 1024.0f;
-                                    float v = texV / 1024.0f;
-
-                                    m_node.VertexUVs.Add(new Vector2(u, v));
-                                    face.UVIndices.Add((ushort)uvIndex);
-                                    uvIndex++;
-                                }
-
-                                if (hasColor)
-                                {
-                                    //BGRA (8888) 32BPP
-                                    byte b = reader.ReadByte();
-                                    byte g = reader.ReadByte();
-                                    byte r = reader.ReadByte();
-                                    byte a = reader.ReadByte();
-
-                                    m_node.VertexColors.Add(new Color4(r, g, b, a));
-                                    face.ColorIndices.Add((ushort)colorIndex);
-                                    colorIndex++;
-                                }
-                            }
-                            m_node.Faces.Add(face);
-                        }
+                        MT5Strip strip = new MT5Strip((MT5MeshEntryType)stripType, this);
+                        strip.Read(reader);
+                        StripEntries.Add(strip);
                         continue;
 
                     default:
@@ -266,7 +177,13 @@ namespace ShenmueDKSharp.Files.Models._MT5
                         stripType = (ushort)MT5MeshEntryType.End;
                         break;
                 }
-                if ((MT5MeshEntryType)stripType == MT5MeshEntryType.End) break;
+
+                if ((MT5MeshEntryType)stripType == MT5MeshEntryType.End)
+                {
+                    MT5_End stripEnd = new MT5_End();
+                    StripEntries.Add(stripEnd);
+                    break;
+                }
             }
 
             //Read vertices
@@ -277,32 +194,461 @@ namespace ShenmueDKSharp.Files.Models._MT5
                 pos.X = reader.ReadSingle();
                 pos.Y = reader.ReadSingle();
                 pos.Z = reader.ReadSingle();
-                m_node.VertexPositions.Add(pos);
+                Node.VertexPositions.Add(pos);
 
                 Vector3 norm;
                 norm.X = reader.ReadSingle();
                 norm.Y = reader.ReadSingle();
                 norm.Z = reader.ReadSingle();
-                m_node.VertexNormals.Add(norm);
+                Node.VertexNormals.Add(norm);
             }
 
-            if (m_parentNode != null && m_parentNode.MeshData != null)
+            if (ParentNode != null && ParentNode.MeshData != null)
             {
                 //Because for performance/memory saving the vertices from the parent can be used via negativ vertex indices
                 //we just copy the parent vertices so we can use them with modified vertex offsets
 
                 //Apply the inverted transform matrix of the node on vertices so they get canceled out by the final transform.
-                Matrix4 matrix = m_node.GetTransformMatrixSelf().Inverted();
-                for (int i = 0; i < m_parentNode.VertexCount; i++)
+                Matrix4 matrix = Node.GetTransformMatrixSelf().Inverted();
+                for (int i = 0; i < ParentNode.VertexCount; i++)
                 {
-                    Vector3 pos = new Vector3(m_parentNode.VertexPositions[i]);
-                    Vector3 norm = new Vector3(m_parentNode.VertexNormals[i]);
+                    Vector3 pos = new Vector3(ParentNode.VertexPositions[i]);
+                    Vector3 norm = new Vector3(ParentNode.VertexNormals[i]);
                     pos = Vector3.TransformPosition(pos, matrix);
                     norm = Vector3.TransformPosition(norm, matrix);
-                    m_node.VertexPositions.Add(pos);
-                    m_node.VertexNormals.Add(norm);
+                    Node.VertexPositions.Add(pos);
+                    Node.VertexNormals.Add(norm);
                 }
             }
+        }
+
+        public void WriteData(BinaryWriter writer)
+        {
+            //TODO: Optimize strips to use parent vertices
+
+            //Write strips
+            FacesOffset = (uint)writer.BaseStream.Position;
+            foreach (MT5StripEntry entry in StripEntries)
+            {
+                entry.Write(writer);
+            }
+
+            //Write Vertices
+            VerticesOffset = (uint)writer.BaseStream.Position;
+            VertexCount = Node.VertexPositions.Count;
+            for (int i = 0; i < VertexCount; i++)
+            {
+                Vector3 pos = Node.VertexPositions[i];
+                Vector3 norm = Node.VertexNormals[i];
+                writer.Write(pos.X);
+                writer.Write(pos.Y);
+                writer.Write(pos.Z);
+                writer.Write(norm.X);
+                writer.Write(norm.Y);
+                writer.Write(norm.Z);
+            }
+        }
+
+        public void WriteHeader(BinaryWriter writer)
+        {
+            writer.Write(PolyType);
+            writer.Write(VerticesOffset);
+            writer.Write(VertexCount);
+            writer.Write(FacesOffset);
+            writer.Write(Node.Center.X);
+            writer.Write(Node.Center.Y);
+            writer.Write(Node.Center.Z);
+            writer.Write(Node.Radius);
+        }
+    }
+
+
+    //Strip entry types
+    //Needed for easier writing
+
+    public abstract class MT5StripEntry
+    {
+        public abstract MT5MeshEntryType Type { get; set; }
+        public abstract void Read(BinaryReader reader);
+        public abstract void Write(BinaryWriter writer);
+        public override string ToString()
+        {
+            return Type.ToString();
+        }
+    }
+
+    public class MT5_Zero : MT5StripEntry
+    {
+        public override MT5MeshEntryType Type
+        {
+            get { return MT5MeshEntryType.Zero; }
+            set { }
+        }
+
+        public override void Read(BinaryReader reader)
+        {
+        }
+
+        public override void Write(BinaryWriter writer)
+        {
+            writer.Write((ushort)Type);
+        }
+    }
+
+    public class MT5_End : MT5StripEntry
+    {
+        public override MT5MeshEntryType Type
+        {
+            get { return MT5MeshEntryType.End; }
+            set { }
+        }
+
+        public override void Read(BinaryReader reader)
+        {
+        }
+
+        public override void Write(BinaryWriter writer)
+        {
+            writer.Write((ushort)Type);
+        }
+    }
+
+    public class MT5_0E00_0F00 : MT5StripEntry
+    {
+        private MT5MeshEntryType m_type;
+        public override MT5MeshEntryType Type
+        {
+            get
+            {
+                return m_type;
+            }
+            set
+            {
+                if (value == MT5MeshEntryType.Unknown_0E00 ||
+                    value == MT5MeshEntryType.Unknown_0F00)
+                {
+                    m_type = value;
+                }
+            }
+        }
+
+        public byte[] Data;
+
+        public MT5_0E00_0F00(MT5MeshEntryType stripType)
+        {
+            m_type = stripType;
+        }
+
+        public override void Read(BinaryReader reader)
+        {
+            Data = reader.ReadBytes(10);
+        }
+
+        public override void Write(BinaryWriter writer)
+        {
+            writer.Write((ushort)Type);
+            writer.Write(Data);
+        }
+    }
+
+    public class MT5_8000_A000 : MT5StripEntry
+    {
+        private MT5MeshEntryType m_type;
+        public override MT5MeshEntryType Type
+        {
+            get
+            {
+                return m_type;
+            }
+            set
+            {
+                if (value == MT5MeshEntryType.Unknown_8000 ||
+                    value == MT5MeshEntryType.Unknown_A000)
+                {
+                    m_type = value;
+                }
+            }
+        }
+
+        public ushort Value;
+
+        public MT5_8000_A000(MT5MeshEntryType stripType)
+        {
+            m_type = stripType;
+        }
+
+        public override void Read(BinaryReader reader)
+        {
+            Value = reader.ReadUInt16();
+        }
+
+        public override void Write(BinaryWriter writer)
+        {
+            writer.Write((ushort)Type);
+            writer.Write(Value);
+        }
+    }
+
+    public class MT5StripAttributes : MT5StripEntry
+    {
+        private MT5MeshEntryType m_type;
+        public override MT5MeshEntryType Type
+        {
+            get
+            {
+                return m_type;
+            }
+            set
+            {
+                if (value == MT5MeshEntryType.StripAttrib_0200 ||
+                    value == MT5MeshEntryType.StripAtrrib_0300)
+                {
+                    m_type = value;
+                }
+            }
+        }
+
+        ushort Size;
+        byte[] Data;
+
+        public MT5StripAttributes(MT5MeshEntryType stripType)
+        {
+            m_type = stripType;
+        }
+
+        public override void Read(BinaryReader reader)
+        {
+            Size = reader.ReadUInt16();
+            Data = reader.ReadBytes(Size);
+        }
+
+        public override void Write(BinaryWriter writer)
+        {
+            writer.Write((ushort)Type);
+            writer.Write(Size);
+            writer.Write(Data);
+        }
+    }
+
+    public class MT5StripTexture : MT5StripEntry
+    {
+        public override MT5MeshEntryType Type
+        {
+            get { return MT5MeshEntryType.Texture; }
+            set { }
+        }
+
+        public ushort TextureIndex;
+
+        public override void Read(BinaryReader reader)
+        {
+            TextureIndex = reader.ReadUInt16();
+        }
+
+        public override void Write(BinaryWriter writer)
+        {
+            writer.Write((ushort)Type);
+            writer.Write(TextureIndex);
+        }
+    }
+
+    public class MT5Strip : MT5StripEntry
+    {
+        private MT5MeshEntryType m_type;
+        private MT5Mesh m_mesh;
+
+        public override MT5MeshEntryType Type
+        {
+            get
+            {
+                return m_type;
+            }
+            set
+            {
+                if (value == MT5MeshEntryType.Strip_1000 ||
+                    value == MT5MeshEntryType.Strip_1100 ||
+                    value == MT5MeshEntryType.Strip_1200 ||
+                    value == MT5MeshEntryType.Strip_1300 ||
+                    value == MT5MeshEntryType.Strip_1400 ||
+                    value == MT5MeshEntryType.Strip_1800 ||
+                    value == MT5MeshEntryType.Strip_1900 ||
+                    value == MT5MeshEntryType.Strip_1A00 ||
+                    value == MT5MeshEntryType.Strip_1B00 ||
+                    value == MT5MeshEntryType.Strip_1C00)
+                {
+                    m_type = value;
+                }
+            }
+        }
+
+        public bool HasUV
+        {
+            get
+            {
+                return Type == MT5MeshEntryType.Strip_1100 ||
+                       Type == MT5MeshEntryType.Strip_1900 ||
+                       Type == MT5MeshEntryType.Strip_1400 ||
+                       Type == MT5MeshEntryType.Strip_1C00;
+            }
+        }
+
+        public bool HasColor
+        {
+            get
+            {
+                return Type == MT5MeshEntryType.Strip_1200 ||
+                       Type == MT5MeshEntryType.Strip_1A00 ||
+                       Type == MT5MeshEntryType.Strip_1400 ||
+                       Type == MT5MeshEntryType.Strip_1C00;
+            }
+        }
+
+        public ushort Unknown;
+
+        public List<MeshFace> Faces = new List<MeshFace>();
+
+        public MT5Strip(MT5MeshEntryType stripType, MT5Mesh mesh)
+        {
+            m_type = stripType;
+            m_mesh = mesh;
+        }
+
+        public override void Read(BinaryReader reader)
+        {
+            Unknown = reader.ReadUInt16();
+            ushort stripCount = reader.ReadUInt16();
+            if (stripCount == 0) return;
+
+            bool hasUV = HasUV;
+            bool hasColor = HasColor;
+
+            for (int i = 0; i < stripCount; i++)
+            {
+                MeshFace face = new MeshFace();
+                face.Type = MeshFace.PrimitiveType.TriangleStrip;
+                face.TextureIndex = m_mesh.CurrentTextureIndex;
+                face.Wrap = MeshFace.WrapMode.Repeat; //TODO: find wrap mode
+
+                short stripLength = reader.ReadInt16();
+                if (stripLength < 0)
+                {
+                    stripLength = Math.Abs(stripLength);
+                }
+
+                face.PositionIndices = new List<ushort>();
+                face.NormalIndices = new List<ushort>();
+                for (int j = 0; j < stripLength; j++)
+                {
+                    short vertIndex = reader.ReadInt16();
+                    while (vertIndex < 0)
+                    {
+                        if (m_mesh.ParentNode == null || m_mesh.ParentNode.MeshData == null)
+                        {
+                            vertIndex = (short)(vertIndex + m_mesh.VertexCount);
+                        }
+                        else
+                        {
+                            //Offset parent vertex indices by own vertex count so we use the appended parents vertices
+                            vertIndex = (short)(m_mesh.VertexCount + vertIndex + m_mesh.ParentNode.VertexCount);
+                        }
+                    }
+                    face.PositionIndices.Add((ushort)vertIndex);
+                    face.NormalIndices.Add((ushort)vertIndex);
+
+                    if (hasUV)
+                    {
+                        short texU = reader.ReadInt16();
+                        short texV = reader.ReadInt16();
+
+                        //UV/N normal-resolution 0 - 255
+                        //UVH high-resolution 0 - 1023
+                        float u = texU / 1024.0f;
+                        float v = texV / 1024.0f;
+
+                        m_mesh.Node.VertexUVs.Add(new Vector2(u, v));
+                        face.UVIndices.Add((ushort)m_mesh.CurrentUVIndex);
+                        m_mesh.CurrentUVIndex++;
+                    }
+
+                    if (hasColor)
+                    {
+                        //BGRA (8888) 32BPP
+                        byte b = reader.ReadByte();
+                        byte g = reader.ReadByte();
+                        byte r = reader.ReadByte();
+                        byte a = reader.ReadByte();
+
+                        m_mesh.Node.VertexColors.Add(new Color4(r, g, b, a));
+                        face.ColorIndices.Add((ushort)m_mesh.CurrentColorIndex);
+                        m_mesh.CurrentColorIndex++;
+                    }
+                }
+                m_mesh.Node.Faces.Add(face);
+                Faces.Add(face);
+            }
+        }
+
+        public override void Write(BinaryWriter writer)
+        {
+            ushort stripCount = (ushort)Faces.Count;
+
+            writer.Write((ushort)Type);
+            writer.Write(Unknown);
+            writer.Write(stripCount);
+            if (stripCount == 0) return;
+
+            bool hasUV = HasUV;
+            bool hasColor = HasColor;
+
+            for (int i = 0; i < stripCount; i++)
+            {
+                MeshFace face = Faces[i];
+                short stripLength = (short)face.PositionIndices.Count;
+                writer.Write(stripLength);
+
+                for (int j = 0; j < stripLength; j++)
+                {
+                    writer.Write((short)face.PositionIndices[j]);
+                    if (hasUV)
+                    {
+                        Vector2 uv = m_mesh.Node.VertexUVs[face.UVIndices[j]];
+                        short texU = (short)(uv.X * 1024.0f);
+                        short texV = (short)(uv.Y * 1024.0f);
+                        writer.Write(texU);
+                        writer.Write(texV);
+                    }
+                    if (hasColor)
+                    {
+                        Color4 color = m_mesh.Node.VertexColors[face.ColorIndices[j]];
+                        writer.Write(color.B_);
+                        writer.Write(color.G_);
+                        writer.Write(color.R_);
+                        writer.Write(color.A_);
+                    }
+                }
+            }
+        }
+    }
+
+    public class MT5_0B00 : MT5StripEntry
+    {
+        public override MT5MeshEntryType Type
+        {
+            get { return MT5MeshEntryType.Unknown_0B00; }
+            set { }
+        }
+
+        public ushort Value;
+
+        public override void Read(BinaryReader reader)
+        {
+            Value = reader.ReadUInt16();
+        }
+
+        public override void Write(BinaryWriter writer)
+        {
+            writer.Write((ushort)Type);
+            writer.Write(Value);
         }
     }
 }

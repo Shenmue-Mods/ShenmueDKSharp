@@ -37,13 +37,17 @@ namespace ShenmueDKSharp.Files.Models._MT5
 
         public uint Offset;
 
-        public uint Identifier;
+        public uint Identifier = 1146635604;
         public uint HeaderSize;
         public uint TextureCount;
         public List<Texture> Textures = new List<Texture>();
 
         public TEXL TEXL;
         public PTRL PTRL;
+
+        public TEXD(List<Texture> textures)
+        {
+        }
 
         public TEXD(BinaryReader reader)
         {

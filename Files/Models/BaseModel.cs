@@ -248,11 +248,6 @@ namespace ShenmueDKSharp.Files.Models
         public List<ushort> ColorIndices { get; set; } = new List<ushort>();
 
 
-        //MT5 stuff
-        public List<Vector2> UVs = new List<Vector2>();
-        public List<Color4> Colors = new List<Color4>();
-
-
         /// <summary>
         /// Returns the resolved vertex indices as vertices.
         /// </summary>

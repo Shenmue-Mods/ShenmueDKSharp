@@ -61,6 +61,14 @@ namespace ShenmueDKSharp.Files.Models
             Read(reader);
         }
 
+        /// <summary>
+        /// Creates a new MT5 instance from the given model.
+        /// </summary>
+        public MT5(BaseModel model)
+        {
+
+        }
+
         protected override void _Read(BinaryReader reader)
         {
             Buffer = reader.ReadBytes((int)reader.BaseStream.Length);
@@ -75,22 +83,54 @@ namespace ShenmueDKSharp.Files.Models
             reader.BaseStream.Seek(FirstNodeOffset, SeekOrigin.Begin);
             RootNode = new MT5Node(reader, null);
 
-            reader.BaseStream.Seek(TextureOffset, SeekOrigin.Begin);
-            TEXD textureDatabase = new TEXD(reader);
-
-            //Populate base class textures
-            foreach(Texture tex in textureDatabase.Textures)
+            if (TextureOffset != 0)
             {
-                Textures.Add(tex);
-            }
+                reader.BaseStream.Seek(TextureOffset, SeekOrigin.Begin);
+                TEXD textureDatabase = new TEXD(reader);
 
-            //Resolve the textures in the faces
-            RootNode.ResolveFaceTextures(Textures);
+                //Populate base class textures
+                foreach (Texture tex in textureDatabase.Textures)
+                {
+                    Textures.Add(tex);
+                }
+
+                //Resolve the textures in the faces
+                RootNode.ResolveFaceTextures(Textures);
+            }
         }
 
         protected override void _Write(BinaryWriter writer)
         {
-            writer.Write(Buffer);
+            long baseOffset = writer.BaseStream.Position;
+            //Write some header stuff
+            writer.Write(Identifier);
+            writer.Write(TextureOffset); //Will be overwritten later
+            writer.Write(FirstNodeOffset); //Will be overwritten later
+
+            //Write MT5Nodes
+            
+            foreach (ModelNode node in RootNode.GetAllNodes())
+            {
+                MT5Node mt5Node = (MT5Node)node;
+                mt5Node.WriteMeshData(writer);
+            }
+            foreach (ModelNode node in RootNode.GetAllNodes())
+            {
+                MT5Node mt5Node = (MT5Node)node;
+                mt5Node.WriteMeshHeader(writer);
+            }
+
+            FirstNodeOffset = (uint)writer.BaseStream.Position;
+            MT5Node rootNode = (MT5Node)RootNode;
+            rootNode.WriteNode(writer, 0);
+
+            //Write TEXD
+            //TODO
+            TextureOffset = 0;
+
+            writer.BaseStream.Seek(baseOffset + 4, SeekOrigin.Begin);
+            writer.Write(TextureOffset);
+            writer.Write(FirstNodeOffset);
         }
     }
 
@@ -110,6 +150,11 @@ namespace ShenmueDKSharp.Files.Models
         public MT5Mesh MeshData;
 
         public MT5Node(BinaryReader reader, MT5Node parent)
+        {
+            Read(reader, parent);
+        }
+
+        public void Read(BinaryReader reader, MT5Node parent)
         {
             Offset = (uint)reader.BaseStream.Position;
             Parent = parent;
@@ -159,6 +204,70 @@ namespace ShenmueDKSharp.Files.Models
                 Sibling = new MT5Node(reader, (MT5Node)Parent);
             }
             reader.BaseStream.Seek(offset, SeekOrigin.Begin);
+        }
+
+        public void WriteMeshData(BinaryWriter writer)
+        {
+            MeshData.WriteData(writer);
+        }
+
+        public void WriteMeshHeader(BinaryWriter writer)
+        {
+            MeshOffset = (uint)writer.BaseStream.Position;
+            MeshData.WriteHeader(writer);
+        }
+
+        public void WriteNode(BinaryWriter writer, uint parentOffset)
+        {
+            uint offset = (uint)writer.BaseStream.Position;
+
+            writer.Write(ID);
+            writer.Write(MeshOffset);
+
+            int rotX = (int)(Rotation.X / 360.0f * 0xffff);
+            int rotY = (int)(Rotation.Y / 360.0f * 0xffff);
+            int rotZ = (int)(Rotation.Z / 360.0f * 0xffff);
+            writer.Write(rotX);
+            writer.Write(rotY);
+            writer.Write(rotZ);
+            writer.Write(Scale.X);
+            writer.Write(Scale.Y);
+            writer.Write(Scale.Z);
+            writer.Write(Position.X);
+            writer.Write(Position.Y);
+            writer.Write(Position.Z);
+
+            uint nodeOffsets = (uint)writer.BaseStream.Position;
+            writer.Write(ChildOffset);
+            writer.Write(SiblingOffset);
+            writer.Write(parentOffset);
+
+            writer.Write(ObjectName);
+            writer.Write(Unknown);
+
+            //Write child and childs children
+            if (Child == null)
+            {
+                ChildOffset = 0;
+            }
+            else
+            {
+                ChildOffset = (uint)writer.BaseStream.Position;
+                MT5Node child = (MT5Node)Child;
+                child.WriteNode(writer, offset);
+            }
+            
+            //Write sibling and siblings children
+            if (Sibling == null)
+            {
+                SiblingOffset = 0;
+            }
+            else
+            {
+                SiblingOffset = (uint)writer.BaseStream.Position;
+                MT5Node sibling = (MT5Node)Sibling;
+                sibling.WriteNode(writer, offset);
+            }
         }
 
         public override string ToString()

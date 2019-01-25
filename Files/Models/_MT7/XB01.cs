@@ -52,7 +52,17 @@ namespace ShenmueDKSharp.Files.Models._MT7
 
         public List<XB01Group> Groups = new List<XB01Group>();
 
+        public XB01(ModelNode node)
+        {
+            //TODO: XB01 generation....
+        }
+
         public XB01(BinaryReader reader, MT7Node node)
+        {
+            Read(reader, node);
+        }
+
+        public void Read(BinaryReader reader, MT7Node node)
         {
             m_node = node;
 
@@ -185,8 +195,11 @@ namespace ShenmueDKSharp.Files.Models._MT7
                         break;
                 }
             }
+        }
 
-            
+        public void Write(BinaryWriter writer)
+        {
+
         }
 
         public class XB01Group
