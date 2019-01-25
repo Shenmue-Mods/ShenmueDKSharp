@@ -95,10 +95,11 @@ For more informations about the file formats see the [wulinshu wiki](https://wul
 
 | Name| Read | Write | Description | Notes |
 | ------------- | ------------- | ------------- | ------------- | ------------- |
-| MT5 | :large_orange_diamond: | :x: | Model Container | Reading works but still has some unknown stuff. |
+| MT5 | :large_orange_diamond: | :large_orange_diamond: | Model Container | Reading/Writing works but still has some unknown stuff. |
 | MT6 | :x: | :x: | Model Container | |
 | MT7 | :large_orange_diamond: | :x: | Model Container | Reading works but missing rig and skin weights and some unknown stuff |
 | MOTN | :x: | :x: | Motion data (Animation sequences) | |
+| OBJ | :large_orange_diamond: | :large_orange_diamond: | Wavefront OBJ | Very basic OBJ implementation |
 
 ### Audio
 
