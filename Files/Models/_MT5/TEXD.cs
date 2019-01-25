@@ -38,7 +38,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
         public uint Offset;
 
         public uint Identifier = 1146635604;
-        public uint HeaderSize;
+        public uint HeaderSize = 12;
         public uint TextureCount;
         public List<Texture> Textures = new List<Texture>();
 
@@ -47,12 +47,19 @@ namespace ShenmueDKSharp.Files.Models._MT5
 
         public TEXD(List<Texture> textures)
         {
+            TextureCount = (uint)textures.Count;
+            Textures = textures;
         }
 
         public TEXD(BinaryReader reader)
         {
+            Read(reader);
+        }
+
+        public void Read(BinaryReader reader)
+        {
             Offset = (uint)reader.BaseStream.Position;
-                 
+
             Identifier = reader.ReadUInt32();
             HeaderSize = reader.ReadUInt32();
             TextureCount = reader.ReadUInt32();
@@ -119,6 +126,27 @@ namespace ShenmueDKSharp.Files.Models._MT5
                     reader.BaseStream.Seek(-4, SeekOrigin.Current);
                     PTRL = new PTRL(reader);
                 }
+            }
+        }
+
+        public void Write(BinaryWriter writer)
+        {
+            writer.Write(Identifier);
+            writer.Write(HeaderSize);
+            writer.Write(TextureCount);
+
+            foreach (Texture texture in Textures)
+            {
+                long offset = writer.BaseStream.Position;
+                writer.Write(0x4E584554); //TEXN
+                writer.Write(0); //Node size
+                texture.TextureID.Write(writer);
+                texture.Image.Write(writer);
+
+                uint nodeSize = (uint)(writer.BaseStream.Position - offset);
+                writer.BaseStream.Seek(offset + 4, SeekOrigin.Begin);
+                writer.Write(nodeSize);
+                writer.BaseStream.Seek(offset + nodeSize, SeekOrigin.Begin);
             }
         }
     }

@@ -125,8 +125,9 @@ namespace ShenmueDKSharp.Files.Models
             rootNode.WriteNode(writer, 0);
 
             //Write TEXD
-            //TODO
-            TextureOffset = 0;
+            TextureOffset = (uint)writer.BaseStream.Position;
+            TEXD texd = new TEXD(Textures);
+            texd.Write(writer);
 
             writer.BaseStream.Seek(baseOffset + 4, SeekOrigin.Begin);
             writer.Write(TextureOffset);

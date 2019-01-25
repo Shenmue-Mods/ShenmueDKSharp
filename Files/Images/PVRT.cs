@@ -332,7 +332,7 @@ namespace ShenmueDKSharp.Files.Images
             long baseOffset = writer.BaseStream.Position;
 
             Bitmap bmp = CreateBitmap();
-            bmp.RotateFlip(RotateFlipType.RotateNoneFlipY);
+            //bmp.RotateFlip(RotateFlipType.RotateNoneFlipY);
             if (DataFormat == PvrDataFormat.DDS || DataFormat == PvrDataFormat.DDS_2)
             {
                 if (!(PixelFormat == PvrPixelFormat.DDS_RGB24 || PixelFormat == PvrPixelFormat.DDS_RGBA32))
