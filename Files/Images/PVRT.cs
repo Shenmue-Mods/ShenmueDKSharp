@@ -350,7 +350,7 @@ namespace ShenmueDKSharp.Files.Images
                 }
 
                 writer.Write(m_pvrt);
-                writer.Write(ddsBuffer.Length);
+                writer.Write(ddsBuffer.Length + 16);
                 writer.Write((byte)PixelFormat);
                 writer.Write((byte)DataFormat);
                 writer.Write((ushort)0);
@@ -524,8 +524,9 @@ namespace ShenmueDKSharp.Files.Images
 
         public void WriteDDSRaw(BinaryWriter writer, DDS dds)
         {
+            long offset = writer.BaseStream.Position;
             writer.Write(m_pvrt);
-            writer.Write(dds.Buffer.Length);
+            writer.Write(dds.Buffer.Length + 16);
             writer.Write((byte)PixelFormat);
             writer.Write((byte)DataFormat);
             writer.Write((ushort)0);
