@@ -112,11 +112,11 @@ namespace ShenmueDKSharp.Files.Misc
             {
                 Texture.Write(writer);
             }
+            writer.Write((UInt64)0); //Padding
             EntrySize = (uint)(writer.BaseStream.Position - Offset);
             writer.BaseStream.Seek(Offset + 4, SeekOrigin.Begin);
             writer.Write(EntrySize);
             writer.BaseStream.Seek(Offset + EntrySize, SeekOrigin.Begin);
-            writer.Write((UInt64)0); //Padding
         }
 
     }
