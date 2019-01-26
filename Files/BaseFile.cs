@@ -179,5 +179,10 @@ namespace ShenmueDKSharp.Files
         {
             writer.Write(Buffer);
         }
+
+        public override string ToString()
+        {
+            return FilePath;
+        }
     }
 }

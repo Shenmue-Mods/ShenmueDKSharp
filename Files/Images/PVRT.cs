@@ -317,7 +317,14 @@ namespace ShenmueDKSharp.Files.Images
                     MipMaps.Add(new MipMap(pixels, Width, Height));
                 }
             }
-            reader.BaseStream.Seek(baseOffset + ContentSize, SeekOrigin.Begin);
+            if (HasGlobalIndex)
+            {
+                reader.BaseStream.Seek(baseOffset + ContentSize + 0xC, SeekOrigin.Begin);
+            }
+            else
+            {
+                reader.BaseStream.Seek(baseOffset + ContentSize, SeekOrigin.Begin);
+            }
         }
 
         /// <summary>

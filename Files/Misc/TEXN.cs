@@ -100,12 +100,10 @@ namespace ShenmueDKSharp.Files.Misc
 
         protected override void _Write(BinaryWriter writer)
         {
-            //TODO: Calculate entry size correctly
-            EntrySize = (uint)Texture.DataSize + HeaderSize;
+            Offset = (uint)writer.BaseStream.Position;
             writer.Write(Identifier);
             writer.Write(EntrySize);
             TextureID.Write(writer);
-
             if(WriteTextureBuffer)
             {
                 Texture.WriteBuffer(writer);
@@ -114,6 +112,11 @@ namespace ShenmueDKSharp.Files.Misc
             {
                 Texture.Write(writer);
             }
+            EntrySize = (uint)(writer.BaseStream.Position - Offset);
+            writer.BaseStream.Seek(Offset + 4, SeekOrigin.Begin);
+            writer.Write(EntrySize);
+            writer.BaseStream.Seek(Offset + EntrySize, SeekOrigin.Begin);
+            writer.Write((UInt64)0); //Padding
         }
 
     }
