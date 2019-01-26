@@ -43,7 +43,7 @@ namespace ShenmueDKSharp.Files.Containers
             return false;
         }
 
-        public uint Identifier { get; set; }
+        public uint Identifier { get; set; } = 1179337040;
         public uint ContentSize { get; set; }
         /// <summary>
         /// Could be checksum
@@ -144,42 +144,43 @@ namespace ShenmueDKSharp.Files.Containers
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                using (BinaryWriter memoryWriter = new BinaryWriter(memoryStream))
+                BinaryWriter memoryWriter = new BinaryWriter(memoryStream);
+                long baseOffset = memoryWriter.BaseStream.Position;
+                FileCount = (uint)Entries.Count;
+
+                //Write header
+                memoryWriter.Write(Identifier);
+                memoryWriter.Write(ContentSize);
+                memoryWriter.Write(Unknown);
+                memoryWriter.Write(FileCount);
+
+                //Write DUMY
+                PKFEntry.DUMY_Entry.Write(memoryWriter);
+
+                //Write entries
+                for (int i = 0; i < Entries.Count; i++)
                 {
-                    long baseOffset = memoryWriter.BaseStream.Position;
-                    FileCount = (uint)Entries.Count;
-
-                    //Write header
-                    memoryWriter.Write(Identifier);
-                    memoryWriter.Write(ContentSize);
-                    memoryWriter.Write(Unknown);
-                    memoryWriter.Write(FileCount);
-
-                    //Write DUMY
-                    PKFEntry.DUMY_Entry.Write(memoryWriter);
-
-                    //Write entries
-                    for (int i = 0; i < Entries.Count; i++)
-                    {
-                        PKFEntry entry = Entries[i];
-                        entry.Index = (uint)i;
-                        entry.Write(memoryWriter);
-                    }
-
-                    //Write content size into header
-                    ContentSize = (uint)memoryWriter.BaseStream.Position - (uint)baseOffset;
-                    memoryWriter.Seek((int)baseOffset + 4, SeekOrigin.Begin);
-                    memoryWriter.Write(ContentSize);
+                    PKFEntry entry = Entries[i];
+                    entry.Index = (uint)i;
+                    entry.Write(memoryWriter);
                 }
+
+                //Write content size into header
+                ContentSize = (uint)memoryWriter.BaseStream.Position - (uint)baseOffset;
+                memoryWriter.Seek((int)baseOffset + 4, SeekOrigin.Begin);
+                memoryWriter.Write(ContentSize);
+
+                memoryStream.Seek(0, SeekOrigin.Begin);
+
                 if (Compress)
                 {
                     using (MemoryStream compressedStream = new MemoryStream())
                     {
-                        using (GZipStream compressionStream = new GZipStream(compressedStream, CompressionMode.Compress, false))
+                        using (GZipStream gZipStream = new GZipStream(compressedStream, CompressionMode.Compress))
                         {
-                            memoryStream.CopyTo(compressionStream);
-                            compressionStream.CopyTo(writer.BaseStream);
+                            memoryStream.CopyTo(gZipStream);
                         }
+                        writer.Write(compressedStream.ToArray());
                     }
                 }
                 else
@@ -226,7 +227,7 @@ namespace ShenmueDKSharp.Files.Containers
                 entry.TokenString = Path.GetExtension(filepath).Substring(1, 4).ToUpper();
                 using (FileStream stream = new FileStream(filepath, FileMode.Open))
                 {
-                    entry.Size = (uint)stream.Length - 8;
+                    entry.Size = (uint)stream.Length;
                     entry.Buffer = new byte[stream.Length];
                     stream.Read(entry.Buffer, 0, entry.Buffer.Length);
                 }
@@ -241,7 +242,7 @@ namespace ShenmueDKSharp.Files.Containers
         {
             Token = 0x594D5544,
             Size = 20,
-            Buffer = new byte[28]
+            Buffer = new byte[20]
         };
 
         public uint Index { get; set; }

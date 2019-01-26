@@ -41,7 +41,7 @@ namespace ShenmueDKSharp.Files.Containers
             return false;
         }
 
-        public uint Signature { get; set; }
+        public uint Signature { get; set; } = 1128353865;
         public uint DictionaryOffset { get; set; }
         public uint FileCount { get; set; }
         public uint ContentSize { get; set; }
@@ -98,36 +98,37 @@ namespace ShenmueDKSharp.Files.Containers
             FileCount = (uint)Entries.Count;
 
             //Calculate offsets
-            uint offset = DictionaryOffset;
+            uint offset = 16;
             foreach (IPACEntry entry in Entries)
             {
                 entry.Offset = offset;
                 offset += entry.FileSize;
-                offset += offset - (offset % 16);
+                offset += 16 - (offset % 16);
                 offset += 16; //16 byte padding
             }
             ContentSize = offset;
-            
+            DictionaryOffset = ContentSize;
+
             //Write header
             writer.Write(Signature);
             writer.Write(DictionaryOffset);
             writer.Write(FileCount);
             writer.Write(ContentSize);
 
-            //Write table of contents
-            writer.BaseStream.Seek(baseOffset + ContentSize, SeekOrigin.Begin);
-            for (int i = 0; i < Entries.Count; i++)
-            {
-                IPACEntry entry = Entries[i];
-                entry.Index = (uint)i;
-                entry.Write(writer);
-            }
-
             //Write the data of the table of content files
             foreach (IPACEntry entry in Entries)
             {
                 writer.BaseStream.Seek(baseOffset + entry.Offset, SeekOrigin.Begin);
                 writer.Write(entry.Buffer);
+            }
+
+            //Write table of contents
+            writer.BaseStream.Seek(baseOffset + DictionaryOffset, SeekOrigin.Begin);
+            for (int i = 0; i < Entries.Count; i++)
+            {
+                IPACEntry entry = Entries[i];
+                entry.Index = (uint)i;
+                entry.Write(writer);
             }
         }
 

@@ -41,13 +41,13 @@ namespace ShenmueDKSharp.Files.Containers
             }
             return false;
         }
-        
 
-        public uint Signature { get; set; }
-        public uint IPACOffset { get; set; }
+
+        public uint Signature { get; set; } = 1397440848;
+        public uint IPACOffset { get; set; } = 16;
         public uint Unknown1 { get; set; }
         public uint Unknown2 { get; set; }
-        public IPAC IPAC { get; set; }
+        public IPAC IPAC { get; set; } = new IPAC();
 
         /// <summary>
         /// True if the read PKS was compressed and can be set if you want to compress the PKS when writing.
@@ -99,25 +99,27 @@ namespace ShenmueDKSharp.Files.Containers
 
         protected override void _Write(BinaryWriter writer)
         {
+            Unknown2 = (uint)(IPAC.Entries.Count - 1);
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                using (BinaryWriter memoryWriter = new BinaryWriter(memoryStream))
-                {
-                    writer.Write(Signature);
-                    writer.Write(IPACOffset);
-                    writer.Write(Unknown1);
-                    writer.Write(Unknown2);
-                    IPAC.Write(memoryWriter);
-                }
+                BinaryWriter memoryWriter = new BinaryWriter(memoryStream);
+                memoryWriter.Write(Signature);
+                memoryWriter.Write(IPACOffset);
+                memoryWriter.Write(Unknown1);
+                memoryWriter.Write(Unknown2);
+                IPAC.Write(memoryWriter);
+
+                memoryStream.Seek(0, SeekOrigin.Begin);
+
                 if (Compress)
                 {
                     using (MemoryStream compressedStream = new MemoryStream())
                     {
-                        using (GZipStream compressionStream = new GZipStream(compressedStream, CompressionMode.Compress, false))
+                        using (GZipStream gZipStream = new GZipStream(compressedStream, CompressionMode.Compress))
                         {
-                            memoryStream.CopyTo(compressionStream);
-                            compressionStream.CopyTo(writer.BaseStream);
+                            memoryStream.CopyTo(gZipStream);
                         }
+                        writer.Write(compressedStream.ToArray());
                     }
                 }
                 else
