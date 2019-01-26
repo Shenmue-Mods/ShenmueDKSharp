@@ -1,4 +1,5 @@
-﻿using ShenmueDKSharp.Utils;
+﻿using ShenmueDKSharp.Core;
+using ShenmueDKSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,11 +14,19 @@ namespace ShenmueDKSharp.Files.Containers
     /// Used to create an filestream of the TAC file and making access to the files inside it simple.
     /// Not deriving from the BaseFile.
     /// </summary>
-    public class TAC
+    public class TAC : IProgressable
     {
         private Stream m_tacStream;
+        private bool m_abort;
+
         public TAD TAD;
-        
+
+        public bool IsAbortable => true;
+        public event FinishedEventHandler Finished;
+        public event ProgressChangedEventHandler ProgressChanged;
+        public event DescriptionChangedEventHandler DescriptionChanged;
+        public event LoadErrorEventHandler Error;
+
         public TAC() { }
 
         /// <summary>
@@ -44,6 +53,7 @@ namespace ShenmueDKSharp.Files.Containers
         /// <param name="folder">The output folder. When empty it will be extracted in a folder next to the TAD file.</param>
         public void Unpack(bool verbose = false, bool raymonf = false, string folder = "")
         {
+            m_abort = false;
             if (String.IsNullOrEmpty(folder))
             {
                 folder = Path.GetDirectoryName(TAD.FilePath) + "\\_" + TAD.FileName + "_";
@@ -53,9 +63,14 @@ namespace ShenmueDKSharp.Files.Containers
                 Directory.CreateDirectory(folder);
             }
 
+            DescriptionChanged(this, new DescriptionChangedArgs("Unpacking tac..."));
+
             int counter = 0;
             foreach (TADEntry entry in TAD.Entries)
             {
+                if (m_abort) break;
+                ProgressChanged(this, new ProgressChangedArgs(counter, TAD.Entries.Count));
+
                 if (raymonf)
                 {
                     entry.FileName = Wulinshu.GetFilenameFromHash(entry.FirstHash);
@@ -96,6 +111,7 @@ namespace ShenmueDKSharp.Files.Containers
                 }
                 counter++;
             }
+            Finished(this, new FinishedArgs(true));
         }
 
         /// <summary>
@@ -103,15 +119,23 @@ namespace ShenmueDKSharp.Files.Containers
         /// </summary>
         public void Pack(string tacFilepath, List<TADEntry> entries = null)
         {
+            m_abort = false;
             if (entries == null)
             {
                 entries = TAD.Entries;
             }
+
+            DescriptionChanged(this, new DescriptionChangedArgs("Packing tac..."));
+
             using (FileStream stream = File.Create(tacFilepath))
             {
                 TAD.FileCount = 0;
                 foreach (TADEntry entry in entries)
                 {
+                    if (m_abort) break;
+
+                    ProgressChanged(this, new ProgressChangedArgs((int)TAD.FileCount, entries.Count));
+
                     TAD.FileCount++;
                     if (String.IsNullOrEmpty(entry.FilePath))
                     {
@@ -132,6 +156,7 @@ namespace ShenmueDKSharp.Files.Containers
                 TAD.TacSize = (uint)stream.Length;
                 TAD.UnixTimestamp = DateTime.UtcNow + TimeSpan.FromDays(365 * 5);
             }
+            Finished(this, new FinishedArgs(true));
         }
 
         /// <summary>
@@ -176,6 +201,11 @@ namespace ShenmueDKSharp.Files.Containers
         {
             m_tacStream.Close();
             m_tacStream = null;
+        }
+
+        public void Abort()
+        {
+            m_abort = true;
         }
 
         ~TAC()

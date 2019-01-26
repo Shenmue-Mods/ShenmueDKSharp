@@ -56,5 +56,16 @@ namespace ShenmueDKSharp.Structs
         {
             writer.Write(Data);
         }
+
+        public override bool Equals(object obj)
+        {
+            var texID = obj as TextureID;
+            return texID != null && Data == texID.Data;
+        }
+
+        public override int GetHashCode()
+        {
+            return -301143667 + Data.GetHashCode();
+        }
     }
 }

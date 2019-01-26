@@ -172,6 +172,11 @@ namespace ShenmueDKSharp.Files.Containers
 
             return result;
         }
+
+        public override string ToString()
+        {
+            return FilePath;
+        }
     }
 
     /// <summary>

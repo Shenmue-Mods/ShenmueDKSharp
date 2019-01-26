@@ -52,24 +52,55 @@ namespace ShenmueDKSharp.Files.Models._MT5
             StripAtrrib_0300 = 0x0003,
 
             //faces (strips)
-            Strip_1000 = 0x0010,
-            Strip_1100 = 0x0011,
-            Strip_1200 = 0x0012,
-            Strip_1300 = 0x0013,
-            Strip_1400 = 0x0014,
+            Strip_1000 = 0x0010, //Pos, Norm
+            Strip_1100 = 0x0011, //Pos, Norm, UV
+            Strip_1200 = 0x0012, //Pos, Norm, Color
+            Strip_1300 = 0x0013, //Pos, Norm
+            Strip_1400 = 0x0014, //Pos, Norm, UV, Color
 
-            Strip_1800 = 0x0018,
-            Strip_1900 = 0x0019,
-            Strip_1A00 = 0x001A,
-            Strip_1B00 = 0x001B,
-            Strip_1C00 = 0x001C,
+            Strip_1800 = 0x0018, //Pos, Norm
+            Strip_1900 = 0x0019, //Pos, Norm, UV
+            Strip_1A00 = 0x001A, //Pos, Norm, Color
+            Strip_1B00 = 0x001B, //Pos, Norm
+            Strip_1C00 = 0x001C, //Pos, Norm, UV, Color
 
             End = 0x8000
         }
 
-        public MT5Mesh(ModelNode node)
+        public MT5Mesh(ModelNode node, MT5Node newNode)
         {
-            //TODO: MT5 mesh generation....
+            Node = newNode;
+            foreach (MeshFace face in node.Faces)
+            {
+                MT5StripAttributes attr = new MT5StripAttributes(MT5MeshEntryType.StripAttrib_0200);
+                StripEntries.Add(attr);
+
+                MT5StripTexture tex = new MT5StripTexture();
+                tex.TextureIndex = (ushort)face.TextureIndex;
+                StripEntries.Add(tex);
+
+                MT5_0B00 unk0B00 = new MT5_0B00();
+                StripEntries.Add(unk0B00);
+
+                if (face.HasUVs && face.HasColors)
+                {
+                    MT5Strip strip = new MT5Strip(MT5MeshEntryType.Strip_1C00, this);
+                    strip.Faces.Add(face);
+                    StripEntries.Add(strip);
+                }
+                if (face.HasUVs)
+                {
+                    MT5Strip strip = new MT5Strip(MT5MeshEntryType.Strip_1900, this);
+                    strip.Faces.Add(face);
+                    StripEntries.Add(strip);
+                }
+                if (face.HasColors)
+                {
+                    MT5Strip strip = new MT5Strip(MT5MeshEntryType.Strip_1A00, this);
+                    strip.Faces.Add(face);
+                    StripEntries.Add(strip);
+                }
+            }
         }
 
         public MT5Mesh(BinaryReader reader, MT5Node node)
@@ -219,6 +250,11 @@ namespace ShenmueDKSharp.Files.Models._MT5
                     Node.VertexPositions.Add(pos);
                     Node.VertexNormals.Add(norm);
                 }
+            }
+
+            foreach(MT5StripEntry entry in StripEntries)
+            {
+                Console.WriteLine(entry.Type);
             }
         }
 
@@ -408,8 +444,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
             }
         }
 
-        ushort Size;
-        byte[] Data;
+        ushort Size = 4;
+        byte[] Data = new byte[] { 0, 0, 0, 0 };
 
         public MT5StripAttributes(MT5MeshEntryType stripType)
         {

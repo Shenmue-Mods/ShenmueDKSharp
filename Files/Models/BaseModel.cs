@@ -248,6 +248,16 @@ namespace ShenmueDKSharp.Files.Models
         public List<ushort> ColorIndices { get; set; } = new List<ushort>();
 
 
+        public bool HasUVs
+        {
+            get { return UVIndices.Count != 0; }
+        }
+
+        public bool HasColors
+        {
+            get { return ColorIndices.Count != 0; }
+        }
+
         /// <summary>
         /// Returns the resolved vertex indices as vertices.
         /// </summary>

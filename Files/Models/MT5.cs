@@ -44,7 +44,7 @@ namespace ShenmueDKSharp.Files.Models
             return false;
         }
 
-        public uint Identifier;
+        public uint Identifier = 1296257608;
         public uint TextureOffset;
         public uint FirstNodeOffset;
 
@@ -66,7 +66,9 @@ namespace ShenmueDKSharp.Files.Models
         /// </summary>
         public MT5(BaseModel model)
         {
-
+            Textures = model.Textures;
+            RootNode = new MT5Node(model.RootNode);
+            RootNode.ResolveFaceTextures(Textures);
         }
 
         protected override void _Read(BinaryReader reader)
@@ -149,6 +151,38 @@ namespace ShenmueDKSharp.Files.Models
         public uint NextNode;
 
         public MT5Mesh MeshData;
+
+        /// <summary>
+        /// Creates a new MT5Node instance from the given model node.
+        /// </summary>
+        public MT5Node(ModelNode node, MT5Node parent = null)
+        {
+            ID = node.ID;
+            Rotation = node.Rotation;
+            Position = node.Position;
+            Scale = node.Scale;
+
+            Center = node.Center;
+            Radius = node.Radius;
+
+            VertexPositions = node.VertexPositions;
+            VertexNormals = node.VertexNormals;
+            VertexUVs = node.VertexUVs;
+            VertexColors = node.VertexColors;
+
+            Faces = node.Faces;
+
+            MeshData = new MT5Mesh(node, this);
+            if (node.Child != null)
+            {
+                Child = new MT5Node(node.Child, this);
+            }
+            if (node.Sibling != null)
+            {
+                Sibling = new MT5Node(node.Sibling, this);
+            }
+            Parent = parent;
+        }
 
         public MT5Node(BinaryReader reader, MT5Node parent)
         {
