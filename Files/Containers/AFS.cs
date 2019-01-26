@@ -38,7 +38,7 @@ namespace ShenmueDKSharp.Files.Containers
             return false;
         }
 
-        public uint Signature;
+        public uint Signature = 5457473;
         public uint FileCount;
         public List<AFSEntry> Entries = new List<AFSEntry>();
         public uint SectorSize = 2048;

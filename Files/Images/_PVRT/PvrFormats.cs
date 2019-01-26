@@ -12,8 +12,8 @@ namespace ShenmueDKSharp.Files.Images._PVRT
         BUMP88      = 0x04, //Bump map with positiv only normal vectors (S and R direction angles)
         RGB555      = 0x05, //for PCX compatible only
         ARGB8888    = 0x06, //Palettize only!
-        DDS_RGB24   = 0x80, //DDS DXT1 RGB, no transparency
-        DDS_RGBA32  = 0x81, //DDS DXT3 RGBA, transparency
+        DDS_DXT1_RGB24   = 0x80, //DDS DXT1 RGB, no transparency
+        DDS_DXT3_RGBA32  = 0x81, //DDS DXT3 RGBA, transparency
         UNKNOWN     = 0xFF,
     }
 
@@ -22,8 +22,8 @@ namespace ShenmueDKSharp.Files.Images._PVRT
     {
         SQUARE_TWIDDLED                     = 0x01, //Supported
         SQUARE_TWIDDLED_MIPMAP              = 0x02, //Supported
-        VECTOR_QUANTIZATION                 = 0x03, //Supported - No Write
-        VECTOR_QUANTIZATION_MIPMAP          = 0x04, //Supported - No Write
+        VECTOR_QUANTIZATION                 = 0x03, //Supported
+        VECTOR_QUANTIZATION_MIPMAP          = 0x04, //Supported
         PALETTIZE_4BIT                      = 0x05, //Supported
         PALETTIZE_4BIT_MIPMAP               = 0x06, //Supported
         PALETTIZE_8BIT                      = 0x07, //Supported
@@ -35,8 +35,8 @@ namespace ShenmueDKSharp.Files.Images._PVRT
         RECTANGLE_TWIDDLED                  = 0x0D, //Supported
         BMP                                 = 0x0E, //Should not be supported
         BMP_MIPMAP                          = 0x0F, //Should not be supported
-        VECTOR_QUANTIZATION_SMALL           = 0x10, //Supported - No Write
-        VECTOR_QUANTIZATION_SMALL_MIPMAP    = 0x11, //Supported - No Write
+        VECTOR_QUANTIZATION_SMALL           = 0x10, //Supported
+        VECTOR_QUANTIZATION_SMALL_MIPMAP    = 0x11, //Supported
         SQUARE_TWIDDLED_MIPMAP_ALT          = 0x12, //What?
         DDS                                 = 0x80, //Supported
         DDS_2                               = 0x87, //Supported

@@ -71,12 +71,15 @@ namespace ShenmueDKSharp.Files.Images
         protected override void _Read(BinaryReader reader)
         {
             long baseOffset = reader.BaseStream.Position;
+            byte[] buffer = reader.ReadBytes((int)reader.BaseStream.Length);
 
-            DDS_Header header = new DDS_Header(reader.BaseStream);
+            MemoryStream memoryStream = new MemoryStream(buffer, 0, buffer.Length, true, true);
+            DDS_Header header = new DDS_Header(memoryStream);
             FormatDetails = new DDSFormatDetails(header.Format, header.DX10_DXGI_AdditionalHeader.dxgiFormat);
-            MipMaps = DDSGeneral.LoadDDS((MemoryStream)reader.BaseStream, header, 0, FormatDetails);
+            MipMaps = DDSGeneral.LoadDDS(memoryStream, header, 0, FormatDetails);
             Width = header.Width;
             Height = header.Height;
+            memoryStream.Close();
         }
 
         protected override void _Write(BinaryWriter writer)

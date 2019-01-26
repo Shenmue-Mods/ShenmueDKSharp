@@ -106,6 +106,30 @@ namespace ShenmueDKSharp.Files
             return null;
         }
 
+
+        public static Type GetImageFileTypeFromSignature(byte[] buffer)
+        {
+            if (TEXN.IsValid(buffer)) return typeof(TEXN);
+            if (PVRT.IsValid(buffer)) return typeof(PVRT);
+            if (DDS.IsValid(buffer)) return typeof(DDS);
+            if (BMP.IsValid(buffer)) return typeof(BMP);
+            if (JPEG.IsValid(buffer)) return typeof(JPEG);
+            if (PNG.IsValid(buffer)) return typeof(PNG);
+            return null;
+        }
+
+        public static Type GetImageFileTypeFromExtension(string extension)
+        {
+            extension = extension.ToUpper();
+            if (CompareExtension(DDS.Extensions, extension)) return typeof(DDS);
+            if (CompareExtension(TEXN.Extensions, extension)) return typeof(TEXN);
+            if (CompareExtension(PVRT.Extensions, extension)) return typeof(PVRT);
+            if (CompareExtension(PNG.Extensions, extension)) return typeof(PNG);
+            if (CompareExtension(JPEG.Extensions, extension)) return typeof(JPEG);
+            if (CompareExtension(BMP.Extensions, extension)) return typeof(BMP);
+            return null;
+        }
+
         /// <summary>
         /// Trys to find the fitting file type for the given file with the file extension.
         /// </summary>

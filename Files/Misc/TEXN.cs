@@ -119,5 +119,12 @@ namespace ShenmueDKSharp.Files.Misc
             writer.BaseStream.Seek(Offset + EntrySize, SeekOrigin.Begin);
         }
 
+
+        public void WriteHeader(BinaryWriter writer)
+        {
+            writer.Write(Identifier);
+            writer.Write(EntrySize);
+            TextureID.Write(writer);
+        }
     }
 }

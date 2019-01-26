@@ -98,22 +98,6 @@ namespace ShenmueDKSharp.Files.Images
         }
 
         /// <summary>
-        /// Creates an PVRT instance with the given filepath as the image data.
-        /// Used for creating an PVRT from an DDS file.
-        /// </summary>
-        public PVRT(string filepath, PvrDataFormat dataFormat, PvrPixelFormat pixelFormat, int width, int height)
-        {
-            Width = width;
-            Height = height;
-
-            DataFormat = dataFormat;
-            PixelFormat = pixelFormat;
-
-            //Write header
-            //Write DDS raw
-        }
-
-        /// <summary>
         /// Internal read implementation of the sub classes.
         /// </summary>
         /// <param name="reader"></param>
@@ -170,7 +154,7 @@ namespace ShenmueDKSharp.Files.Images
 
             if (DataFormat == PvrDataFormat.DDS || DataFormat == PvrDataFormat.DDS_2)
             {
-                if (!(PixelFormat == PvrPixelFormat.DDS_RGB24 || PixelFormat == PvrPixelFormat.DDS_RGBA32))
+                if (!(PixelFormat == PvrPixelFormat.DDS_DXT1_RGB24 || PixelFormat == PvrPixelFormat.DDS_DXT3_RGBA32))
                 {
                     throw new Exception("Expected DDS RGB24 or RGBA32 color format!");
                 }
@@ -342,18 +326,18 @@ namespace ShenmueDKSharp.Files.Images
             //bmp.RotateFlip(RotateFlipType.RotateNoneFlipY);
             if (DataFormat == PvrDataFormat.DDS || DataFormat == PvrDataFormat.DDS_2)
             {
-                if (!(PixelFormat == PvrPixelFormat.DDS_RGB24 || PixelFormat == PvrPixelFormat.DDS_RGBA32))
+                if (!(PixelFormat == PvrPixelFormat.DDS_DXT1_RGB24 || PixelFormat == PvrPixelFormat.DDS_DXT3_RGBA32))
                 {
                     throw new Exception("Expected DDS RGB24 or RGBA32 color format!");
                 }
 
                 byte[] ddsBuffer = null;
-                if (PixelFormat == PvrPixelFormat.DDS_RGB24)
+                if (PixelFormat == PvrPixelFormat.DDS_DXT1_RGB24)
                 {
                     DDSFormatDetails ddsFormatDetails = new DDSFormatDetails(DDSFormat.DDS_DXT1);
                     ddsBuffer = DDSGeneral.Save(MipMaps, ddsFormatDetails, DDSGeneral.AlphaSettings.KeepAlpha, DDSGeneral.MipHandling.Default);
                 }
-                else if (PixelFormat == PvrPixelFormat.DDS_RGBA32)
+                else if (PixelFormat == PvrPixelFormat.DDS_DXT3_RGBA32)
                 {
                     DDSFormatDetails ddsFormatDetails = new DDSFormatDetails(DDSFormat.DDS_DXT3);
                     ddsBuffer = DDSGeneral.Save(MipMaps, ddsFormatDetails, DDSGeneral.AlphaSettings.KeepAlpha, DDSGeneral.MipHandling.Default);
@@ -536,6 +520,18 @@ namespace ShenmueDKSharp.Files.Images
                     writer.Write(output.GetBuffer());
                 }
             }
+        }
+
+        public void WriteDDSRaw(BinaryWriter writer, DDS dds)
+        {
+            writer.Write(m_pvrt);
+            writer.Write(dds.Buffer.Length);
+            writer.Write((byte)PixelFormat);
+            writer.Write((byte)DataFormat);
+            writer.Write((ushort)0);
+            writer.Write((ushort)Width);
+            writer.Write((ushort)Height);
+            writer.Write(dds.Buffer);
         }
 
         private byte[] BitmapToRaw(Bitmap source)
