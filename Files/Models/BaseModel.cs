@@ -178,6 +178,7 @@ namespace ShenmueDKSharp.Files.Models
 
         public void ResolveFaceTextures(List<Texture> entries)
         {
+            if (entries == null) return;
             foreach(MeshFace face in Faces)
             {
                 if (face.TextureIndex < entries.Count)

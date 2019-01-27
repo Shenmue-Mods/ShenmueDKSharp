@@ -68,19 +68,22 @@ namespace ShenmueDKSharp.Files.Models
                 else if (line.StartsWith("mtllib "))
                 {
                     string[] values = line.Split(' ');
-                    if (values.Length != 2) continue;
+                    if (values.Length < 2) continue;
 
                     string mtlPath = "";
                     string dir = Path.GetDirectoryName(FilePath);
                     mtlPath = String.Format("{0}\\{1}", Path.GetDirectoryName(FilePath), values[1]);
 
-                    mtl = new MTL(mtlPath);
-                    Textures = mtl.Textures;
+                    if (File.Exists(mtlPath))
+                    {
+                        mtl = new MTL(mtlPath);
+                        Textures = mtl.Textures;
+                    }
                 }
                 else if (line.StartsWith("v "))
                 {
                     string[] values = line.Split(' ');
-                    if (values.Length != 4) continue;
+                    if (values.Length < 4) continue;
                     Vector3 vertex = new Vector3();
                     vertex.X = float.Parse(values[1], m_cultureInfo);
                     vertex.Y = float.Parse(values[2], m_cultureInfo);
@@ -90,7 +93,7 @@ namespace ShenmueDKSharp.Files.Models
                 else if (line.StartsWith("vt "))
                 {
                     string[] values = line.Split(' ');
-                    if (values.Length != 3) continue;
+                    if (values.Length < 3) continue;
                     Vector2 uv = new Vector2();
                     uv.X = float.Parse(values[1], m_cultureInfo);
                     uv.Y = float.Parse(values[2], m_cultureInfo);
@@ -99,7 +102,7 @@ namespace ShenmueDKSharp.Files.Models
                 else if (line.StartsWith("vn "))
                 {
                     string[] values = line.Split(' ');
-                    if (values.Length != 4) continue;
+                    if (values.Length < 4) continue;
                     Vector3 normal = new Vector3();
                     normal.X = float.Parse(values[1], m_cultureInfo);
                     normal.Y = float.Parse(values[2], m_cultureInfo);
@@ -115,7 +118,7 @@ namespace ShenmueDKSharp.Files.Models
                         string[] stringSeparators = new string[] { "//" };
 
                         string[] values = line.Split(' ');
-                        if (values.Length != 4) continue;
+                        if (values.Length < 4) continue;
 
                         string[] vert1Values = values[1].Split(stringSeparators, StringSplitOptions.None);
                         string[] vert2Values = values[2].Split(stringSeparators, StringSplitOptions.None);
@@ -133,7 +136,7 @@ namespace ShenmueDKSharp.Files.Models
                         string[] stringSeparators = new string[] { "/" };
 
                         string[] values = line.Split(' ');
-                        if (values.Length != 4) continue;
+                        if (values.Length < 4) continue;
 
                         string[] vert1Values = values[1].Split(stringSeparators, StringSplitOptions.None);
                         string[] vert2Values = values[2].Split(stringSeparators, StringSplitOptions.None);
@@ -141,20 +144,26 @@ namespace ShenmueDKSharp.Files.Models
 
                         currentFace.PositionIndices.Add((ushort)(int.Parse(vert1Values[0]) - 1));
                         currentFace.UVIndices.Add((ushort)(int.Parse(vert1Values[1]) - 1));
-                        currentFace.NormalIndices.Add((ushort)(int.Parse(vert1Values[2]) - 1));
+                        if (vert1Values.Length > 2) {
+                            currentFace.NormalIndices.Add((ushort)(int.Parse(vert1Values[2]) - 1));
+                        }
 
                         currentFace.PositionIndices.Add((ushort)(int.Parse(vert2Values[0]) - 1));
                         currentFace.UVIndices.Add((ushort)(int.Parse(vert2Values[1]) - 1));
-                        currentFace.NormalIndices.Add((ushort)(int.Parse(vert2Values[2]) - 1));
+                        if (vert2Values.Length > 2) {
+                            currentFace.NormalIndices.Add((ushort)(int.Parse(vert2Values[2]) - 1));
+                        }
 
                         currentFace.PositionIndices.Add((ushort)(int.Parse(vert3Values[0]) - 1));
                         currentFace.UVIndices.Add((ushort)(int.Parse(vert3Values[1]) - 1));
-                        currentFace.NormalIndices.Add((ushort)(int.Parse(vert3Values[2]) - 1));
+                        if (vert3Values.Length > 2) {
+                            currentFace.NormalIndices.Add((ushort)(int.Parse(vert3Values[2]) - 1));
+                        }
                     }
                     else
                     {
                         string[] values = line.Split(' ');
-                        if (values.Length != 4) continue;
+                        if (values.Length < 4) continue;
 
                         currentFace.PositionIndices.Add((ushort)(int.Parse(values[0]) - 1));
                         currentFace.PositionIndices.Add((ushort)(int.Parse(values[1]) - 1));
@@ -163,8 +172,9 @@ namespace ShenmueDKSharp.Files.Models
                 }
                 else if (line.StartsWith("usemtl "))
                 {
+                    if (mtl == null) continue;
                     string[] values = line.Split(' ');
-                    if (values.Length != 2) continue;
+                    if (values.Length < 2) continue;
 
                     if (faceTextureChanged)
                     {
@@ -175,7 +185,7 @@ namespace ShenmueDKSharp.Files.Models
                     currentFace.TextureIndex = (uint)currentTextureIndex;
                     faceTextureChanged = true;
                 }
-                else if (line.StartsWith("o "))
+                else if (line.StartsWith("o ") || line.StartsWith("g "))
                 {
                     if (currentFace != null)
                     {

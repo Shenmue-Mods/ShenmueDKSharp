@@ -585,7 +585,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
                         else
                         {
                             //Offset parent vertex indices by own vertex count so we use the appended parents vertices
-                            vertIndex = (short)(m_mesh.VertexCount + vertIndex + m_mesh.ParentNode.VertexCount);
+                            vertIndex = (short)(m_mesh.VertexCount + vertIndex + m_mesh.ParentNode.MeshData.VertexCount);
                         }
                     }
                     face.PositionIndices.Add((ushort)vertIndex);
