@@ -75,12 +75,14 @@ namespace ShenmueDKSharp.Files.Images
             }
             MipMap mm = MipMaps[mipmap];
             Color4[] result = new Color4[mm.Width * mm.Height];
+            int index = 0;
             for (int i = 0; i < result.Length; i++)
             {
-                result[i].B_ = mm.Pixels[i * 4];
-                result[i].G_ = mm.Pixels[i * 4 + 1];
-                result[i].R_ = mm.Pixels[i * 4 + 2];
-                result[i].A_ = mm.Pixels[i * 4 + 3];
+                index = i * 4;
+                result[i].B_ = mm.Pixels[index];
+                result[i].G_ = mm.Pixels[index + 1];
+                result[i].R_ = mm.Pixels[index + 2];
+                result[i].A_ = mm.Pixels[index + 3];
             }
             return result;
         }

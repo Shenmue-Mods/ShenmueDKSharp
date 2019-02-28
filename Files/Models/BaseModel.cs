@@ -117,11 +117,11 @@ namespace ShenmueDKSharp.Files.Models
         /// Returns all the child/sibling nodes relative to this node.
         /// </summary>
         /// <returns></returns>
-        public List<ModelNode> GetAllNodes(bool includeSibling = true)
+        public List<ModelNode> GetAllNodes(bool includeSibling = true, bool includeChildren = true)
         {
             List<ModelNode> result = new List<ModelNode>();
             result.Add(this);
-            if (Child != null)
+            if (Child != null && includeChildren)
             {
                 result.AddRange(Child.GetAllNodes());
             }

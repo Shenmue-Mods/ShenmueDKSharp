@@ -62,6 +62,18 @@ namespace ShenmueDKSharp.Files.Containers
         public List<IDXEntry> Entries { get; set; } = new List<IDXEntry>();
 
         public IDX() { }
+        public IDX(string filepath)
+        {
+            Read(filepath);
+        }
+        public IDX(Stream stream)
+        {
+            Read(stream);
+        }
+        public IDX(BinaryReader reader)
+        {
+            Read(reader);
+        }
 
         protected override void _Read(BinaryReader reader)
         {

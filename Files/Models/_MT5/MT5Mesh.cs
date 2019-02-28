@@ -247,6 +247,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
                     Vector3 norm = new Vector3(ParentNode.VertexNormals[i]);
                     pos = Vector3.TransformPosition(pos, matrix);
                     norm = Vector3.TransformPosition(norm, matrix);
+                    
                     Node.VertexPositions.Add(pos);
                     Node.VertexNormals.Add(norm);
                 }
@@ -580,7 +581,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
                     {
                         if (m_mesh.ParentNode == null || m_mesh.ParentNode.MeshData == null)
                         {
-                            vertIndex = (short)(vertIndex + m_mesh.VertexCount);
+                            vertIndex = 0;
                         }
                         else
                         {

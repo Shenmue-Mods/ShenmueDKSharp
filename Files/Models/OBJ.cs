@@ -248,14 +248,10 @@ namespace ShenmueDKSharp.Files.Models
                 if (positions.Length == 0) continue;
 
                 sbMeshes.Append(String.Format("o obj_{0}\n", objNum));
-
+           
                 for (int i = 0; i < positions.Length; i++)
                 {
                     positions[i] = Vector3.TransformPosition(positions[i], transformMatrix);
-                }
-
-                for (int i = 0; i < positions.Length; i++)
-                {
                     sbVertices.Append(String.Format(m_cultureInfo, "v {0:F6} {1:F6} {2:F6}\n", positions[i].X, positions[i].Y, positions[i].Z));
                 }
 

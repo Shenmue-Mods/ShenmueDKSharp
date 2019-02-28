@@ -114,11 +114,13 @@ namespace ShenmueDKSharp.Files.Models
             foreach (ModelNode node in RootNode.GetAllNodes())
             {
                 MT5Node mt5Node = (MT5Node)node;
+                if (mt5Node.MeshData == null) continue;
                 mt5Node.WriteMeshData(writer);
             }
             foreach (ModelNode node in RootNode.GetAllNodes())
             {
                 MT5Node mt5Node = (MT5Node)node;
+                if (mt5Node.MeshData == null) continue;
                 mt5Node.WriteMeshHeader(writer);
             }
 
@@ -303,6 +305,12 @@ namespace ShenmueDKSharp.Files.Models
                 MT5Node sibling = (MT5Node)Sibling;
                 sibling.WriteNode(writer, offset);
             }
+
+            uint endOffset = (uint)writer.BaseStream.Position;
+            writer.BaseStream.Seek(nodeOffsets, SeekOrigin.Begin);
+            writer.Write(ChildOffset);
+            writer.Write(SiblingOffset);
+            writer.BaseStream.Seek(endOffset, SeekOrigin.Begin);
         }
 
         public override string ToString()
