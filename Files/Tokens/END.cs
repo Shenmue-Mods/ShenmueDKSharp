@@ -8,19 +8,14 @@ using System.Threading.Tasks;
 namespace ShenmueDKSharp.Files.Tokens
 {
     /// <summary>
-    /// MAPR Token.
-    /// Unknown 4 byte value.
+    /// END Token.
+    /// Signaling end of token structure.
     /// </summary>
-    public class MAPR : BaseToken
+    public class END : BaseToken
     {
-        public static readonly string Identifier = "MAPR";
+        public static readonly string Identifier = "END\0";
 
-        public UInt32 Value;
-
-        protected override void _Read(BinaryReader reader)
-        {
-            Value = reader.ReadUInt32();
-        }
+        protected override void _Read(BinaryReader reader) { }
 
         protected override void _Write(BinaryWriter writer)
         {

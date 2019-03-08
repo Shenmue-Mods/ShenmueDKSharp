@@ -8,12 +8,12 @@ using System.Threading.Tasks;
 namespace ShenmueDKSharp.Files.Tokens
 {
     /// <summary>
-    /// MAPR Token.
+    /// SCRL Token.
     /// Unknown 4 byte value.
     /// </summary>
-    public class MAPR : BaseToken
+    public class SCRL : BaseToken
     {
-        public static readonly string Identifier = "MAPR";
+        public static readonly string Identifier = "SCRL";
 
         public UInt32 Value;
 

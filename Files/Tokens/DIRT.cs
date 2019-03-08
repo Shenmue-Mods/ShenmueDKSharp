@@ -8,12 +8,12 @@ using System.Threading.Tasks;
 namespace ShenmueDKSharp.Files.Tokens
 {
     /// <summary>
-    /// MAPR Token.
+    /// DIRT Token.
     /// Unknown 4 byte value.
     /// </summary>
-    public class MAPR : BaseToken
+    public class DIRT : BaseToken
     {
-        public static readonly string Identifier = "MAPR";
+        public static readonly string Identifier = "DIRT";
 
         public UInt32 Value;
 

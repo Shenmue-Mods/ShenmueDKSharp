@@ -12,7 +12,7 @@ using System.Windows.Forms;
 namespace ShenmueDKSharp.Utils
 {
     /// <summary>
-    /// Generic node parser which creates treeview nodes.
+    /// [DEPRECATED] Generic node parser which creates treeview nodes.
     /// Used for debugging and reverse engineering the MAPINFO format.
     /// </summary>
     public class NodeParser
@@ -53,17 +53,9 @@ namespace ShenmueDKSharp.Utils
             long pos = reader.BaseStream.Position;
             Token = Encoding.ASCII.GetString(reader.ReadBytes(4));
 
-            if (Token == "LGHT")
-            {
-                reader.BaseStream.Seek(-4, SeekOrigin.Current);
-                Tag = new LGHT(reader);
-            }
-            else
-            {
-                Tag = this;
-                Size = reader.ReadUInt32();
-                reader.BaseStream.Seek(pos + Size, SeekOrigin.Begin);
-            }
+            Tag = this;
+            Size = reader.ReadUInt32();
+            reader.BaseStream.Seek(pos + Size, SeekOrigin.Begin);
 
             /*
             while (reader.BaseStream.Position < pos + Size)

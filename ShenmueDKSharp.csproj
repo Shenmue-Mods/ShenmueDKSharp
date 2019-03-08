@@ -12,6 +12,8 @@
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -32,6 +34,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AssimpNet, Version=4.1.0.0, Culture=neutral, PublicKeyToken=0d51b391f59f42a6, processorArchitecture=MSIL">
+      <HintPath>..\packages\AssimpNet.4.1.0\lib\net40\AssimpNet.dll</HintPath>
+    </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -106,21 +111,35 @@
     <Compile Include="Files\Images\_PVRT\WuQuantizer\WuQuantizer.cs" />
     <Compile Include="Files\Images\_PVRT\WuQuantizer\WuQuantizerBase.cs" />
     <Compile Include="Files\Misc\AUTH.cs" />
+    <Compile Include="Files\Models\FBX.cs" />
     <Compile Include="Files\Models\FBXD3T.cs" />
     <Compile Include="Files\Models\OBJ.cs" />
     <Compile Include="Files\Models\_MT5\PTRL.cs" />
     <Compile Include="Files\Models\_MT5\TEXL.cs" />
     <Compile Include="Files\Models\_OBJ\MTL.cs" />
+    <Compile Include="Files\Tokens\ATTR.cs" />
+    <Compile Include="Files\Tokens\BaseToken.cs" />
     <Compile Include="Files\Tokens\CHRD.cs" />
     <Compile Include="Files\Tokens\CHRM.cs" />
     <Compile Include="Files\Misc\CHRT.cs" />
     <Compile Include="Files\Misc\DYNM.cs" />
     <Compile Include="Files\Misc\SRL.cs" />
+    <Compile Include="Files\Tokens\CMPS.cs" />
+    <Compile Include="Files\Tokens\COLS.cs" />
+    <Compile Include="Files\Tokens\DIRT.cs" />
     <Compile Include="Files\Tokens\DOOR.cs" />
+    <Compile Include="Files\Tokens\DummyToken.cs" />
+    <Compile Include="Files\Tokens\END.cs" />
     <Compile Include="Files\Tokens\EVFD.cs" />
+    <Compile Include="Files\Tokens\FOG.cs" />
+    <Compile Include="Files\Tokens\LSCN.cs" />
     <Compile Include="Files\Tokens\MAPR.cs" />
     <Compile Include="Files\Tokens\MAPT.cs" />
     <Compile Include="Files\Tokens\REGD.cs" />
+    <Compile Include="Files\Tokens\SCN3.cs" />
+    <Compile Include="Files\Tokens\SCOF.cs" />
+    <Compile Include="Files\Tokens\SCRL.cs" />
+    <Compile Include="Files\Tokens\SNDD.cs" />
     <Compile Include="Files\Tokens\SNDP.cs" />
     <Compile Include="Files\Tokens\TABL.cs" />
     <Compile Include="Files\Misc\WDAT.cs" />
@@ -130,6 +149,7 @@
     <Compile Include="Files\Tokens\LGHT.cs" />
     <Compile Include="Files\Misc\MAPINFO.cs" />
     <Compile Include="Files\Subtitles\SCN4.cs" />
+    <Compile Include="Files\Tokens\TokenHelper.cs" />
     <Compile Include="Files\Tokens\WTHR.cs" />
     <Compile Include="Files\Tokens\_CHRD\CHRS.cs" />
     <Compile Include="Files\Tokens\_CHRD\STRG.cs" />
@@ -258,4 +278,11 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\packages\AssimpNet.4.1.0\build\AssimpNet.targets" Condition="Exists('..\packages\AssimpNet.4.1.0\build\AssimpNet.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\AssimpNet.4.1.0\build\AssimpNet.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\AssimpNet.4.1.0\build\AssimpNet.targets'))" />
+  </Target>
 </Project>
