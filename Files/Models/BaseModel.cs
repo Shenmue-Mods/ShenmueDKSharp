@@ -11,6 +11,30 @@ using System.Threading.Tasks;
 
 namespace ShenmueDKSharp.Files.Models
 {
+    public enum BoneID
+    {
+        Spine = 1,
+        Hips = 14,
+        RightUpperLeg = 16,
+        RightLowerLeg = 17,
+        RightFoot = 18,
+        LeftUpperLeg = 21,
+        LeftLowerLeg = 22,
+        LeftFoot = 23,
+        RightShoulder = 4,
+        RightUpperArm = 5,
+        RightLowerArm = 6,
+        RightWrist = 7,
+        RightHand = 191,
+        LeftShoulder = 9,
+        LeftUpperArm = 10,
+        LeftLowerArm = 11,
+        LeftWrist = 12,
+        LeftHand = 190,
+        Head = 189,
+        Jaw = 188
+    }
+
     /// <summary>
     /// Base model class for MT5 and MT7
     /// </summary>
@@ -49,6 +73,7 @@ namespace ShenmueDKSharp.Files.Models
     /// </summary>
     public class ModelNode
     {
+
         public bool HasMesh = false;
 
         public Vector3 Position = Vector3.Zero;
@@ -64,6 +89,13 @@ namespace ShenmueDKSharp.Files.Models
         public List<ModelNode> Children = new List<ModelNode>();
 
         public uint ID;
+        public BoneID BoneID
+        {
+            get
+            {
+                return (BoneID)(ID & 0xFF);
+            }
+        }
 
         public Vector3 Center = Vector3.Zero;
         public float Radius = 0.0f;

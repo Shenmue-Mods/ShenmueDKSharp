@@ -331,7 +331,7 @@ namespace ShenmueDKSharp.Files.Models
 
         public override string ToString()
         {
-            return String.Format("[{0}] MT7 Node: {1}", Offset, ID);
+            return String.Format("[{0}] MT7 Node: {1} (Bone: {2})", Offset, ID, BoneID);
         }
     }
 
