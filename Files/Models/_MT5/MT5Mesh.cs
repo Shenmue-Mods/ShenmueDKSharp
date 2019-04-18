@@ -267,11 +267,6 @@ namespace ShenmueDKSharp.Files.Models._MT5
                     Node.VertexNormals.Add(norm);
                 }
             }
-
-            foreach(MT5StripEntry entry in StripEntries)
-            {
-                Console.WriteLine(entry.Type);
-            }
         }
 
         public void WriteData(BinaryWriter writer)

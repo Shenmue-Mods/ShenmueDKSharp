@@ -63,13 +63,17 @@ namespace ShenmueDKSharp.Files.Containers
                 Directory.CreateDirectory(folder);
             }
 
-            DescriptionChanged(this, new DescriptionChangedArgs("Unpacking tac..."));
+            if (DescriptionChanged != null) {
+                DescriptionChanged(this, new DescriptionChangedArgs("Unpacking tac..."));
+            }
 
             int counter = 0;
             foreach (TADEntry entry in TAD.Entries)
             {
                 if (m_abort) break;
-                ProgressChanged(this, new ProgressChangedArgs(counter, TAD.Entries.Count));
+                if (ProgressChanged != null) {
+                    ProgressChanged(this, new ProgressChangedArgs(counter, TAD.Entries.Count));
+                }
 
                 if (raymonf)
                 {
@@ -111,7 +115,9 @@ namespace ShenmueDKSharp.Files.Containers
                 }
                 counter++;
             }
-            Finished(this, new FinishedArgs(true));
+            if (ProgressChanged != null) {
+                Finished(this, new FinishedArgs(true));
+            }
         }
 
         /// <summary>
