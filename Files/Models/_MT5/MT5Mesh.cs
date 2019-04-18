@@ -38,6 +38,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
         {
             //Skip 2 bytes
             Zero = 0x0000,
+            ZeroN = 0xFFFF,
 
             //Skip 12 bytes
             Unknown_0E00 = 0x000E, //ignored
@@ -48,8 +49,14 @@ namespace ShenmueDKSharp.Files.Models._MT5
             Unknown_8000 = 0x0008, //ignored
             Unknown_A000 = 0x000A, //ignored
             Unknown_0B00 = 0x000B,
+
+            //unknown
             StripAttrib_0200 = 0x0002,
-            StripAtrrib_0300 = 0x0003,
+            StripAttrib_0300 = 0x0003,
+            StripAttrib_0400 = 0x0004,
+            StripAttrib_0500 = 0x0005,
+            StripAttrib_0600 = 0x0006,
+            StripAttrib_0700 = 0x0007,
 
             //faces (strips)
             Strip_1000 = 0x0010, //Pos, Norm
@@ -150,6 +157,21 @@ namespace ShenmueDKSharp.Files.Models._MT5
                         MT5_Zero stripZero = new MT5_Zero();
                         StripEntries.Add(stripZero);
                         continue;
+                    case MT5MeshEntryType.ZeroN:
+                        MT5_ZeroN stripZeroN = new MT5_ZeroN();
+                        StripEntries.Add(stripZeroN);
+                        continue;
+
+                    case MT5MeshEntryType.StripAttrib_0200:
+                    case MT5MeshEntryType.StripAttrib_0300:
+                    case MT5MeshEntryType.StripAttrib_0400:
+                    case MT5MeshEntryType.StripAttrib_0500:
+                    case MT5MeshEntryType.StripAttrib_0600:
+                    case MT5MeshEntryType.StripAttrib_0700:
+                        MT5StripAttributes stripAttributes = new MT5StripAttributes((MT5MeshEntryType)stripType);
+                        stripAttributes.Read(reader);
+                        StripEntries.Add(stripAttributes);
+                        continue;
 
                     //ignored by d3t
                     case MT5MeshEntryType.Unknown_0E00:
@@ -171,13 +193,6 @@ namespace ShenmueDKSharp.Files.Models._MT5
                         MT5_0B00 strip_0B00 = new MT5_0B00();
                         strip_0B00.Read(reader);
                         StripEntries.Add(strip_0B00);
-                        continue;
-
-                    case MT5MeshEntryType.StripAttrib_0200:
-                    case MT5MeshEntryType.StripAtrrib_0300:
-                        MT5StripAttributes stripAttributes = new MT5StripAttributes((MT5MeshEntryType)stripType);
-                        stripAttributes.Read(reader);
-                        StripEntries.Add(stripAttributes);
                         continue;
 
                     case MT5MeshEntryType.Texture:
@@ -332,6 +347,24 @@ namespace ShenmueDKSharp.Files.Models._MT5
         }
     }
 
+    public class MT5_ZeroN : MT5StripEntry
+    {
+        public override MT5MeshEntryType Type
+        {
+            get { return MT5MeshEntryType.ZeroN; }
+            set { }
+        }
+
+        public override void Read(BinaryReader reader)
+        {
+        }
+
+        public override void Write(BinaryWriter writer)
+        {
+            writer.Write((ushort)Type);
+        }
+    }
+
     public class MT5_End : MT5StripEntry
     {
         public override MT5MeshEntryType Type
@@ -438,7 +471,11 @@ namespace ShenmueDKSharp.Files.Models._MT5
             set
             {
                 if (value == MT5MeshEntryType.StripAttrib_0200 ||
-                    value == MT5MeshEntryType.StripAtrrib_0300)
+                    value == MT5MeshEntryType.StripAttrib_0300 ||
+                    value == MT5MeshEntryType.StripAttrib_0400 ||
+                    value == MT5MeshEntryType.StripAttrib_0500 ||
+                    value == MT5MeshEntryType.StripAttrib_0600 ||
+                    value == MT5MeshEntryType.StripAttrib_0700)
                 {
                     m_type = value;
                 }
