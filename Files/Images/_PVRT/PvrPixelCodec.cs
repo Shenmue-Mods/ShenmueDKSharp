@@ -199,8 +199,8 @@ namespace ShenmueDKSharp.Files.Images._PVRT
                 uint Y1 = (uint)(0.299 * r2 + 0.587 * g2 + 0.114 * b2);
 
                 byte r = (byte)((r2 + r1) / 2);
-                byte g = (byte)((g2 + r1) / 2);
-                byte b = (byte)((b2 + r1) / 2);
+                byte g = (byte)((g2 + g1) / 2);
+                byte b = (byte)((b2 + b1) / 2);
 
                 uint U = (uint)(128.0f - 0.14 * r - 0.29 * g + 0.43 * b);
                 uint V = (uint)(128.0f + 0.36 * r - 0.29 * g - 0.07 * b);

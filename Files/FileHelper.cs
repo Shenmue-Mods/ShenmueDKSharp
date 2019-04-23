@@ -198,6 +198,10 @@ namespace ShenmueDKSharp.Files
             List<string> files = new List<string>();
             try
             {
+                foreach (string filepath in Directory.GetFiles(directory))
+                {
+                    files.Add(filepath);
+                }
                 foreach (string dir in Directory.GetDirectories(directory))
                 {
                     foreach (string filepath in Directory.GetFiles(dir))

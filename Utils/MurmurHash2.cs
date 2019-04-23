@@ -94,21 +94,6 @@ namespace ShenmueDKSharp.Utils
             return String.Format("{0}{1}", Prefix, newFilename);
         }
 
-        public static string GetFullFilename(string filename, bool includeHash = true)
-        {
-            filename = filename.ToLower();
-            byte[] filenameBytes = Encoding.ASCII.GetBytes(filename);
-            uint hash = Hash(filenameBytes, (uint)filenameBytes.Length);
-
-            return GetFullFilename(filename, hash, includeHash);
-        }
-
-        public static byte[] GetFullFilenameHash(string filename)
-        {
-            string newFilename = GetFullFilename(filename);
-            return GetFilenameHash(newFilename);
-        }
-
         public static byte[] GetFilenameHash(string filename, bool hasHash = true)
         {
             if (filename[0] == '.')
