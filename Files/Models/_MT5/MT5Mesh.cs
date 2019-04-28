@@ -30,6 +30,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
         public uint CurrentTextureIndex;
         public uint CurrentUVIndex;
         public uint CurrentColorIndex;
+        public bool CurrentIsUVH;
+        public float CurrentUVSize;
 
         /// <summary>
         /// All types based on sm1 asm
@@ -48,7 +50,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
             Texture = 0x0009,
             Unknown_8000 = 0x0008, //ignored
             Unknown_A000 = 0x000A, //ignored
-            Unknown_0B00 = 0x000B,
+
+            UVSize_0B00 = 0x000B, 
 
             //unknown
             StripAttrib_0200 = 0x0002,
@@ -86,7 +89,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
                 tex.TextureIndex = (ushort)face.TextureIndex;
                 StripEntries.Add(tex);
 
-                MT5_0B00 unk0B00 = new MT5_0B00();
+                MT5UVSize unk0B00 = new MT5UVSize();
                 StripEntries.Add(unk0B00);
 
                 if (face.HasUVs && face.HasColors)
@@ -170,6 +173,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
                     case MT5MeshEntryType.StripAttrib_0700:
                         MT5StripAttributes stripAttributes = new MT5StripAttributes((MT5MeshEntryType)stripType);
                         stripAttributes.Read(reader);
+                        CurrentIsUVH = stripAttributes.IsUVH;
                         StripEntries.Add(stripAttributes);
                         continue;
 
@@ -189,10 +193,11 @@ namespace ShenmueDKSharp.Files.Models._MT5
                         StripEntries.Add(strip_8000_A000);
                         continue;
 
-                    case MT5MeshEntryType.Unknown_0B00:
-                        MT5_0B00 strip_0B00 = new MT5_0B00();
-                        strip_0B00.Read(reader);
-                        StripEntries.Add(strip_0B00);
+                    case MT5MeshEntryType.UVSize_0B00:
+                        MT5UVSize uvSize = new MT5UVSize();
+                        uvSize.Read(reader);
+                        CurrentUVSize = uvSize.Value;
+                        StripEntries.Add(uvSize);
                         continue;
 
                     case MT5MeshEntryType.Texture:
@@ -497,6 +502,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
             writer.Write(Size);
             writer.Write(Data);
         }
+
+        public bool IsUVH { get { return (Data[0] & 1) == 1; } }
     }
 
     public class MT5StripTexture : MT5StripEntry
@@ -590,6 +597,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
 
             bool hasUV = HasUV;
             bool hasColor = HasColor;
+            bool isUVH = m_mesh.CurrentIsUVH;
+            float uvSize = m_mesh.CurrentUVSize;
 
             for (int i = 0; i < stripCount; i++)
             {
@@ -626,15 +635,37 @@ namespace ShenmueDKSharp.Files.Models._MT5
 
                     if (hasUV)
                     {
-                        short texU = reader.ReadInt16();
-                        short texV = reader.ReadInt16();
+                        float texU = reader.ReadInt16();
+                        float texV = reader.ReadInt16();
 
                         //UV/N normal-resolution 0 - 255
                         //UVH high-resolution 0 - 1023
-                        float u = texU / 1024.0f;
-                        float v = texV / 1024.0f;
+                        if (isUVH)
+                        {
+                            texU = (float)(texU * 0.000015258789);
+                            texV = (float)(texV * 0.000015258789);
+                        }
+                        else
+                        {
+                            if (texU < 61440.0)
+                            {
+                                texU /= uvSize;
+                            }
+                            else
+                            {
+                                texU = (float)(texU * 0.00000000023283064);
+                            }
+                            if (texV < 61440.0)
+                            {
+                                texV /= uvSize;
+                            }
+                            else
+                            {
+                                texV = (float)(texV * 0.00000000023283064);
+                            }
+                        }
 
-                        m_mesh.Node.VertexUVs.Add(new Vector2(u, v));
+                        m_mesh.Node.VertexUVs.Add(new Vector2(texU, texV));
                         face.UVIndices.Add((ushort)m_mesh.CurrentUVIndex);
                         m_mesh.CurrentUVIndex++;
                     }
@@ -699,15 +730,15 @@ namespace ShenmueDKSharp.Files.Models._MT5
         }
     }
 
-    public class MT5_0B00 : MT5StripEntry
+    public class MT5UVSize : MT5StripEntry
     {
         public override MT5MeshEntryType Type
         {
-            get { return MT5MeshEntryType.Unknown_0B00; }
+            get { return MT5MeshEntryType.UVSize_0B00; }
             set { }
         }
 
-        public ushort Value;
+        public float Value;
 
         public override void Read(BinaryReader reader)
         {
@@ -717,7 +748,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
         public override void Write(BinaryWriter writer)
         {
             writer.Write((ushort)Type);
-            writer.Write(Value);
+            writer.Write((ushort)Value);
         }
     }
 }
