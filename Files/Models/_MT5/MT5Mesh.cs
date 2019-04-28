@@ -31,6 +31,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
         public uint CurrentUVIndex;
         public uint CurrentColorIndex;
         public bool CurrentIsUVH;
+        public bool CurrentMirrorU;
+        public bool CurrentMirrorV;
         public float CurrentUVSize;
 
         /// <summary>
@@ -174,6 +176,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
                         MT5StripAttributes stripAttributes = new MT5StripAttributes((MT5MeshEntryType)stripType);
                         stripAttributes.Read(reader);
                         CurrentIsUVH = stripAttributes.IsUVH;
+                        CurrentMirrorU = stripAttributes.MirrorU;
+                        CurrentMirrorV = stripAttributes.MirrorV;
                         StripEntries.Add(stripAttributes);
                         continue;
 
@@ -503,7 +507,30 @@ namespace ShenmueDKSharp.Files.Models._MT5
             writer.Write(Data);
         }
 
-        public bool IsUVH { get { return (Data[0] & 1) == 1; } }
+        public bool IsUVH {
+            get
+            {
+                if (Data.Length < 1) return false;
+                return (Data[0] & 1) == 1;
+            }
+        }
+        public bool MirrorU
+        {
+            get
+            {
+                if (Data.Length < 11) return false;
+                return (Data[10] & 4) == 4;
+            }
+        }
+
+        public bool MirrorV
+        {
+            get
+            {
+                if (Data.Length < 11) return false;
+                return (Data[10] & 2) == 2;
+            }
+        }
     }
 
     public class MT5StripTexture : MT5StripEntry
@@ -599,6 +626,8 @@ namespace ShenmueDKSharp.Files.Models._MT5
             bool hasColor = HasColor;
             bool isUVH = m_mesh.CurrentIsUVH;
             float uvSize = m_mesh.CurrentUVSize;
+            bool uMirror = m_mesh.CurrentMirrorU;
+            bool vMirror = m_mesh.CurrentMirrorV;
 
             for (int i = 0; i < stripCount; i++)
             {
@@ -664,6 +693,28 @@ namespace ShenmueDKSharp.Files.Models._MT5
                                 texV = (float)(texV * 0.00000000023283064);
                             }
                         }
+
+                        /* // mirroring the uv coords does not work because of missing vertices
+                        if (uMirror)
+                        {
+                            if (texU > 1.0f)
+                            {
+                                float over = (float)Math.Round(texU, 0);
+                                float dec = texU - over;
+                                texU = 1.0f - dec;
+                            }
+                            
+                        }
+
+                        if (vMirror)
+                        {
+                            if (texV > 1.0f)
+                            {
+                                float over = (float)Math.Round(texV, 0);
+                                float dec = texV - over;
+                                texV = 1.0f - dec;
+                            }
+                        }*/
 
                         m_mesh.Node.VertexUVs.Add(new Vector2(texU, texV));
                         face.UVIndices.Add((ushort)m_mesh.CurrentUVIndex);

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ShenmueDKSharp.Files.Images;
 
 namespace ShenmueDKSharp.Utils
 {
@@ -78,6 +79,22 @@ namespace ShenmueDKSharp.Utils
                 }
             }
             m_textures.Add(texture);
+        }
+
+        public static void DumpDatabase(string folder)
+        {
+            if (!Directory.Exists(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+
+            foreach(TEXN tex in m_textures)
+            {
+                string textureName = "tex_" + tex.TextureID.Data.ToString("x16") + ".png"; 
+
+                PNG png = new PNG(tex.Texture);
+                png.Write(folder + textureName);
+            }
         }
 
         /// <summary>

@@ -193,14 +193,17 @@ namespace ShenmueDKSharp.Files
         /// <summary>
         /// Returns all the files for the given direcotry recursively.
         /// </summary>
-        public static List<string> DirSearch(string directory)
+        public static List<string> DirSearch(string directory, bool includeCurrent = false)
         {
             List<string> files = new List<string>();
             try
             {
-                foreach (string filepath in Directory.GetFiles(directory))
+                if (includeCurrent)
                 {
-                    files.Add(filepath);
+                    foreach (string filepath in Directory.GetFiles(directory))
+                    {
+                        files.Add(filepath);
+                    }
                 }
                 foreach (string dir in Directory.GetDirectories(directory))
                 {

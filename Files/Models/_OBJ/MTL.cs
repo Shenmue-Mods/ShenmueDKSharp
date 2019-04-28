@@ -19,7 +19,7 @@ namespace ShenmueDKSharp.Files.Models._OBJ
         public override bool BufferingEnabled => EnableBuffering;
 
         public List<Texture> Textures = new List<Texture>();
-        private List<string> m_materialNames = new List<string>();
+        public List<string> MaterialNames = new List<string>();
 
         public MTL(List<Texture> textures)
         {
@@ -52,7 +52,7 @@ namespace ShenmueDKSharp.Files.Models._OBJ
                     string[] values = line.Split(' ');
                     if (values.Length != 2) continue;
 
-                    m_materialNames.Add(values[1]);
+                    MaterialNames.Add(values[1]);
                     if (currentTexture != null)
                     {
                         Textures.Add(currentTexture);
@@ -82,8 +82,10 @@ namespace ShenmueDKSharp.Files.Models._OBJ
             for (int i = 0; i < Textures.Count; i++)
             {
                 Texture texture = Textures[i];
-
-                writer.WriteASCII(String.Format("newmtl mat_{0}\n", i));
+                string name = texture.TextureID.Data.ToString("x16");
+                string materialName = String.Format("mat_{0}\n", name);
+                MaterialNames.Add(materialName);
+                writer.WriteASCII(String.Format("newmtl {0}\n", materialName));
 
                 writer.WriteASCII("Ns 0.000000\n");
                 writer.WriteASCII("Ka 1.000000 1.000000 1.000000\n");
@@ -94,7 +96,7 @@ namespace ShenmueDKSharp.Files.Models._OBJ
                 writer.WriteASCII("d 1.000000\n");
                 writer.WriteASCII("illum 1\n");
 
-                string textureName = String.Format("tex_{0}.png", i);
+                string textureName = String.Format("tex_{0}.png", name);
                 if (String.IsNullOrEmpty(FilePath))
                 {
                     //TODO: Make this somehow better
@@ -137,9 +139,9 @@ namespace ShenmueDKSharp.Files.Models._OBJ
 
         public int GetMaterialTextureIndex(string materialName)
         {
-            for (int i = 0; i < m_materialNames.Count; i++)
+            for (int i = 0; i < MaterialNames.Count; i++)
             {
-                if (m_materialNames[i] == materialName)
+                if (MaterialNames[i] == materialName)
                 {
                     return i;
                 }

@@ -276,8 +276,11 @@ namespace ShenmueDKSharp.Files.Models
                 {
                     uint textureIndex = face.TextureIndex;
                     Texture texture = face.Material.Texture;
-
-                    sbMeshes.Append(String.Format("usemtl mat_{0}\n", textureIndex));
+                    
+                    if (textureIndex < mtl.MaterialNames.Count)
+                    {
+                        sbMeshes.Append(String.Format("usemtl {0}\n", mtl.MaterialNames[(int)textureIndex]));
+                    }
                     sbMeshes.Append("s 1\n");
 
                     bool hasUV = face.UVIndices.Count > 0;
