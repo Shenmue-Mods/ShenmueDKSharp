@@ -218,14 +218,7 @@ namespace ShenmueDKSharp.Files.Images
             if (mirrorV)
             {
                 Bitmap bottom = null;
-                if (mirrorU)
-                {
-                    bottom = new Bitmap(resultBitmap);
-                }
-                else
-                {
-                    bottom = new Bitmap(bmp); 
-                }
+                bottom = new Bitmap(resultBitmap);
                 bottom.RotateFlip(RotateFlipType.RotateNoneFlipY);
                 Rectangle srcRegion = new Rectangle(0, Height, bottom.Width, Height);
                 Rectangle dstRegion = new Rectangle(0, Height, bottom.Width, Height);
