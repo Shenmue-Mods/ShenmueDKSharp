@@ -34,6 +34,8 @@ namespace ShenmueDKSharp.Files.Images
         /// </summary>
         public bool HasTransparency { get; set; }
 
+        public bool IsMirrored { get; private set; } = false;
+
         /// <summary>
         /// Size of the image in it's inherited format as bytes
         /// </summary>
@@ -85,6 +87,19 @@ namespace ShenmueDKSharp.Files.Images
                 result[i].A_ = mm.Pixels[index + 3];
             }
             return result;
+        }
+
+        public void MirrorResize(bool mirrorU, bool mirrorV)
+        {
+            if (IsMirrored) return;
+            if (!mirrorU && !mirrorV) return;
+            IsMirrored = true;
+            Width = mirrorU ? Width * 2 : Width;
+            Height = mirrorV ? Height * 2 : Height;
+            foreach (MipMap mipmap in MipMaps)
+            {
+                mipmap.MirrorResize(mirrorU, mirrorV);
+            }
         }
 
     }
@@ -139,6 +154,25 @@ namespace ShenmueDKSharp.Files.Images
             return bmp;
         }
 
+        public void SetPixels(Bitmap bmp)
+        {
+            Width = bmp.Width;
+            Height = bmp.Height;
+            Pixels = new byte[Width * Height * 4];
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    Color col = bmp.GetPixel(x, y);
+                    int index = (y * Width + x) * 4;
+                    Pixels[index] = col.B;
+                    Pixels[index + 1] = col.G;
+                    Pixels[index + 2] = col.R;
+                    Pixels[index + 3] = col.A;
+                }
+            }
+        }
+
         public Color4[] GetPixelsAsColor4()
         {
             Color4[] result = new Color4[Pixels.Length / 4];
@@ -151,6 +185,57 @@ namespace ShenmueDKSharp.Files.Images
                 color.A_ = Pixels[i * 4 + 3];
             }
             return result;
+        }
+
+        public void MirrorResize(bool mirrorU, bool mirrorV)
+        {
+            Bitmap bmp = GetBitmap();
+            int newWidth = mirrorU ? Width * 2 : Width;
+            int newHeight = mirrorV ? Height * 2 : Height;
+            Bitmap resultBitmap = new Bitmap(newWidth, newHeight, PixelFormat.Format32bppArgb);
+
+            {
+                Rectangle srcRegion = new Rectangle(0, 0, Width, Height);
+                Rectangle dstRegion = new Rectangle(0, 0, Width, Height);
+                using (System.Drawing.Graphics graphic = System.Drawing.Graphics.FromImage(resultBitmap))
+                {
+                    graphic.DrawImage(bmp, dstRegion, srcRegion, GraphicsUnit.Pixel);
+                }
+            }
+
+            if (mirrorU)
+            {
+                Bitmap right = new Bitmap(bmp);
+                right.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                Rectangle srcRegion = new Rectangle(0, 0, Width, Height);
+                Rectangle dstRegion = new Rectangle(Width, 0, Width, Height);
+                using (System.Drawing.Graphics graphic = System.Drawing.Graphics.FromImage(resultBitmap))
+                {
+                    graphic.DrawImage(right, dstRegion, srcRegion, GraphicsUnit.Pixel);
+                }
+            }
+
+            if (mirrorV)
+            {
+                Bitmap bottom = null;
+                if (mirrorU)
+                {
+                    bottom = new Bitmap(resultBitmap);
+                }
+                else
+                {
+                    bottom = new Bitmap(bmp); 
+                }
+                bottom.RotateFlip(RotateFlipType.RotateNoneFlipY);
+                Rectangle srcRegion = new Rectangle(0, Height, bottom.Width, Height);
+                Rectangle dstRegion = new Rectangle(0, Height, bottom.Width, Height);
+                using (System.Drawing.Graphics graphic = System.Drawing.Graphics.FromImage(resultBitmap))
+                {
+                    graphic.DrawImage(bottom, dstRegion, srcRegion, GraphicsUnit.Pixel);
+                }
+            }
+
+            SetPixels(resultBitmap);
         }
     }
 }

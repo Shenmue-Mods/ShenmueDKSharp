@@ -67,6 +67,10 @@ namespace ShenmueDKSharp.Files.Containers
             while (reader.BaseStream.CanRead)
             {
                 if (reader.BaseStream.Position >= reader.BaseStream.Length - 16) break;
+                uint token = reader.ReadUInt32();
+                if (token == 0) continue;
+                reader.BaseStream.Seek(-4, SeekOrigin.Current);
+
                 TEXN texture = new TEXN(reader);
                 if (TextureDatabase.Automatic)
                 {

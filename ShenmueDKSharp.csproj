@@ -254,15 +254,19 @@
     <Compile Include="Files\Subtitles\SRF.cs" />
     <Compile Include="Files\Subtitles\SUB.cs" />
     <Compile Include="Extensions\BinaryReaderExtensions.cs" />
+    <Compile Include="Structs\Scene.cs" />
     <Compile Include="Structs\TextureID.cs" />
+    <Compile Include="Utils\Exceptions.cs" />
     <Compile Include="Utils\FilenameDatabase.cs" />
     <Compile Include="Utils\Helper.cs" />
     <Compile Include="Extensions\MathExtensions.cs" />
     <Compile Include="Utils\MurmurHash2.cs" />
     <Compile Include="Utils\NodeParser.cs" />
     <Compile Include="Extensions\ObjectExtensions.cs" />
+    <Compile Include="Utils\SceneManager.cs" />
     <Compile Include="Utils\SimpleJSON.cs" />
     <Compile Include="Utils\TextureDatabase.cs" />
+    <Compile Include="Utils\VirtualFileSystem.cs" />
     <Compile Include="Utils\Wulinshu.cs" />
   </ItemGroup>
   <ItemGroup>

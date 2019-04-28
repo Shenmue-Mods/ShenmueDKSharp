@@ -66,7 +66,7 @@ namespace ShenmueDKSharp.Files.Containers
             Signature = reader.ReadUInt32();
             if (!IsValid(Signature))
             {
-                throw new InvalidDataException();
+                throw new InvalidFileSignatureException();
             }
             FileCount = reader.ReadUInt32();
             Entries.Clear();

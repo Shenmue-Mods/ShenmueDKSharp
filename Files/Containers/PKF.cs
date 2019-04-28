@@ -52,6 +52,8 @@ namespace ShenmueDKSharp.Files.Containers
         public uint FileCount { get; set; }
         public List<PKFEntry> Entries { get; set; } = new List<PKFEntry>();
 
+        public IPAC IPAC { get; set; } = null;
+
         /// <summary>
         /// True if the read PKF was compressed and can be set if you want to compress the PKF when writing.
         /// </summary>
@@ -91,6 +93,11 @@ namespace ShenmueDKSharp.Files.Containers
 
             //Read header
             Identifier = reader.ReadUInt32();
+            if (!IsValid(Identifier))
+            {
+                throw new InvalidFileSignatureException();
+            }
+
             ContentSize = reader.ReadUInt32();
             Unknown = reader.ReadUInt32();
             FileCount = reader.ReadUInt32();
@@ -132,6 +139,12 @@ namespace ShenmueDKSharp.Files.Containers
                         }
                     }
                 }
+            }
+
+            reader.BaseStream.Seek(ContentSize, SeekOrigin.Begin);
+            if (reader.BaseStream.CanRead)
+            {
+                IPAC = new IPAC(reader);
             }
 
             if (Compress)
@@ -210,6 +223,10 @@ namespace ShenmueDKSharp.Files.Containers
                 {
                     stream.Write(entry.Buffer, 0, entry.Buffer.Length);
                 }
+            }
+            if (IPAC != null)
+            {
+                IPAC.Unpack(folder);
             }
         }
 

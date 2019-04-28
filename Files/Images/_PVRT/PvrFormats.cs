@@ -20,6 +20,7 @@ namespace ShenmueDKSharp.Files.Images._PVRT
     // Pvr Data Formats
     public enum PvrDataFormat : byte
     {
+        RAW                                 = 0x00, //Supported
         SQUARE_TWIDDLED                     = 0x01, //Supported
         SQUARE_TWIDDLED_MIPMAP              = 0x02, //Supported
         VECTOR_QUANTIZATION                 = 0x03, //Supported

@@ -86,6 +86,11 @@ namespace ShenmueDKSharp.Files.Containers
             }
 
             Signature = reader.ReadUInt32();
+            if (!IsValid(Signature))
+            {
+                throw new InvalidFileSignatureException();
+            }
+
             IPACOffset = reader.ReadUInt32();
             Unknown1 = reader.ReadUInt32();
             Unknown2 = reader.ReadUInt32();

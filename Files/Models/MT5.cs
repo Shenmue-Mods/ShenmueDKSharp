@@ -82,9 +82,6 @@ namespace ShenmueDKSharp.Files.Models
             TextureOffset = reader.ReadUInt32();
             FirstNodeOffset = reader.ReadUInt32();
 
-            reader.BaseStream.Seek(FirstNodeOffset, SeekOrigin.Begin);
-            RootNode = new MT5Node(reader, null);
-
             if (TextureOffset != 0)
             {
                 reader.BaseStream.Seek(TextureOffset, SeekOrigin.Begin);
@@ -95,10 +92,13 @@ namespace ShenmueDKSharp.Files.Models
                 {
                     Textures.Add(tex);
                 }
-
-                //Resolve the textures in the faces
-                RootNode.ResolveFaceTextures(Textures);
             }
+
+            reader.BaseStream.Seek(FirstNodeOffset, SeekOrigin.Begin);
+            RootNode = new MT5Node(reader, null, this);
+
+            //Resolve the textures in the faces
+            RootNode.ResolveFaceTextures(Textures);
         }
 
         protected override void _Write(BinaryWriter writer)
@@ -153,12 +153,15 @@ namespace ShenmueDKSharp.Files.Models
         public uint NextNode;
 
         public MT5Mesh MeshData;
+        public MT5 MT5;
 
         /// <summary>
         /// Creates a new MT5Node instance from the given model node.
         /// </summary>
-        public MT5Node(ModelNode node, MT5Node parent = null)
+        public MT5Node(ModelNode node, MT5Node parent = null, MT5 mt5 = null)
         {
+            MT5 = mt5;
+
             ID = node.ID;
             Rotation = node.Rotation;
             Position = node.Position;
@@ -177,17 +180,18 @@ namespace ShenmueDKSharp.Files.Models
             MeshData = new MT5Mesh(node, this);
             if (node.Child != null)
             {
-                Child = new MT5Node(node.Child, this);
+                Child = new MT5Node(node.Child, this, mt5);
             }
             if (node.Sibling != null)
             {
-                Sibling = new MT5Node(node.Sibling, this);
+                Sibling = new MT5Node(node.Sibling, this, mt5);
             }
             Parent = parent;
         }
 
-        public MT5Node(BinaryReader reader, MT5Node parent)
+        public MT5Node(BinaryReader reader, MT5Node parent, MT5 mt5 = null)
         {
+            MT5 = mt5;
             Read(reader, parent);
         }
 
@@ -233,12 +237,12 @@ namespace ShenmueDKSharp.Files.Models
             if (ChildOffset != 0)
             {
                 reader.BaseStream.Seek(ChildOffset, SeekOrigin.Begin);
-                Child = new MT5Node(reader, this);
+                Child = new MT5Node(reader, this, MT5);
             }
             if (SiblingOffset != 0)
             {
                 reader.BaseStream.Seek(SiblingOffset, SeekOrigin.Begin);
-                Sibling = new MT5Node(reader, (MT5Node)Parent);
+                Sibling = new MT5Node(reader, (MT5Node)Parent, MT5);
             }
             reader.BaseStream.Seek(offset, SeekOrigin.Begin);
         }
@@ -315,7 +319,7 @@ namespace ShenmueDKSharp.Files.Models
 
         public override string ToString()
         {
-            return String.Format("[{0}] MT5 Node: {1} (Bone: {2})", Offset, ID, BoneID);
+            return String.Format("[{0}] MT5 Node: {1} (Bone: {2}, Name: {3}, Unknown: {4})", Offset, ID, BoneID, ObjectName, Unknown);
         }
     }
 }

@@ -27,13 +27,13 @@ namespace ShenmueDKSharp.Files.Models._MT5
 
         //Reading and writing helper variables
         public List<MT5StripEntry> StripEntries = new List<MT5StripEntry>();
-        public uint CurrentTextureIndex;
+        public uint CurrentTextureIndex = 0;
         public uint CurrentUVIndex;
         public uint CurrentColorIndex;
-        public bool CurrentIsUVH;
-        public bool CurrentMirrorU;
-        public bool CurrentMirrorV;
-        public float CurrentUVSize;
+        public bool CurrentIsUVH = true;
+        public bool CurrentMirrorU = false;
+        public bool CurrentMirrorV = false;
+        public float CurrentUVSize = 1024.0f;
 
         /// <summary>
         /// All types based on sm1 asm
@@ -208,6 +208,10 @@ namespace ShenmueDKSharp.Files.Models._MT5
                         MT5StripTexture stripTexture = new MT5StripTexture();
                         stripTexture.Read(reader);
                         CurrentTextureIndex = stripTexture.TextureIndex;
+                        if (CurrentTextureIndex < Node.MT5.Textures.Count)
+                        {
+                            Node.MT5.Textures[(int)CurrentTextureIndex].Image.MirrorResize(CurrentMirrorU, CurrentMirrorV);
+                        }
                         StripEntries.Add(stripTexture);
                         continue;
 
@@ -694,27 +698,21 @@ namespace ShenmueDKSharp.Files.Models._MT5
                             }
                         }
 
-                        /* // mirroring the uv coords does not work because of missing vertices
                         if (uMirror)
                         {
                             if (texU > 1.0f)
                             {
-                                float over = (float)Math.Round(texU, 0);
-                                float dec = texU - over;
-                                texU = 1.0f - dec;
+                                texU /= 2.0f;
                             }
-                            
                         }
 
                         if (vMirror)
                         {
                             if (texV > 1.0f)
                             {
-                                float over = (float)Math.Round(texV, 0);
-                                float dec = texV - over;
-                                texV = 1.0f - dec;
+                                texV /= 2.0f;
                             }
-                        }*/
+                        }
 
                         m_mesh.Node.VertexUVs.Add(new Vector2(texU, texV));
                         face.UVIndices.Add((ushort)m_mesh.CurrentUVIndex);

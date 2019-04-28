@@ -50,7 +50,7 @@ namespace ShenmueDKSharp.Files
         /// </summary>
         public byte[] Buffer { get; set; }
 
-
+        protected long BaseOffset { get; set; }
 
 
 
@@ -83,13 +83,13 @@ namespace ShenmueDKSharp.Files
         /// </summary>
         public void Read(BinaryReader reader)
         {
-            long baseOffset = reader.BaseStream.Position;
+            BaseOffset = reader.BaseStream.Position;
             _Read(reader);
 
             if (reader.BaseStream.CanSeek && BufferingEnabled)
             {
-                long size = reader.BaseStream.Position - baseOffset;
-                reader.BaseStream.Seek(baseOffset, SeekOrigin.Begin);
+                long size = reader.BaseStream.Position - BaseOffset;
+                reader.BaseStream.Seek(BaseOffset, SeekOrigin.Begin);
                 Buffer = reader.ReadBytes((int)size);
             }
             //reader.Close();
@@ -138,6 +138,7 @@ namespace ShenmueDKSharp.Files
         /// </summary>
         public void Write(BinaryWriter writer)
         {
+            BaseOffset = writer.BaseStream.Position;
             _Write(writer);
         }
 

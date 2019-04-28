@@ -1173,6 +1173,7 @@ namespace ShenmueDKSharp.Files.Images._PVRT
                     return new Index8();
                 case PvrDataFormat.PALETTIZE_8BIT_MIPMAP:
                     return new Index8Mipmap();
+                case PvrDataFormat.RAW:
                 case PvrDataFormat.RECTANGLE:
                 case PvrDataFormat.RECTANGLE_STRIDE:
                     return new Rectangle();

@@ -69,6 +69,11 @@ namespace ShenmueDKSharp.Files.Containers
 
             //Read header
             Signature = reader.ReadUInt32();
+            if (!IsValid(Signature))
+            {
+                throw new InvalidFileSignatureException();
+            }
+
             DictionaryOffset = reader.ReadUInt32();
             FileCount = reader.ReadUInt32();
             ContentSize = reader.ReadUInt32();
