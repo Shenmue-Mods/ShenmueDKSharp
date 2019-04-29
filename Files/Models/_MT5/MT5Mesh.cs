@@ -210,6 +210,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
                         CurrentTextureIndex = stripTexture.TextureIndex;
                         if (CurrentTextureIndex < Node.MT5.Textures.Count)
                         {
+                            if (Node.MT5.Textures[(int)CurrentTextureIndex].Image == null) continue;
                             Node.MT5.Textures[(int)CurrentTextureIndex].Image.MirrorResize(CurrentMirrorU, CurrentMirrorV);
                         }
                         StripEntries.Add(stripTexture);

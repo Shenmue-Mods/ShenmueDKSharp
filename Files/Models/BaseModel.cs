@@ -73,8 +73,10 @@ namespace ShenmueDKSharp.Files.Models
     /// </summary>
     public class ModelNode
     {
-
         public bool HasMesh = false;
+        public string ModelName = "";
+        public string CHRTID = "";
+        public string CHRTIMAGE = "";
 
         public Vector3 Position = Vector3.Zero;
         /// <summary>
