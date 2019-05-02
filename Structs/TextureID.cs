@@ -30,7 +30,10 @@ namespace ShenmueDKSharp.Structs
         public TextureID() { }
         public TextureID(TextureID id)
         {
-            Data = id.Data;
+            if (id != null)
+            {
+                Data = id.Data;
+            }
         }
         public TextureID(BinaryReader reader)
         {
@@ -39,12 +42,13 @@ namespace ShenmueDKSharp.Structs
 
         public static bool operator ==(TextureID id1, TextureID id2)
         {
+            if (id1 == null || id2 == null) return false;
             return id1.Data == id2.Data;
         }
 
         public static bool operator !=(TextureID id1, TextureID id2)
         {
-            return id1.Data != id2.Data;
+            return !(id1 == id2);
         }
 
         public void Read(BinaryReader reader)
@@ -59,6 +63,7 @@ namespace ShenmueDKSharp.Structs
 
         public override bool Equals(object obj)
         {
+            if (obj == null) return false;
             var texID = obj as TextureID;
             return texID != null && Data == texID.Data;
         }
