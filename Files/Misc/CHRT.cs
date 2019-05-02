@@ -17,7 +17,7 @@ namespace ShenmueDKSharp.Files.Misc
 
         public override bool BufferingEnabled => false;
 
-        ModelNode RootNode;
+        public ModelNode RootNode;
 
         private string ReadString(BinaryReader reader, UInt32 offset)
         {
@@ -100,6 +100,7 @@ namespace ShenmueDKSharp.Files.Misc
                                     {
                                         currentNode.ModelName = n.ModelName;
                                         currentNode.CHRTIMAGE = n.CHRTID;
+                                        break;
                                     }
                                     n = n.Sibling;
                                 }
