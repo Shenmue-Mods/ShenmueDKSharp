@@ -82,6 +82,7 @@ namespace ShenmueDKSharp.Files.Models._OBJ
             for (int i = 0; i < Textures.Count; i++)
             {
                 Texture texture = Textures[i];
+                if (texture == null || texture.TextureID == null) continue;
                 string name = texture.TextureID.Data.ToString("x16");
                 string materialName = String.Format("mat_{0}\n", name);
                 MaterialNames.Add(materialName);
