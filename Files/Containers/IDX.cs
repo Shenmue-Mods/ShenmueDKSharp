@@ -83,7 +83,7 @@ namespace ShenmueDKSharp.Files.Containers
             if (Type == IDXType.HUMANS)
             {
                 reader.BaseStream.Seek(-4, SeekOrigin.Current);
-                EntryCount = reader.ReadUInt16();
+                EntryCount = (ushort)reader.ReadUInt32();
             }
             else if (Type == IDXType.IDXD)
             {
@@ -117,7 +117,7 @@ namespace ShenmueDKSharp.Files.Containers
             if (Type == IDXType.HUMANS)
             {
                 uint fileCount = EntryCount;
-                for (int i = 0; i < fileCount; i += 2)
+                for (int i = 0; i < fileCount; i++)
                 {
                     IDXEntry entryPKF = new IDXEntry(reader, Type);
                     entryPKF.AFSIndex = (ushort)i;

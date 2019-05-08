@@ -11,6 +11,8 @@ namespace ShenmueDKSharp.Files.Containers
     /// </summary>
     public class AFS : BaseFile
     {
+        public static bool AutomaticLoadIDX = true;
+
         public static bool EnableBuffering = false;
         public override bool BufferingEnabled => EnableBuffering;
 
@@ -122,6 +124,20 @@ namespace ShenmueDKSharp.Files.Containers
                 reader.BaseStream.Seek(baseOffset + entry.Offset, SeekOrigin.Begin);
                 entry.ReadData(reader);
             }
+
+            if (AutomaticLoadIDX)
+            {
+                if (typeof(FileStream).IsAssignableFrom(reader.BaseStream.GetType()))
+                {
+                    FileStream fs = (FileStream)reader.BaseStream;
+                    string idxPath = Path.ChangeExtension(fs.Name, ".IDX");
+                    if (File.Exists(idxPath))
+                    {
+                        IDX idx = new IDX(idxPath);
+                        MapIDXFile(idx);
+                    }
+                }
+            }
         }
 
         protected override void _Write(BinaryWriter writer)
@@ -194,7 +210,12 @@ namespace ShenmueDKSharp.Files.Containers
             }
             foreach (AFSEntry entry in Entries)
             {
-                using (FileStream stream = File.Open(folder + "\\" + entry.Filename, FileMode.Create))
+                string filename = entry.Filename;
+                if (!String.IsNullOrEmpty(entry.IDXFilename))
+                {
+                    filename = entry.IDXFilename + Path.GetExtension(filename);
+                }
+                using (FileStream stream = File.Open(folder + "\\" + filename, FileMode.Create))
                 {
                     stream.Write(entry.Buffer, 0, (int)entry.FileSize);
                 }
