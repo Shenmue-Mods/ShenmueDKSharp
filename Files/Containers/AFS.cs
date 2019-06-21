@@ -198,7 +198,7 @@ namespace ShenmueDKSharp.Files.Containers
         /// <summary>
         /// Unpacks all files into the given folder or, when empty, in an folder next to the AFS file.
         /// </summary>
-        public void Unpack(string folder = "")
+        public void Unpack(string folder = "", bool texOverride = false)
         {
             if (String.IsNullOrEmpty(folder))
             {
@@ -208,16 +208,37 @@ namespace ShenmueDKSharp.Files.Containers
             {
                 Directory.CreateDirectory(folder);
             }
-            foreach (AFSEntry entry in Entries)
+
+            if (texOverride)
             {
-                string filename = entry.Filename;
-                if (!String.IsNullOrEmpty(entry.IDXFilename))
+                int counter = 0;
+                foreach (AFSEntry entry in Entries)
                 {
-                    filename = entry.IDXFilename + Path.GetExtension(filename);
+                    string filename = String.Format("afs{0:00000}_{1}", counter, Path.GetExtension(entry.Filename));
+                    if (counter % 2 != 0)
+                    {
+                        filename = String.Format("afs{0:00000}_{1}", counter - 1, Path.GetExtension(entry.Filename));
+                    }
+                    using (FileStream stream = File.Open(folder + "\\" + filename, FileMode.Create))
+                    {
+                        stream.Write(entry.Buffer, 0, (int)entry.FileSize);
+                    }
+                    counter++;
                 }
-                using (FileStream stream = File.Open(folder + "\\" + filename, FileMode.Create))
+            }
+            else
+            {
+                foreach (AFSEntry entry in Entries)
                 {
-                    stream.Write(entry.Buffer, 0, (int)entry.FileSize);
+                    string filename = entry.Filename;
+                    if (!String.IsNullOrEmpty(entry.IDXFilename))
+                    {
+                        filename = entry.IDXFilename + Path.GetExtension(filename);
+                    }
+                    using (FileStream stream = File.Open(folder + "\\" + filename, FileMode.Create))
+                    {
+                        stream.Write(entry.Buffer, 0, (int)entry.FileSize);
+                    }
                 }
             }
         }

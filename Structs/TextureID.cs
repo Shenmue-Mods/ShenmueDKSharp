@@ -13,12 +13,27 @@ namespace ShenmueDKSharp.Structs
 
         public UInt64 Data { get; set; } = 4920561122670497614;
 
+        public string HexStr
+        {
+            get {
+                StringBuilder sb = new StringBuilder();
+                byte[] data = BitConverter.GetBytes(Data);
+                for (int i = 0; i < 8; i++)
+                {
+                    sb.Append(data[i].ToString("X"));
+                }
+                return sb.ToString();
+            }
+        }
+
         public string Name
         {
             get
             {
                 byte[] data = BitConverter.GetBytes(Data);
-                return m_shiftJis.GetString(data);
+                byte[] trimmed = new byte[7];
+                Array.Copy(data, 1, trimmed, 0, 7);
+                return m_shiftJis.GetString(trimmed);
             }
             set
             {
