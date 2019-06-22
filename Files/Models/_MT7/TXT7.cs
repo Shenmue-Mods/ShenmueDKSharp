@@ -78,7 +78,9 @@ namespace ShenmueDKSharp.Files.Models._MT7
                     return Textures[i];
                 }
             }
-            return null;
+            Texture tex = new Texture();
+            tex.TextureID = textureID;
+            return tex;
         }
 
         public class TXT7Entry

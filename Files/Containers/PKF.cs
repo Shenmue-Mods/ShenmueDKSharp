@@ -144,7 +144,14 @@ namespace ShenmueDKSharp.Files.Containers
             reader.BaseStream.Seek(ContentSize, SeekOrigin.Begin);
             if (reader.BaseStream.CanRead && reader.BaseStream.Position + 8 < reader.BaseStream.Length)
             {
-                IPAC = new IPAC(reader);
+                try
+                {
+                    IPAC = new IPAC(reader);
+                }
+                catch (Exception e)
+                {
+
+                }
             }
 
             if (Compress)

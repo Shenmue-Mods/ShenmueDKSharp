@@ -96,15 +96,18 @@ namespace ShenmueDKSharp.Files.Models._MT5
                             TextureDatabase.SearchDirectory(dir);
                         }
 
-                        TEXN texture = TextureDatabase.FindTexture(idName);
-                        if (texture != null)
+                        if (MT5.UseTextureDatabase)
                         {
-                            tex.Image = texture.Texture;
-                            Textures.Add(tex);
-                        }
-                        else
-                        {
-                            Textures.Add(tex);
+                            TEXN texture = TextureDatabase.FindTexture(idName);
+                            if (texture != null)
+                            {
+                                tex.Image = texture.Texture;
+                                Textures.Add(tex);
+                            }
+                            else
+                            {
+                                Textures.Add(tex);
+                            }
                         }
                     }
                 }

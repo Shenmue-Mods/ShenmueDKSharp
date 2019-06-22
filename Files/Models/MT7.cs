@@ -19,6 +19,7 @@ namespace ShenmueDKSharp.Files.Models
     /// </summary>
     public class MT7 : BaseModel
     {
+        public static bool UseTextureDatabase = true;
         public static bool SearchTexturesOneDirUp = false;
         public static bool EnableBuffering = true;
         public override bool BufferingEnabled => EnableBuffering;
@@ -165,24 +166,33 @@ namespace ShenmueDKSharp.Files.Models
                 TextureDatabase.SearchDirectory(dir);
             }
 
-            foreach (TextureEntry entry in TextureEntries)
+            if (MT7.UseTextureDatabase)
             {
-                if (entry.Texture != null) continue;
-
-                TEXN texture = TextureDatabase.FindTexture(entry.TextureID.Data);
-                if (texture == null)
+                foreach (TextureEntry entry in TextureEntries)
                 {
-                    Console.WriteLine("Couldn't find texture: {0}", entry.TextureID.Name);
-                    continue;
+                    if (entry.Texture != null) continue;
+
+                    TEXN texture = TextureDatabase.FindTexture(entry.TextureID.Data);
+                    if (texture == null)
+                    {
+                        Console.WriteLine("Couldn't find texture: {0}", entry.TextureID.Name);
+                        continue;
+                    }
+                    entry.Texture = new Texture();
+                    entry.Texture.TextureID = new TextureID(texture.TextureID);
+                    entry.Texture.Image = texture.Texture;
                 }
-                entry.Texture = new Texture();
-                entry.Texture.TextureID = new TextureID(texture.TextureID);
-                entry.Texture.Image = texture.Texture;
             }
+            
 
             //Populate base class textures
             foreach(TextureEntry entry in TextureEntries)
             {
+                if (entry.Texture == null)
+                {
+                    entry.Texture = new Texture();
+                    entry.Texture.TextureID = entry.TextureID;
+                }
                 Textures.Add(entry.Texture);
             }
 
