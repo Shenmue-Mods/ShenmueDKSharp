@@ -104,7 +104,7 @@ namespace ShenmueDKSharp.Files.Models._MT5
                         }
                         else
                         {
-                            Textures.Add(null);
+                            Textures.Add(tex);
                         }
                     }
                 }

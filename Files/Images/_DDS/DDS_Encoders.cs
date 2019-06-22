@@ -30,9 +30,9 @@ namespace ShenmueDKSharp.Files.Images._DDS
                 int position = sourcePosition + 3;  // Only want to read alphas
                 for (int i = 0; i < 8; i += 2)
                 {
-                    destination[destPosition + i] = (byte)((imgData[position] & 0xF0) | (imgData[position + 4] >> 4));
-                    destination[destPosition + i + 1] = (byte)((imgData[position + 8] & 0xF0) | (imgData[position + 12] >> 4));
-
+                    destination[destPosition + i] = (byte)((imgData[position + 4] & 0xF0) | (imgData[position] >> 4));
+                    destination[destPosition + i + 1] = (byte)((imgData[position + 12] & 0xF0) | (imgData[position + 8] >> 4));
+                    
                     position += sourceLineLength;
                 }
             }

@@ -16,6 +16,7 @@ namespace ShenmueDKSharp.Files.Models
     /// </summary>
     public class MT5 : BaseModel
     {
+        public static bool UVMirrorTextureResize = true;
         public static bool SearchTexturesOneDirUp = false;
         public static bool EnableBuffering = true;
         public override bool BufferingEnabled => EnableBuffering;

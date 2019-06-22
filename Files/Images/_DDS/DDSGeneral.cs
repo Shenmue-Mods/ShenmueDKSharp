@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -285,6 +288,8 @@ namespace ShenmueDKSharp.Files.Images._DDS
 
         internal static byte[] Save(List<MipMap> mipMaps, DDSFormatDetails destFormatDetails, AlphaSettings alphaSetting, MipHandling mipChoice)
         {
+            DDSFormatDetails loadedFormatDetails = new DDSFormatDetails(DDSFormat.DDS_ARGB_8);
+
             if ((destFormatDetails.IsMippable && mipChoice == MipHandling.GenerateNew) || (destFormatDetails.IsMippable && mipMaps.Count == 1 && mipChoice == MipHandling.Default))
                 BuildMipMaps(mipMaps);
 
@@ -317,7 +322,7 @@ namespace ShenmueDKSharp.Files.Images._DDS
                 int mipOffset = headerLength;
                 foreach (MipMap mipmap in mipMaps)
                 {
-                    var temp = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor, alphaSetting);
+                    var temp = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor, alphaSetting, loadedFormatDetails);
                     if (temp != -1)  // When dimensions too low.
                         mipOffset = temp;
                 }
@@ -338,7 +343,7 @@ namespace ShenmueDKSharp.Files.Images._DDS
                     // Get MipOffset
                     int offset = GetMipOffset(mipIndex, destFormatDetails, width, height);
 
-                    WriteUncompressedMipMap(destination, offset, mipMaps[mipIndex], destFormatDetails, header.ddspf);
+                    WriteUncompressedMipMap(destination, offset, mipMaps[mipIndex], loadedFormatDetails, destFormatDetails, header.ddspf);
                 });
 
                 if (EnableThreading)
@@ -357,13 +362,13 @@ namespace ShenmueDKSharp.Files.Images._DDS
 
 
         static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int, AlphaSettings, DDSFormatDetails> compressor, 
-            AlphaSettings alphaSetting)  
+            AlphaSettings alphaSetting, DDSFormatDetails loadedFormatDetails)  
         {
             if (mipmap.Width < 4 || mipmap.Height < 4)
                 return -1;
 
             int destinationTexelCount = mipmap.Width * mipmap.Height / 16;
-            int sourceLineLength = mipmap.Width * 4;
+            int sourceLineLength = mipmap.Width * 4 * loadedFormatDetails.ComponentSize;
             int numTexelsInLine = mipmap.Width / 4;
 
             var mipWriter = new Action<int>(texelIndex =>
@@ -371,8 +376,8 @@ namespace ShenmueDKSharp.Files.Images._DDS
                 // Since this is the top corner of the first texel in a line, skip 4 pixel rows (texel = 4x4 pixels) and the number of rows down the bitmap we are already.
                 int sourceLineOffset = sourceLineLength * 4 * (texelIndex / numTexelsInLine);  // Length in bytes x 3 lines x texel line index (how many texel sized lines down the image are we). Index / width will truncate, so for the first texel line, it'll be < 0. For the second texel line, it'll be < 1 and > 0.
 
-                int sourceTopLeftCorner = ((texelIndex % numTexelsInLine) * 16) + sourceLineOffset; // *16 since its 4 pixels with 4 channels each. Index % numTexels will effectively reset each line.
-                compressor(mipmap.Pixels, sourceTopLeftCorner, sourceLineLength, destination, mipOffset + texelIndex * blockSize, alphaSetting, new DDSFormatDetails(DDSFormat.DDS_ARGB_8));
+                int sourceTopLeftCorner = ((texelIndex % numTexelsInLine) * 16) * loadedFormatDetails.ComponentSize + sourceLineOffset; // *16 since its 4 pixels with 4 channels each. Index % numTexels will effectively reset each line.
+                compressor(mipmap.Pixels, sourceTopLeftCorner, sourceLineLength, destination, mipOffset + texelIndex * blockSize, alphaSetting, loadedFormatDetails);
             });
 
             // Choose an acceleration method.
@@ -390,9 +395,9 @@ namespace ShenmueDKSharp.Files.Images._DDS
             return mipOffset + destinationTexelCount * blockSize;
         }
 
-        static void WriteUncompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, DDSFormatDetails destFormatDetails, DDS_Header.DDS_PIXELFORMAT ddspf)
+        static void WriteUncompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, DDSFormatDetails loadedFormatDetails, DDSFormatDetails destFormatDetails, DDS_Header.DDS_PIXELFORMAT ddspf)
         {
-            DDS_Encoders.WriteUncompressed(mipmap.Pixels, destination, mipOffset, ddspf, new DDSFormatDetails(DDSFormat.DDS_ARGB_8), destFormatDetails);
+            DDS_Encoders.WriteUncompressed(mipmap.Pixels, destination, mipOffset, ddspf, loadedFormatDetails, destFormatDetails);
         }
 
         /// <summary>
@@ -437,47 +442,33 @@ namespace ShenmueDKSharp.Files.Images._DDS
 
         public static MipMap Resize(MipMap mipMap, double xScale, double yScale)
         {
+            Bitmap bmp = mipMap.GetBitmap();
             int width = (int)(mipMap.Width * xScale);
             int height = (int)(mipMap.Height * yScale);
-            byte[] buffer = new byte[width * height * 4];
-            
-            int kernelWidth = mipMap.Width / width;
-            int kernelHeight = mipMap.Height / height;
-            int kernelSize = kernelWidth * kernelHeight;
 
-            for (int y = 0; y < height; y++)
+            var destRect = new Rectangle(0, 0, width, height);
+            var destImage = new Bitmap(width, height);
+
+            destImage.SetResolution(bmp.HorizontalResolution, bmp.VerticalResolution);
+
+            using (var graphics = System.Drawing.Graphics.FromImage(destImage))
             {
-                for (int x = 0; x < width; x++)
-                {
-                    int destIndex = y * width + x;
-                    
-                    int newB = 0;
-                    int newG = 0;
-                    int newR = 0;
-                    int newA = 0;
-                    for (int k = 0; k < kernelHeight; k++)
-                    {
-                        for (int j = 0; j < kernelWidth; j++)
-                        {
-                            int srcIndex = ((y + k) * mipMap.Width + (x + j)) * 4;
-                            newB += mipMap.Pixels[srcIndex];
-                            newG += mipMap.Pixels[srcIndex + 1];
-                            newR += mipMap.Pixels[srcIndex + 2];
-                            newA += mipMap.Pixels[srcIndex + 3];
-                        }
-                    }
-                    newB = newB / kernelSize;
-                    newG = newG / kernelSize;
-                    newR = newR / kernelSize;
-                    newA = newA / kernelSize;
+                graphics.CompositingMode = CompositingMode.SourceCopy;
+                graphics.CompositingQuality = CompositingQuality.HighQuality;
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-                    buffer[destIndex] = (byte)newB; //B
-                    buffer[destIndex + 1] = (byte)newG; //G
-                    buffer[destIndex + 2] = (byte)newR; //R
-                    buffer[destIndex + 3] = (byte)newA; //A
+                using (var wrapMode = new ImageAttributes())
+                {
+                    wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+                    graphics.DrawImage(bmp, destRect, 0, 0, bmp.Width, bmp.Height, GraphicsUnit.Pixel, wrapMode);
                 }
             }
-            return new MipMap(buffer, width, height);
+
+            MipMap result = new MipMap(width, height);
+            result.SetPixels(destImage);
+            return result;
         }
 
         /// <summary>

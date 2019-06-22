@@ -85,11 +85,13 @@ namespace ShenmueDKSharp.Files.Images._DDS
             if (i + 3 >= texel.Length)
                 return current;  // Fully transparent color
 
+            int componentSize = formatDetails.ComponentSize;
+            float premultiplyValue = (premultiply ? current.a : 1.0f);
 
-            current.a = formatDetails.ReadFloat(texel, i + 3 * formatDetails.ComponentSize);
-            current.r = formatDetails.ReadFloat(texel, i + 2 * formatDetails.ComponentSize) * (premultiply ? current.a : 1.0f);
-            current.g = formatDetails.ReadFloat(texel, i + formatDetails.ComponentSize) * (premultiply ? current.a : 1.0f);
-            current.b = formatDetails.ReadFloat(texel, i) * (premultiply ? current.a : 1.0f);
+            current.a = formatDetails.ReadFloat(texel, i + 3 * componentSize);
+            current.r = formatDetails.ReadFloat(texel, i + 2 * componentSize) * premultiplyValue;
+            current.g = formatDetails.ReadFloat(texel, i + componentSize) * premultiplyValue;
+            current.b = formatDetails.ReadFloat(texel, i) * premultiplyValue;
             
             return current;
         }

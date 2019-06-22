@@ -24,6 +24,15 @@ namespace ShenmueDKSharp.Structs
                 }
                 return sb.ToString();
             }
+            set
+            {
+                byte[] data = new byte[8];
+                for (int i = 0; i < value.Length / 2; i++)
+                {
+                    data[i] = (byte)int.Parse(value.Substring(i * 2, 2), System.Globalization.NumberStyles.HexNumber);
+                }
+                Data = BitConverter.ToUInt64(data, 0);
+            }
         }
 
         public string Name
@@ -53,6 +62,11 @@ namespace ShenmueDKSharp.Structs
         public TextureID(BinaryReader reader)
         {
             Read(reader);
+        }
+
+        public TextureID(string hexStr)
+        {
+            HexStr = hexStr;
         }
 
         public static bool operator ==(TextureID id1, TextureID id2)
