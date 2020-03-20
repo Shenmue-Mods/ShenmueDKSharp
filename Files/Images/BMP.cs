@@ -52,6 +52,10 @@ namespace ShenmueDKSharp.Files.Images
         {
             Read(stream);
         }
+        public BMP(Bitmap bitmap)
+        {
+            GetFromBitmap(bitmap);
+        }
         public BMP(BinaryReader reader)
         {
             Read(reader);
@@ -69,7 +73,18 @@ namespace ShenmueDKSharp.Files.Images
         protected override void _Read(BinaryReader reader)
         {
             Image image = Image.FromStream(reader.BaseStream);
-            Bitmap bmp = new Bitmap(image);
+            GetFromBitmap(new Bitmap(image));
+        }
+
+        protected override void _Write(BinaryWriter writer)
+        {
+            Bitmap bitmap = CreateBitmap();
+            bitmap.Save(writer.BaseStream, ImageFormat.Bmp);
+        }
+
+        private void GetFromBitmap(Bitmap bitmap)
+        {
+            Bitmap bmp = new Bitmap(bitmap);
             Width = bmp.Width;
             Height = bmp.Height;
 
@@ -87,12 +102,6 @@ namespace ShenmueDKSharp.Files.Images
                 }
             }
             MipMaps.Add(mipMap);
-        }
-
-        protected override void _Write(BinaryWriter writer)
-        {
-            Bitmap bitmap = CreateBitmap();
-            bitmap.Save(writer.BaseStream, ImageFormat.Bmp);
         }
     }
 }
