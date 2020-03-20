@@ -57,7 +57,7 @@ namespace ShenmueDKSharp.Files.Images
 
         public bool HasGlobalIndex { get; set; } = true;
         public uint GlobalIndexSize { get; set; } = 4;
-        public uint GlobalIndex { get; set; } = 0;
+        public byte[] GlobalIndex { get; set; } = new byte[4];
 
         /// <summary>
         /// Size of the PVRT, excluding the header.
@@ -115,7 +115,8 @@ namespace ShenmueDKSharp.Files.Images
             {
                 HasGlobalIndex = true;
                 GlobalIndexSize = reader.ReadUInt32();
-                GlobalIndex = reader.ReadUInt32();
+                GlobalIndex = reader.ReadBytes((int)GlobalIndexSize);
+
                 reader.BaseStream.Seek(4, SeekOrigin.Current); //Skip "PVRT"
                 gbixOffset = 0x00;
                 pvrtOffset = 0x08 + (int)GlobalIndexSize;
@@ -127,7 +128,7 @@ namespace ShenmueDKSharp.Files.Images
                 {
                     HasGlobalIndex = true;
                     GlobalIndexSize = reader.ReadUInt32();
-                    GlobalIndex = reader.ReadUInt32();
+                    GlobalIndex = reader.ReadBytes((int)GlobalIndexSize);
                     gbixOffset = 0x04;
                     pvrtOffset = 0x0C + (int)GlobalIndexSize;
                 }
@@ -345,7 +346,7 @@ namespace ShenmueDKSharp.Files.Images
                 if (HasGlobalIndex)
                 {
                     writer.Write(m_gbix);
-                    writer.Write(4);
+                    writer.Write(GlobalIndexSize);
                     writer.Write(GlobalIndex);
                 }
 
@@ -435,7 +436,7 @@ namespace ShenmueDKSharp.Files.Images
                 if (HasGlobalIndex)
                 {
                     outputWriter.Write(m_gbix);
-                    outputWriter.Write(4);
+                    outputWriter.Write(GlobalIndexSize);
                     outputWriter.Write(GlobalIndex);
                 }
 
